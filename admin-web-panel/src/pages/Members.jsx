@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key, Shield, MessageCircle } from 'lucide-react';
+import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key, Shield, MessageCircle, CalendarCheck } from 'lucide-react';
+import AttendanceModal from '../components/AttendanceModal';
 
 
 import { Topbar } from './Dashboard';
@@ -117,6 +118,7 @@ export default function Members() {
   const [confirmData, setConfirmData] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [acting, setActing] = useState(false);
+  const [attendanceUser, setAttendanceUser] = useState(null);
   const fileRef = useRef();
 
 
@@ -228,6 +230,14 @@ export default function Members() {
   return (
     <>
       {modalUser && <MemberModal user={modalUser==='new'?null:modalUser} onClose={()=>setModalUser(null)} onSave={()=>{ setModalUser(null); load(); }}/>}
+      {attendanceUser && (
+        <AttendanceModal 
+          userId={attendanceUser.id} 
+          userName={attendanceUser.name} 
+          onClose={() => setAttendanceUser(null)} 
+          onSave={() => { setAttendanceUser(null); load(); }} 
+        />
+      )}
       {confirmData && <ConfirmModal {...confirmData} onClose={()=>setConfirmData(null)} loading={acting} />}
       <input ref={fileRef} type="file" accept=".csv" style={{ display:'none' }} onChange={handleCSV}/>
 
@@ -279,6 +289,7 @@ export default function Members() {
                     <td>
                       <div style={{ display:'flex', gap:'5px' }}>
                         <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>setModalUser(u)} title="Edit Member"><Edit2 size={13}/></button>
+                        <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:'var(--blue)' }} onClick={() => setAttendanceUser(u)} title="Mark Attendance"><CalendarCheck size={13}/></button>
                         <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>handleResetPassword(u.id)} title="Reset Password"><Key size={13}/></button>
                         <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:u.role==='admin'?'var(--purple)':'inherit' }} onClick={()=>handleRoleChange(u)} title="Assign Role"><Shield size={13}/></button>
                         <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:'#25D366' }} onClick={()=>handleWhatsApp(u)} title="Send WhatsApp"><MessageCircle size={13}/></button>

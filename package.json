@@ -3,11 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run backend\" \"npm run admin\" \"npm run landing\"",
+    "dev": "concurrently \"npm run backend\" \"npm run admin\"",
     "backend": "cd backend && npm start",
     "admin": "cd admin-web-panel && npm run dev",
-    "landing": "npx http-server public -p 5174",
-    "build": "npm run build-admin && npm run install-backend && mkdir -p public/admin && cp -rv admin-web-panel/dist/* public/admin/",
+    "build": "npm run build-admin && npm run install-backend && cp -rv admin-web-panel/dist/* public/",
     "build-admin": "cd admin-web-panel && npm install && npm run build",
     "install-backend": "cd backend && npm install"
   },

@@ -133,7 +133,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter basename="/admin">
+        <BrowserRouter basename="/">
           <AppRoutes/>
 
           <Toaster position="top-right" toastOptions={{

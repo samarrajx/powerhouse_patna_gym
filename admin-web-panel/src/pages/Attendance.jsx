@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { RefreshCcw, Clock } from 'lucide-react';
+import { RefreshCcw, Clock, Plus } from 'lucide-react';
+import AttendanceModal from '../components/AttendanceModal';
 import { Topbar } from './Dashboard';
 
 export default function Attendance() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -29,6 +31,12 @@ export default function Attendance() {
     <>
       <Topbar title="Attendance" sub={`Today — ${new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long' })}`} />
       <div className="page-body">
+        {showModal && (
+          <AttendanceModal 
+            onClose={() => setShowModal(false)} 
+            onSave={() => { setShowModal(false); load(); }} 
+          />
+        )}
 
         {/* Summary row */}
         <div className="grid-3" style={{ marginBottom:'20px' }}>
@@ -48,9 +56,14 @@ export default function Attendance() {
         <div className="card table-card fade-up-4">
           <div className="table-header">
             <h3>Check-in Log</h3>
-            <button className="btn btn-ghost btn-sm" onClick={load}>
-              <RefreshCcw size={14} /> Refresh
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-ghost btn-sm" onClick={load}>
+                <RefreshCcw size={14} /> Refresh
+              </button>
+              <button className="btn btn-lime btn-sm" onClick={() => setShowModal(true)}>
+                <Plus size={14} /> Manual Entry
+              </button>
+            </div>
           </div>
           {loading ? (
             <div style={{ padding:'40px', display:'flex', justifyContent:'center' }}>
