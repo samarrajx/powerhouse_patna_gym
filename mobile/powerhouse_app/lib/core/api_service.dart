@@ -53,8 +53,10 @@ class ApiService {
           if (token != null) 'Authorization': 'Bearer $token',
         },
         body: jsonEncode(body),
-      );
+      ).timeout(const Duration(seconds: 10));
       return _handleResponse(response);
+    } on TimeoutException {
+      return {'success': false, 'message': 'Connection timed out. Check your IP/Network.'};
     } catch (e) {
       return {'success': false, 'message': 'Network error: ${e.toString()}'};
     }
@@ -70,8 +72,10 @@ class ApiService {
           if (token != null) 'Authorization': 'Bearer $token',
         },
         body: jsonEncode(body),
-      );
+      ).timeout(const Duration(seconds: 10));
       return _handleResponse(response);
+    } on TimeoutException {
+      return {'success': false, 'message': 'Connection timed out.'};
     } catch (e) {
       return {'success': false, 'message': 'Network error: ${e.toString()}'};
     }
@@ -85,8 +89,10 @@ class ApiService {
         headers: {
           if (token != null) 'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
       return _handleResponse(response);
+    } on TimeoutException {
+      return {'success': false, 'message': 'Connection timed out.'};
     } catch (e) {
       return {'success': false, 'message': 'Network error: ${e.toString()}'};
     }
@@ -100,8 +106,10 @@ class ApiService {
         headers: {
           if (token != null) 'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
       return _handleResponse(response);
+    } on TimeoutException {
+      return {'success': false, 'message': 'Connection timed out.'};
     } catch (e) {
       return {'success': false, 'message': 'Network error: ${e.toString()}'};
     }
