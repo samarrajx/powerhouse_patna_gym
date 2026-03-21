@@ -32,12 +32,14 @@ function Sidebar() {
   const navigate = useNavigate();
 
   const navItems = [
-    { to:'/dashboard', icon: LayoutDashboard, label:'Dashboard', section:'NAVIGATION' },
+    { section:'NAVIGATION' },
+    { to:'/dashboard', icon: LayoutDashboard, label:'Dashboard' },
     { to:'/members',   icon: Users,            label:'Members' },
     { to:'/qr-station',icon: Scan,             label:'QR Station' },
     { to:'/attendance',icon: ClipboardList,    label:'Attendance' },
     { to:'/templates', icon: MessageSquare,    label:'Templates' },
     { to:'/reports',   icon: BarChart3,        label:'Reports' },
+
 
     { section:'MANAGEMENT' },
     { to:'/schedule',  icon: Calendar,         label:'Schedule' },

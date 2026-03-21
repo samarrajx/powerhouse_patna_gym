@@ -34,11 +34,8 @@ function Topbar({ title, sub }) {
   );
 }
 
-const MOCK_CHART = [
-  { day: 'Mon', scans: 28 }, { day: 'Tue', scans: 41 }, { day: 'Wed', scans: 35 },
-  { day: 'Thu', scans: 52 }, { day: 'Fri', scans: 67 }, { day: 'Sat', scans: 44 },
-  { day: 'Sun', scans: 19 },
-];
+// Removed MOCK_CHART as we now use real backend data
+
 
 export default function Dashboard() {
   const nav = useNavigate();
@@ -122,7 +119,8 @@ export default function Dashboard() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={MOCK_CHART}>
+              <AreaChart data={stats?.weekly_footfall || []}>
+
                 <defs>
                   <linearGradient id="limeGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#C8FA00" stopOpacity={0.15} />

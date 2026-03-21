@@ -11,19 +11,54 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 // ─── Dashboard stats ────────────────────────────────────────────────────────
 router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
+  
+  // Calculate last 7 days
+  const last7Days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    last7Days.push(d.toISOString().split('T')[0]);
+  }
+
   const [
     { count: total_users },
     { count: today_attendance },
     { count: inactive_users },
     { count: expiring_soon },
+    { data: footfallRaw }
   ] = await Promise.all([
     supabase.from('users').select('*', { count: 'exact', head: true }).neq('role', 'admin').eq('status', 'active'),
     supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('date', today),
     supabase.from('users').select('*', { count: 'exact', head: true }).in('status', ['inactive', 'grace']),
     supabase.from('users').select('*', { count: 'exact', head: true }).neq('role', 'admin').lte('membership_expiry', new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]).gte('membership_expiry', today),
+    supabase.from('attendance').select('date').gte('date', last7Days[0]).lte('date', last7Days[6])
   ]);
-  res.json({ success: true, message: 'Dashboard data', data: { total_users, today_attendance, inactive_users, expiring_soon }, error_code: null });
+
+  const footfallMap = (footfallRaw || []).reduce((acc, curr) => {
+    acc[curr.date] = (acc[curr.date] || 0) + 1;
+    return acc;
+  }, {});
+
+  const weekly_footfall = last7Days.map(date => ({
+    day: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
+    full_date: date,
+    scans: footfallMap[date] || 0
+  }));
+
+  res.json({ 
+    success: true, 
+    message: 'Dashboard data', 
+    data: { 
+      total_users, 
+      today_attendance, 
+      inactive_users, 
+      expiring_soon,
+      weekly_footfall
+    }, 
+    error_code: null 
+  });
 });
+
 
 // ─── List all members ────────────────────────────────────────────────────────
 router.get('/users', authMiddleware(['admin']), async (req, res) => {
