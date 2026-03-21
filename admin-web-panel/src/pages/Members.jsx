@@ -85,7 +85,28 @@ function MemberModal({ user, onClose, onSave }) {
   );
 }
 
+function ConfirmModal({ title, message, onConfirm, onClose, loading }) {
+  return (
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal-box glass-2" style={{ maxWidth:'400px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
+          <h3 className="modal-title" style={{ fontSize:'1.1rem' }}>{title}</h3>
+          <button onClick={onClose} className="btn btn-ghost btn-sm" style={{ padding:'7px' }}><X size={15}/></button>
+        </div>
+        <p style={{ fontSize:'0.85rem', color:'var(--text-2)', marginBottom:'20px', lineHeight:'1.5' }}>{message}</p>
+        <div className="modal-footer" style={{ marginTop:'0' }}>
+          <button type="button" className="btn btn-ghost" style={{ flex:1, justifyContent:'center' }} onClick={onClose} disabled={loading}>Cancel</button>
+          <button type="button" className="btn btn-lime" style={{ flex:1, justifyContent:'center' }} onClick={onConfirm} disabled={loading}>
+            {loading ? <div className="spinner spinner-dark" style={{ width:'14px', height:'14px' }}/> : 'Confirm'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Members() {
+
   const [users, setUsers] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -93,8 +114,11 @@ export default function Members() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [modalUser, setModalUser] = useState(null);
+  const [confirmData, setConfirmData] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [acting, setActing] = useState(false);
   const fileRef = useRef();
+
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -141,27 +165,44 @@ export default function Members() {
   };
 
   const handleResetPassword = async (id) => {
-    if (!window.confirm('Reset this member\'s password to "samgym"? They will be forced to change it on their next login.')) return;
-    try {
-      await api.post(`/admin/users/${id}/reset-password`);
-      toast.success('Password reset to "samgym"');
-      load();
-    } catch(e) {
-      toast.error(e.message || 'Failed to reset password');
-    }
+    setConfirmData({
+      title: 'Reset Password',
+      message: 'Reset this member\'s password to "samgym"? They will be forced to change it on their next login.',
+      onConfirm: async () => {
+        setActing(true);
+        try {
+          await api.post(`/admin/users/${id}/reset-password`);
+          toast.success('Password reset to "samgym"');
+          load();
+          setConfirmData(null);
+        } catch(e) { toast.error(e.message || 'Failed to reset password'); }
+        finally { setActing(false); }
+      }
+    });
   };
 
   const handleRoleChange = async (user) => {
-    const newRole = user.role === 'admin' ? 'user' : 'admin';
-    if (!window.confirm(`Are you sure you want to change ${user.name}'s role to ${newRole.toUpperCase()}?`)) return;
-    try {
-      await api.put(`/admin/users/${user.id}`, { role: newRole });
-      toast.success(`Role changed to ${newRole}`);
-      load();
-    } catch(e) {
-      toast.error(e.message || 'Failed to change role');
-    }
+    const currentRole = user.role || 'user';
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    setConfirmData({
+      title: 'Change Role',
+      message: `Are you sure you want to change ${user.name}'s role to ${newRole.toUpperCase()}?`,
+      onConfirm: async () => {
+        setActing(true);
+        try {
+          await api.put(`/admin/users/${user.id}`, { role: newRole });
+          toast.success(`Role changed to ${newRole}`);
+          load();
+          setConfirmData(null);
+        } catch(e) {
+          console.error('Role change error:', e);
+          toast.error(e.message || 'Failed to change role');
+        } finally { setActing(false); }
+      }
+    });
   };
+
+
 
   const handleWhatsApp = (user) => {
     const bodyType = (user.body_type || 'average').toLowerCase();
@@ -187,7 +228,9 @@ export default function Members() {
   return (
     <>
       {modalUser && <MemberModal user={modalUser==='new'?null:modalUser} onClose={()=>setModalUser(null)} onSave={()=>{ setModalUser(null); load(); }}/>}
+      {confirmData && <ConfirmModal {...confirmData} onClose={()=>setConfirmData(null)} loading={acting} />}
       <input ref={fileRef} type="file" accept=".csv" style={{ display:'none' }} onChange={handleCSV}/>
+
       <Topbar title="Members" sub={`${users.length} total members`}/>
       <div className="page-body">
         <div className="card table-card fade-up">
