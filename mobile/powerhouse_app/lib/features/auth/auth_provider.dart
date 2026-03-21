@@ -44,22 +44,26 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> checkAuth() async {
     state = state.copyWith(isLoading: true);
-    final token = await ApiService.getToken();
-    if (token != null) {
-      final res = await ApiService.get('/auth/me');
-      if (res['success'] == true) {
-        state = AuthState(
-          isAuthenticated: true,
-          user: res['data'],
-          role: res['data']['role'],
-          isLoading: false,
-        );
+    try {
+      final token = await ApiService.getToken();
+      if (token != null) {
+        final res = await ApiService.get('/auth/me');
+        if (res['success'] == true) {
+          state = AuthState(
+            isAuthenticated: true,
+            user: res['data'],
+            role: res['data']['role'],
+            isLoading: false,
+          );
+        } else {
+          await ApiService.clearToken();
+          state = AuthState(isLoading: false);
+        }
       } else {
-        await ApiService.clearToken();
         state = AuthState(isLoading: false);
       }
-    } else {
-      state = AuthState(isLoading: false);
+    } catch (e) {
+      state = AuthState(isLoading: false, errorMessage: 'Initialization error');
     }
   }
 
