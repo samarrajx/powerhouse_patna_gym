@@ -29,12 +29,16 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
     const decoded = jwt.verify(code_hash, process.env.JWT_SECRET);
     if (decoded.type !== 'attendance_qr') throw new Error('Invalid token type');
   } catch (err) {
-    return res.status(400).json({ success: false, message: 'Invalid or expired QR code', error_code: 'INVALID_QR' });
+    console.error('[QR VERIFY ERROR]:', err.message);
+    return res.status(400).json({ success: false, message: `Invalid or expired QR: ${err.message}`, error_code: 'INVALID_QR' });
   }
 
   const user_id = req.user.userId;
+  const user_role = req.user.role;
   const today = new Date().toISOString().split('T')[0];
-  const now = new Date().toISOString(); // Full ISO date for timestamptz
+  const now = new Date().toISOString();
+
+  console.log(`[QR SCAN] User: ${user_id} (${user_role}) | Code length: ${code_hash?.length}`);
 
   // Check if user has attendance today
   const { data: existing } = await supabase.from('attendance')

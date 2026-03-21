@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/app_theme.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/auth/login_screen.dart';
-import 'features/dashboard/user_dashboard.dart';
-import 'features/dashboard/admin_dashboard.dart';
+import 'features/dashboard/user_shell.dart';
+import 'features/dashboard/admin_shell.dart';
 
 void main() {
   runApp(const ProviderScope(child: PowerHouseApp()));
@@ -36,12 +36,9 @@ class PowerHouseApp extends ConsumerWidget {
     if (!authState.isAuthenticated) {
       return const LoginScreen();
     }
-    
-    // Role-based redirection
     if (authState.role == 'admin') {
-      return const AdminDashboard();
-    } else {
-      return const UserDashboard();
+      return const AdminShell();
     }
+    return const UserShell();
   }
 }

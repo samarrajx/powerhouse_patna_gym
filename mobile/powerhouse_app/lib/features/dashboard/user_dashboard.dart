@@ -16,10 +16,20 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   Map<String, dynamic>? gymStatus;
   bool isLoading = true;
 
+  List<dynamic> _recentActivity = [];
+
   @override
   void initState() {
     super.initState();
     _fetchStatus();
+    _fetchActivity();
+  }
+
+  Future<void> _fetchActivity() async {
+    final res = await ApiService.get('/attendance/history');
+    if (mounted && res['success'] == true) {
+      setState(() => _recentActivity = (res['data'] as List).take(3).toList());
+    }
   }
 
   Future<void> _fetchStatus() async {
@@ -75,20 +85,11 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   }
 
   Widget _buildHeader(String name) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('WELCOME BACK,', style: TextStyle(color: AppColors.secondary, fontSize: 12, fontWeight: FontWeight.bold)),
-            Text(name.toUpperCase(), style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppColors.onSurface, letterSpacing: -0.5)),
-          ],
-        ),
-        IconButton(
-          onPressed: () => ref.read(authProvider.notifier).logout(),
-          icon: const Icon(Icons.logout, color: AppColors.secondary),
-        ),
+        const Text('WELCOME BACK,', style: TextStyle(color: AppColors.secondary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
+        Text(name.toUpperCase(), style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppColors.onSurface, letterSpacing: -0.5)),
       ],
     );
   }
@@ -178,32 +179,44 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   }
 
   Widget _buildActivityList() {
+    if (_recentActivity.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(4)),
+        child: const Center(child: Text('No sessions yet — scan the QR to check in!', style: TextStyle(color: AppColors.secondary, fontSize: 12))),
+      );
+    }
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: 3,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemCount: _recentActivity.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
+        final r = _recentActivity[index];
+        final date = r['date'] as String? ?? '';
+        final timeIn = r['time_in'] as String?;
+        String label = '';
+        if (timeIn != null) {
+          try {
+            final dt = DateTime.parse(timeIn).toLocal();
+            label = '${dt.hour.toString().padLeft(2,"0")}:${dt.minute.toString().padLeft(2,"0")}';
+          } catch (_) {}
+        }
         return Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(4),
-          ),
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(4)),
           child: Row(
             children: [
               const Icon(Icons.check_circle_outline, color: AppColors.primary, size: 20),
               const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Workout Session', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.onSurface)),
-                    Text('Yesterday, 6:30 PM', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
-                  ],
-                ),
-              ),
-              Text('Done', style: TextStyle(color: AppColors.primary.withValues(alpha: 0.5), fontSize: 10, fontWeight: FontWeight.bold)),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Gym Session', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.onSurface)),
+                  Text(date, style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
+                ],
+              )),
+              Text(label, style: const TextStyle(color: AppColors.secondary, fontSize: 12, fontWeight: FontWeight.bold)),
             ],
           ),
         );
