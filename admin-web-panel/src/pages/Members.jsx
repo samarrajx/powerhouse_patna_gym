@@ -11,12 +11,14 @@ function MemberModal({ user, onClose, onSave }) {
     name: user.name||'', phone: user.phone||'', phone_alt: user.phone_alt||'', roll_no: user.roll_no||'',
     address: user.address||'', father_name: user.father_name||'',
     date_of_joining: user.date_of_joining ? String(user.date_of_joining).split('T')[0] : new Date().toISOString().split('T')[0],
-    body_type: user.body_type||'average', membership_plan: user.membership_plan||'Standard',
+    body_type: user.body_type||'normal', membership_plan: user.membership_plan||'Standard',
+
     membership_expiry: user.membership_expiry ? String(user.membership_expiry).split('T')[0] : '',
     fees_status: user.fees_status||'paid', notes: user.notes||''
   } : { 
     name:'', phone:'', phone_alt:'', roll_no:'', address:'', father_name:'',
-    date_of_joining: new Date().toISOString().split('T')[0], body_type:'average',
+    date_of_joining: new Date().toISOString().split('T')[0], body_type:'normal',
+
     membership_plan:'Standard', membership_expiry:'', fees_status:'paid', notes:'' 
   });
   
@@ -39,7 +41,8 @@ function MemberModal({ user, onClose, onSave }) {
   };
 
   const PLANS = ['Standard','Gold','Platinum'];
-  const BODY_TYPES = ['slim','average','athletic','heavy'];
+  const BODY_TYPES = ['skinny','normal','fatty'];
+
 
   return (
     <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>

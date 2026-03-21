@@ -91,13 +91,22 @@ const migrations = [
 
   // 9. Seed base templates
   `INSERT INTO public.templates (category, message) VALUES
-    ('slim', 'Hey {name}, looking to bulk up? Check out our high-protein diet charts at the reception!'),
-    ('average', 'Hi {name}, staying consistent is key! Ready for today''s workout?'),
-    ('athletic', 'Great progress {name}! We have new advanced strength training routines available.'),
-    ('heavy', 'Hey {name}, focus on cardio and high reps today for maximum fat burn!')
+    ('skinny', 'Hey {name}, looking to bulk up? Check out our high-protein diet charts at the reception!'),
+    ('normal', 'Hi {name}, staying consistent is key! Ready for today''s workout?'),
+    ('fatty', 'Hey {name}, focus on cardio and high reps today for maximum fat burn!')
   ON CONFLICT (category) DO NOTHING`,
 
-  // 10. Create announcements table
+  // 10. Data migration for body types
+  `UPDATE public.users SET body_type = 'skinny' WHERE body_type IN ('slim', 'Skinny')`,
+  `UPDATE public.users SET body_type = 'normal' WHERE body_type IN ('average', 'athletic', 'Normal')`,
+  `UPDATE public.users SET body_type = 'fatty' WHERE body_type IN ('heavy', 'Fatty')`,
+  `UPDATE public.users SET body_type = 'normal' WHERE body_type IS NULL`,
+
+  // Clean up old templates if needed
+  `DELETE FROM public.templates WHERE category NOT IN ('skinny', 'normal', 'fatty')`,
+
+  // 11. Create announcements table
+
   `CREATE TABLE IF NOT EXISTS public.announcements (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
