@@ -16,11 +16,14 @@ class PowerHouseApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+    final themeMode = ref.watch(themeProvider);
 
     return MaterialApp(
       title: 'Power House Gym',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      themeMode: themeMode,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       home: _getHome(authState),
     );
   }
@@ -28,17 +31,11 @@ class PowerHouseApp extends ConsumerWidget {
   Widget _getHome(AuthState authState) {
     if (authState.isLoading) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
-    if (!authState.isAuthenticated) {
-      return const LoginScreen();
-    }
-    if (authState.role == 'admin') {
-      return const AdminShell();
-    }
+    if (!authState.isAuthenticated) return const LoginScreen();
+    if (authState.role == 'admin') return const AdminShell();
     return const UserShell();
   }
 }

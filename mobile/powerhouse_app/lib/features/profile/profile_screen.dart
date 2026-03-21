@@ -117,8 +117,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ]),
               const SizedBox(height: 24),
 
-              // Change Password
-              _buildPasswordSection(),
+              // Theme toggle
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(color: AppColors.surface(context), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.surfaceHigh(context))),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(children: [
+                    Icon(Icons.brightness_6_outlined, color: AppColors.secondary(context), size: 18),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text('DARK THEME', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.onSurface(context)))),
+                    Consumer(builder: (ctx, ref2, _) {
+                      final isDark = ref2.watch(themeProvider) == ThemeMode.dark;
+                      return Switch(
+                        value: isDark,
+                        onChanged: (_) => ref2.read(themeProvider.notifier).toggleTheme(),
+                      );
+                    }),
+                  ]),
+                ),
+              ),
               const SizedBox(height: 16),
 
               // Logout

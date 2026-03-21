@@ -28,15 +28,15 @@ class _UserShellState extends ConsumerState<UserShell> {
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: const Border(top: BorderSide(color: AppColors.surfaceHigh, width: 1)),
+          color: AppColors.surface(context),
+          border: Border(top: BorderSide(color: AppColors.surfaceHigh(context), width: 1)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (i) => setState(() => _currentIndex = i),
           backgroundColor: Colors.transparent,
           selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.secondary,
+          unselectedItemColor: AppColors.secondary(context),
           elevation: 0,
           type: BottomNavigationBarType.fixed,
           selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),

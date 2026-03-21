@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_theme.dart';
 import '../../core/api_service.dart';
-import '../auth/auth_provider.dart';
-import '../admin/user_management_screen.dart';
-import '../admin/qr_generator_screen.dart';
+import '../admin/attendance_monitor_screen.dart';
 import '../admin/add_user_screen.dart';
 
 class AdminDashboard extends ConsumerStatefulWidget {
@@ -16,176 +14,247 @@ class AdminDashboard extends ConsumerStatefulWidget {
 
 class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   Map<String, dynamic>? stats;
+  List<dynamic> _todayAttendance = [];
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchStats();
+    _fetchAll();
   }
 
-  Future<void> _fetchStats() async {
-    final res = await ApiService.get('/admin/dashboard');
+  Future<void> _fetchAll() async {
+    setState(() => isLoading = true);
+    final results = await Future.wait([
+      ApiService.get('/admin/dashboard'),
+      ApiService.get('/admin/attendance/today'),
+    ]);
     if (mounted) {
-      if (res['success'] == true) {
-        setState(() {
-          stats = res['data'];
-          isLoading = false;
-        });
-      } else {
-        setState(() => isLoading = false);
-      }
+      setState(() {
+        if (results[0]['success'] == true) stats = results[0]['data'];
+        if (results[1]['success'] == true) _todayAttendance = results[1]['data'] ?? [];
+        isLoading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final bg = AppColors.background(context);
+    final sec = AppColors.secondary(context);
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('ADMIN COMMAND CENTER', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2)),
-        centerTitle: true,
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () => ref.read(authProvider.notifier).logout(),
-            icon: const Icon(Icons.logout, color: AppColors.secondary, size: 20),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _fetchStats,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildStatsGrid(),
-              const SizedBox(height: 32),
-              const Text('QUICK ACTIONS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 12, color: AppColors.secondary)),
-              const SizedBox(height: 16),
-              _buildActionGrid(),
-              const SizedBox(height: 32),
-              _buildLiveMonitorCard(),
-            ],
+      backgroundColor: bg,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _fetchAll,
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                Text('ADMIN', style: TextStyle(color: sec, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                const Text('COMMAND CENTER', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                const SizedBox(height: 28),
+                _buildStatsGrid(context),
+                const SizedBox(height: 28),
+                _buildSectionHeader('QUICK ACTIONS', sec),
+                const SizedBox(height: 14),
+                _buildActionGrid(context),
+                const SizedBox(height: 28),
+                _buildLiveMonitor(context, sec),
+                const SizedBox(height: 28),
+                if (stats?['weekly_footfall'] != null) ...[
+                  _buildSectionHeader('WEEKLY FOOTFALL', sec),
+                  const SizedBox(height: 14),
+                  _buildFootfall(context, stats!['weekly_footfall'] as List),
+                ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildStatsGrid() {
-    final width = MediaQuery.of(context).size.width;
-    final crossAxisCount = width > 600 ? 4 : 2;
-    
-    return GridView.count(
+  Widget _buildSectionHeader(String text, Color color) {
+    return Text(text, style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 11, color: color));
+  }
+
+  Widget _buildStatsGrid(BuildContext context) {
+    final surf = AppColors.surface(context);
+    final surfH = AppColors.surfaceHigh(context);
+    final onSurf = AppColors.onSurface(context);
+    final sec = AppColors.secondary(context);
+
+    final tiles = [
+      {'label': 'TOTAL MEMBERS', 'value': stats?['total_users']?.toString() ?? '—', 'icon': Icons.people_outline, 'color': Colors.blue},
+      {'label': 'TODAY', 'value': stats?['today_attendance']?.toString() ?? '—', 'icon': Icons.how_to_reg, 'color': Colors.green},
+      {'label': 'INACTIVE', 'value': stats?['inactive_users']?.toString() ?? '—', 'icon': Icons.person_off_outlined, 'color': AppColors.error},
+      {'label': 'EXPIRING SOON', 'value': stats?['expiring_soon']?.toString() ?? '—', 'icon': Icons.timer_outlined, 'color': AppColors.warning},
+    ];
+
+    return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: crossAxisCount,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: width > 600 ? 2.0 : 1.5,
-      children: [
-        _buildStatTile('TOTAL USERS', stats?['total_users']?.toString() ?? '...', Icons.people_outline),
-        _buildStatTile('TODAY ATTENDANCE', stats?['today_attendance']?.toString() ?? '...', Icons.how_to_reg),
-        _buildStatTile('INACTIVE', stats?['inactive_users']?.toString() ?? '...', Icons.person_off_outlined),
-        _buildStatTile('EXPIRING SOON', stats?['expiring_soon']?.toString() ?? '...', Icons.timer_outlined),
-      ],
-    );
-  }
-
-  Widget _buildStatTile(String label, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.surfaceHigh),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: MediaQuery.of(context).size.width > 600 ? 2.0 : 1.6,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(icon, color: AppColors.primary, size: 20),
-          Column(
+      itemCount: tiles.length,
+      itemBuilder: (_, i) {
+        final t = tiles[i];
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: surf,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: surfH),
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.onSurface)),
-              Text(label, style: const TextStyle(fontSize: 8, color: AppColors.secondary, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: (t['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                child: Icon(t['icon'] as IconData, color: t['color'] as Color, size: 18),
+              ),
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                isLoading
+                    ? Container(width: 40, height: 20, decoration: BoxDecoration(color: surfH, borderRadius: BorderRadius.circular(4)))
+                    : Text(t['value'] as String, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: onSurf)),
+                Text(t['label'] as String, style: TextStyle(fontSize: 8, color: sec, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+              ]),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildActionGrid() {
+  Widget _buildActionGrid(BuildContext context) {
+    final surfH = AppColors.surfaceHigh(context);
+    final sec = AppColors.secondary(context);
+
     final actions = [
-      {'label': 'ONBOARD', 'icon': Icons.person_add_outlined, 'screen': const AddUserScreen()},
-      {'label': 'ADMIN QR', 'icon': Icons.qr_code, 'screen': const QRGeneratorScreen()},
-      {'label': 'MEMBERS', 'icon': Icons.group_outlined, 'screen': const UserManagementScreen()},
-      {'label': 'HISTORY', 'icon': Icons.history, 'screen': const UserManagementScreen()},
+      {'label': 'NEW MEMBER', 'icon': Icons.person_add_outlined, 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddUserScreen())).then((_) => _fetchAll())},
+      {'label': 'ATTENDANCE', 'icon': Icons.how_to_reg_outlined, 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceMonitorScreen()))},
     ];
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: actions.map((a) => _buildActionIcon(
-        a['label'] as String, 
-        a['icon'] as IconData,
-        () => Navigator.push(context, MaterialPageRoute(builder: (context) => a['screen'] as Widget)),
+      children: actions.map((a) => Expanded(
+        child: GestureDetector(
+          onTap: a['onTap'] as VoidCallback,
+          child: Container(
+            margin: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(color: surfH, borderRadius: BorderRadius.circular(12)),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(a['icon'] as IconData, color: AppColors.primary, size: 26),
+              const SizedBox(height: 8),
+              Text(a['label'] as String, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: sec, letterSpacing: 0.8)),
+            ]),
+          ),
+        ),
       )).toList(),
     );
   }
 
-  Widget _buildActionIcon(String label, IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceHigh,
-              borderRadius: BorderRadius.circular(32),
-            ),
-            child: Icon(icon, color: AppColors.primary),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.secondary)),
-        ],
-      ),
-    );
-  }
+  Widget _buildLiveMonitor(BuildContext context, Color sec) {
+    final surf = AppColors.surface(context);
+    final surfH = AppColors.surfaceHigh(context);
 
-  Widget _buildLiveMonitorCard() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
-      ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: surf, borderRadius: BorderRadius.circular(12), border: Border.all(color: surfH)),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
-                children: [
-                  Icon(Icons.live_tv, color: AppColors.error, size: 16),
-                  SizedBox(width: 8),
-                  Text('LIVE MONITOR', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, fontSize: 12)),
-                ],
-              ),
-              TextButton(onPressed: () {}, child: const Text('VIEW ALL', style: TextStyle(fontSize: 10))),
+              Row(children: [
+                Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                const SizedBox(width: 8),
+                const Text('LIVE TODAY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, fontSize: 12)),
+              ]),
+              Text('${_todayAttendance.length} CHECK-INS', style: TextStyle(color: sec, fontSize: 11, fontWeight: FontWeight.bold)),
             ],
           ),
-          const SizedBox(height: 16),
-          const Center(
-            child: Text('No active scans in the last 15 min', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
-          ),
+          if (_todayAttendance.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text('No scans yet today', style: TextStyle(color: sec, fontSize: 12)),
+            )
+          else ...[
+            const SizedBox(height: 12),
+            ...(_todayAttendance.take(3).map((r) {
+              final user = r['users'] as Map<String, dynamic>?;
+              final timeIn = r['time_in'] as String?;
+              String time = '';
+              if (timeIn != null) {
+                try { final dt = DateTime.parse(timeIn).toLocal(); time = '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}'; } catch(_) {}
+              }
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(children: [
+                  const Icon(Icons.person, color: AppColors.primary, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(user?['name'] ?? '—', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+                  Text(time, style: TextStyle(color: sec, fontSize: 12)),
+                ]),
+              );
+            }).toList()),
+            if (_todayAttendance.length > 3)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text('+${_todayAttendance.length - 3} more', style: TextStyle(color: sec, fontSize: 11)),
+              ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildFootfall(BuildContext context, List data) {
+    final surf = AppColors.surface(context);
+    final surfH = AppColors.surfaceHigh(context);
+    final sec = AppColors.secondary(context);
+
+    final maxScans = data.isEmpty ? 1 : data.map((d) => (d['scans'] as num?)?.toInt() ?? 0).reduce((a, b) => a > b ? a : b);
+    return Container(
+      height: 120,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: surf, borderRadius: BorderRadius.circular(12), border: Border.all(color: surfH)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: data.map<Widget>((d) {
+          final scans = (d['scans'] as num?)?.toInt() ?? 0;
+          final ratio = maxScans > 0 ? scans / maxScans : 0.0;
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                Text(scans.toString(), style: TextStyle(fontSize: 9, color: sec, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Container(
+                  height: 60 * ratio + 4,
+                  decoration: BoxDecoration(
+                    color: ratio > 0.6 ? AppColors.primary : surfH,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(d['day']?.toString() ?? '', style: TextStyle(fontSize: 8, color: sec)),
+              ]),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

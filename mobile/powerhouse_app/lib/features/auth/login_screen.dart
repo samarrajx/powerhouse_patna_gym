@@ -13,84 +13,134 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final bg = AppColors.background(context);
+    final surfHigh = AppColors.surfaceHigh(context);
+    final onSurf = AppColors.onSurface(context);
+    final sec = AppColors.secondary(context);
 
     return Scaffold(
-      body: Container(
-        padding: const EdgeInsets.all(24.0),
-        decoration: const BoxDecoration(
-          color: AppColors.background,
-        ),
+      backgroundColor: bg,
+      body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo placeholder
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceHigh,
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                  ),
-                  child: const Icon(Icons.fitness_center, color: AppColors.primary, size: 50),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'POWER HOUSE',
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 32,
-                  ),
-                ),
-                const Text('GYM & FITNESS', style: TextStyle(letterSpacing: 4, color: AppColors.secondary)),
-                const SizedBox(height: 48),
-                _buildTextField(
-                  controller: _phoneController,
-                  label: 'PHONE NUMBER',
-                  icon: Icons.phone_android,
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  controller: _passwordController,
-                  label: 'PASSWORD',
-                  icon: Icons.lock_outline,
-                  isPassword: true,
-                ),
-                const SizedBox(height: 32),
-                if (authState.errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(authState.errorMessage!, style: const TextStyle(color: AppColors.error)),
-                  ),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo
+                  Container(
+                    width: 90,
+                    height: 90,
                     decoration: BoxDecoration(
-                      gradient: AppColors.metallicGradient,
-                      borderRadius: BorderRadius.circular(4),
+                      color: surfHigh,
+                      borderRadius: BorderRadius.circular(45),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
                     ),
-                    child: ElevatedButton(
-                      onPressed: authState.isLoading 
-                        ? null 
-                        : () => ref.read(authProvider.notifier).login(_phoneController.text, _passwordController.text),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                      ),
-                      child: authState.isLoading 
-                        ? const CircularProgressIndicator(color: Color(0xFF3F4041))
-                        : const Text('LOGIN', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Icon(Icons.fitness_center, color: AppColors.primary, size: 44),
+                  ),
+                  const SizedBox(height: 28),
+                  Text('POWER HOUSE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 28, color: AppColors.primary, letterSpacing: 2)),
+                  const SizedBox(height: 4),
+                  Text('GYM & FITNESS', style: TextStyle(letterSpacing: 4, color: sec, fontSize: 11)),
+                  const SizedBox(height: 48),
+
+                  // Phone
+                  _buildLabel('PHONE NUMBER', sec),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    style: TextStyle(color: onSurf),
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.phone_android, color: AppColors.primary, size: 20),
+                      hintText: 'Enter your phone number',
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+
+                  // Password
+                  _buildLabel('PASSWORD', sec),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    style: TextStyle(color: onSurf),
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.lock_outline, color: AppColors.primary, size: 20),
+                      hintText: 'Enter your password',
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: sec, size: 20),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Error
+                  if (authState.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(children: [
+                          const Icon(Icons.error_outline, color: AppColors.error, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(authState.errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13))),
+                        ]),
+                      ),
+                    ),
+
+                  // Login button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: AppColors.metallicGradient,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ElevatedButton(
+                        onPressed: authState.isLoading
+                            ? null
+                            : () => ref.read(authProvider.notifier).login(
+                                _phoneController.text.trim(),
+                                _passwordController.text,
+                              ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: authState.isLoading
+                            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3F4041)))
+                            : const Text('LOGIN', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF3F4041), letterSpacing: 2, fontSize: 15)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text('Power House Gym, Patna', style: TextStyle(color: sec, fontSize: 11)),
+                ],
+              ),
             ),
           ),
         ),
@@ -98,33 +148,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    bool isPassword = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          obscureText: isPassword,
-          style: const TextStyle(color: AppColors.onSurface),
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
-            filled: true,
-            fillColor: AppColors.surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-        ),
-      ],
+  Widget _buildLabel(String text, Color color) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(text, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
     );
   }
 }

@@ -47,6 +47,27 @@ class AdminMoreScreen extends ConsumerWidget {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AddUserScreen()))),
 
               const SizedBox(height: 40),
+              // Theme toggle
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Theme.of(context).colorScheme.surfaceContainerHighest),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(children: [
+                    Icon(Icons.brightness_6_outlined, color: Theme.of(context).colorScheme.secondary, size: 18),
+                    const SizedBox(width: 12),
+                    const Expanded(child: Text('DARK THEME', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    Consumer(builder: (ctx, ref2, _) {
+                      final isDark = ref2.watch(themeProvider) == ThemeMode.dark;
+                      return Switch(value: isDark, onChanged: (_) => ref2.read(themeProvider.notifier).toggleTheme());
+                    }),
+                  ]),
+                ),
+              ),
+              const SizedBox(height: 16),
               GestureDetector(
                 onTap: () => showDialog(
                   context: context,
