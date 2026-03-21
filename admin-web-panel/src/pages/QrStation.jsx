@@ -70,7 +70,7 @@ export default function QrStation() {
                   <span style={{ color:'#666', fontSize:'0.85rem' }}>Generating secure hash...</span>
                 </div>
               ) : qr ? (
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?data=${qr}&size=220x220`} alt="Active QR Code" width="220" height="220" style={{ display: 'block' }} />
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qr)}&size=220x220`} alt="Active QR Code" width="220" height="220" style={{ display: 'block' }} />
               ) : (
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'10px', color:'#999' }}>
                   <ShieldCheck size={40} style={{ opacity:0.3 }} />

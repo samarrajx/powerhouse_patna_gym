@@ -45,14 +45,14 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
     const { error } = await supabase.from('attendance').insert([{ user_id, date: today, time_in: now }]);
     if (error) {
       console.error('Attendance Check-In Error:', error);
-      return res.status(400).json({ success: false, message: error.message, error_code: 'ATTENDANCE_ERROR' });
+      return res.status(400).json({ success: false, message: `DB Error: ${error.message} (${error.code})`, error_code: 'ATTENDANCE_ERROR' });
     }
     action = 'IN';
   } else if (!existing.time_out) {
     const { error } = await supabase.from('attendance').update({ time_out: now }).eq('id', existing.id);
     if (error) {
       console.error('Attendance Check-Out Error:', error);
-      return res.status(400).json({ success: false, message: error.message, error_code: 'ATTENDANCE_ERROR' });
+      return res.status(400).json({ success: false, message: `DB Error: ${error.message} (${error.code})`, error_code: 'ATTENDANCE_ERROR' });
     }
     action = 'OUT';
   } else {
