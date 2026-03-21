@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://powerhousepatnagym.vercel.app/api'; 
+  static const String baseUrl = 'https://powerhouse-patna-gym.vercel.app/api'; 
   // static const String baseUrl = 'http://10.0.2.2:3000/api'; // Android Emulator
   // static const String baseUrl = 'http://192.168.1.XX:3000/api'; // Physical Device (Replace XX)
 
