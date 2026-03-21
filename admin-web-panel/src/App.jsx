@@ -6,9 +6,15 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Members from './pages/Members';
 import QrStation from './pages/QrStation';
+import Attendance from './pages/Attendance';
+import Settings from './pages/Settings';
+import Schedule from './pages/Schedule';
+import InactiveUsers from './pages/InactiveUsers';
+import Reports from './pages/Reports';
 import TemplateManager from './pages/TemplateManager';
 import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare } from 'lucide-react';
 import Logo from './components/Logo';
+
 
 
 
@@ -125,8 +131,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename="/admin">
           <AppRoutes/>
+
           <Toaster position="top-right" toastOptions={{
             style: { background:'var(--bg2, #0D0D1A)', color:'var(--text-1, #fff)', border:'1px solid var(--glass-border-2)', borderRadius:'12px', fontSize:'0.875rem' },
             success: { iconTheme: { primary:'#C8FA00', secondary:'#000' }},
