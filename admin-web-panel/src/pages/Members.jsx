@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key } from 'lucide-react';
+import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key, Shield } from 'lucide-react';
+
 import { Topbar } from './Dashboard';
 
 function MemberModal({ user, onClose, onSave }) {
@@ -137,6 +138,19 @@ export default function Members() {
     }
   };
 
+  const handleRoleChange = async (user) => {
+    const newRole = user.role === 'admin' ? 'user' : 'admin';
+    if (!window.confirm(`Are you sure you want to change ${user.name}'s role to ${newRole.toUpperCase()}?`)) return;
+    try {
+      await api.put(`/admin/users/${user.id}`, { role: newRole });
+      toast.success(`Role changed to ${newRole}`);
+      load();
+    } catch(e) {
+      toast.error(e.message || 'Failed to change role');
+    }
+  };
+
+
   const filtered = users.filter(u => {
     const match = (u.name||'').toLowerCase().includes(search.toLowerCase()) ||
                   (u.phone||'').includes(search) ||
@@ -177,7 +191,8 @@ export default function Members() {
             <div style={{ padding:'40px', display:'flex', justifyContent:'center' }}><div className="spinner spinner-light" style={{ width:'26px', height:'26px' }}/></div>
           ) : (
             <table>
-              <thead><tr><th>Member</th><th>Phone</th><th>Roll No</th><th>Plan</th><th>Expires</th><th>Fees</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Member</th><th>Phone</th><th>Roll No</th><th>Plan</th><th>Role</th><th>Expires</th><th>Fees</th><th>Status</th><th>Actions</th></tr></thead>
+
               <tbody>
                 {filtered.length===0 ? (
                   <tr><td colSpan={8}><div className="empty-state"><p>No members found</p></div></td></tr>
@@ -187,6 +202,8 @@ export default function Members() {
                     <td style={{ fontFamily:'monospace', fontSize:'0.82rem', color:'var(--text-2)' }}>{u.phone}</td>
                     <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{u.roll_no||'—'}</td>
                     <td><span className="badge badge-blue">{u.membership_plan||'Standard'}</span></td>
+                    <td><span className={`badge ${u.role==='admin'?'badge-purple':'badge-gray'}`} style={{ textTransform:'capitalize' }}>{u.role||'user'}</span></td>
+
                     <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{u.membership_expiry?new Date(u.membership_expiry).toLocaleDateString('en-IN'):'—'}</td>
                     <td><span className={`badge ${u.fees_status==='paid'?'badge-green':u.fees_status==='overdue'?'badge-red':'badge-gray'}`}><span className="badge-dot"/>{u.fees_status||'paid'}</span></td>
                     <td><span className={`badge ${u.status==='active'?'badge-green':u.status==='grace'?'badge-red':'badge-gray'}`}><span className="badge-dot"/>{u.status||'active'}</span></td>
@@ -194,7 +211,9 @@ export default function Members() {
                       <div style={{ display:'flex', gap:'5px' }}>
                         <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>setModalUser(u)} title="Edit Member"><Edit2 size={13}/></button>
                         <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>handleResetPassword(u.id)} title="Reset Password"><Key size={13}/></button>
+                        <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:u.role==='admin'?'var(--purple)':'inherit' }} onClick={()=>handleRoleChange(u)} title="Assign Role"><Shield size={13}/></button>
                       </div>
+
                     </td>
                   </tr>
                 ))}

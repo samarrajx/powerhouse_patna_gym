@@ -7,7 +7,9 @@
   --lime-glow:  rgba(200,250,0,0.35);
   --coral:      #FF6B6B;
   --blue:       #60A5FA;
+  --purple:     #A855F7;
   --bg:         #080810;
+
   --bg2:        #0D0D1A;
   --glass-bg:   rgba(255,255,255,0.04);
   --glass-bg-2: rgba(255,255,255,0.08);
@@ -241,7 +243,9 @@ tbody tr:last-child td { border-bottom: none; }
 .badge-green { background: rgba(200,250,0,0.1); color: var(--lime); border: 1px solid rgba(200,250,0,0.2); }
 .badge-red   { background: rgba(255,107,107,0.1); color: var(--coral); border: 1px solid rgba(255,107,107,0.2); }
 .badge-blue  { background: rgba(96,165,250,0.1); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+.badge-purple { background: rgba(168,85,247,0.1); color: var(--purple); border: 1px solid rgba(168,85,247,0.2); }
 .badge-gray  { background: var(--glass-bg-2); color: var(--text-2); border: 1px solid var(--glass-border-2); }
+
 .badge-dot   { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
 /* ─── Buttons ─── */

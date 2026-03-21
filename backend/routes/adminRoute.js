@@ -28,7 +28,8 @@ router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
 // ─── List all members ────────────────────────────────────────────────────────
 router.get('/users', authMiddleware(['admin']), async (req, res) => {
   const { status, search } = req.query;
-  let q = supabase.from('users').select('id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,must_change_password,created_at').neq('role', 'admin').order('created_at', { ascending: false });
+  let q = supabase.from('users').select('id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,must_change_password,created_at').order('created_at', { ascending: false });
+
   if (status) q = q.eq('status', status);
   const { data, error } = await q;
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
@@ -68,14 +69,18 @@ router.put('/users/:id', authMiddleware(['admin']), async (req, res) => {
   const { id } = req.params;
   const {
     name, phone, phone_alt, roll_no, address, father_name, date_of_joining, body_type,
-    batch_id, membership_plan, membership_expiry, fees_status, notes,
+    batch_id, membership_plan, membership_expiry, fees_status, notes, role
   } = req.body;
 
-  const { data, error } = await supabase.from('users').update({
+  const updateFields = {
     name, phone, phone_alt, roll_no, address, father_name,
     date_of_joining, body_type, batch_id, membership_plan, membership_expiry,
     fees_status, notes
-  }).eq('id', id).select().single();
+  };
+  if (role) updateFields.role = role;
+
+  const { data, error } = await supabase.from('users').update(updateFields).eq('id', id).select().single();
+
 
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
   await supabase.from('audit_logs').insert([{ action: 'EDIT_USER', performed_by: req.user.userId, target_user: id, details: { name, phone } }]);

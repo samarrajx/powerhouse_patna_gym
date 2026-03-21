@@ -70,9 +70,6 @@ export default function Login() {
           </button>
         </form>
 
-        <p style={{ textAlign:'center', fontSize:'0.78rem', color:'var(--text-3)', marginTop:'24px' }}>
-          Default: 9999999999 / admin123
-        </p>
       </div>
     </div>
   );
