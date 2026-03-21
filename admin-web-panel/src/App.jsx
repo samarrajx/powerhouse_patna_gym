@@ -12,6 +12,8 @@ import Schedule from './pages/Schedule';
 import InactiveUsers from './pages/InactiveUsers';
 import Reports from './pages/Reports';
 import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut } from 'lucide-react';
+import Logo from './components/Logo';
+
 
 function ThemeToggle() {
   const { theme, toggle } = useTheme();
@@ -42,8 +44,9 @@ function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="brand-icon">⚡</div>
+        <Logo size={42} />
         <div>
+
           <div className="brand-name">POWER HOUSE</div>
           <div className="brand-sub">Admin Console</div>
         </div>

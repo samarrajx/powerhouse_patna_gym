@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import Logo from '../components/Logo';
+
 
 export default function Login() {
   const { login, loading } = useAuth();
@@ -22,7 +24,10 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card fade-up">
-        <div className="login-logo">⚡</div>
+        <div className="login-logo-container" style={{ display:'flex', justifyContent:'center', marginBottom:'20px' }}>
+          <Logo size={80} />
+        </div>
+
         <h1 className="login-title">Admin Login</h1>
         <p className="login-sub">Power House Gym Management Console</p>
 

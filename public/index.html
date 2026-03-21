@@ -32,10 +32,15 @@ nav { position:fixed; top:0; left:0; right:0; z-index:100; backdrop-filter:blur(
   background:rgba(8,8,16,0.7); border-bottom:1px solid var(--border); }
 [data-theme="light"] nav { background:rgba(240,242,255,0.75); }
 .nav-inner { max-width:1180px; margin:auto; padding:0 24px; height:64px; display:flex; align-items:center; justify-content:space-between; }
-.logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
-.logo-icon { width:36px; height:36px; background:var(--lime); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:17px; box-shadow:0 4px 14px var(--lime-glow); }
-.logo-text { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1rem; color:var(--t1); }
+.logo { display:flex; align-items:center; gap:12px; text-decoration:none; }
+.logo-icon-svg { width:42px; height:42px; color:var(--lime); filter: drop-shadow(0 0 10px var(--lime-glow)); }
+.logo-text { font-family:'Space Grotesk',sans-serif; font-weight:800; font-size:1.1rem; color:var(--t1); letter-spacing: -0.01em; }
+
+@keyframes rotate-gear { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.gear-outer { transform-origin: center; animation: rotate-gear 20s linear infinite; }
+
 .nav-links { display:flex; align-items:center; gap:6px; }
+
 .nav-links a { text-decoration:none; color:var(--t2); font-size:0.875rem; font-weight:500; padding:6px 13px; border-radius:8px; }
 .nav-links a:hover { background:var(--glass2); color:var(--t1); }
 .nav-cta { background:var(--lime); color:#000 !important; font-weight:700 !important; box-shadow:0 3px 12px var(--lime-glow); }
@@ -163,9 +168,37 @@ footer { border-top:1px solid var(--border); margin-top:80px; padding:40px 24px 
 <nav>
   <div class="nav-inner">
     <a href="#" class="logo">
-      <div class="logo-icon">⚡</div>
+      <div class="logo-icon-svg">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+          <defs>
+            <path id="circlePathTop" d="M 40,100 A 60,60 0 0 1 160,100" />
+            <path id="circlePathBottom" d="M 40,100 A 60,60 0 0 0 160,100" />
+          </defs>
+          <circle cx="100" cy="100" r="94" fill="none" stroke="currentColor" stroke-width="6" stroke-dasharray="12 4.4" class="gear-outer"/>
+          <circle cx="100" cy="100" r="88" fill="none" stroke="currentColor" stroke-width="2" />
+          <circle cx="100" cy="100" r="82" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" opacity="0.3" />
+          <text x="32" y="104" font-family="Space Grotesk" font-weight="800" font-size="12">★</text>
+          <text x="168" y="104" font-family="Space Grotesk" font-weight="800" font-size="12">★</text>
+          <text font-family="Space Grotesk" font-weight="800" font-size="13" letter-spacing="1" style="text-transform: uppercase;">
+            <textPath href="#circlePathTop" startOffset="50%" text-anchor="middle">Power House Gym</textPath>
+          </text>
+          <text font-family="Space Grotesk" font-weight="800" font-size="10" letter-spacing="2.5" style="text-transform: uppercase;">
+            <textPath href="#circlePathBottom" startOffset="50%" text-anchor="middle">Dare To Be Great</textPath>
+          </text>
+          <g transform="translate(100, 100)">
+            <rect x="-45" y="-1.5" width="90" height="3" />
+            <rect x="-34" y="-14" width="6" height="28" rx="1" />
+            <rect x="-26" y="-10" width="3" height="20" rx="0.5" />
+            <rect x="28" y="-14" width="6" height="28" rx="1" />
+            <rect x="23" y="-10" width="3" height="20" rx="0.5" />
+            <circle cx="-45" cy="0" r="2.5" />
+            <circle cx="45" cy="0" r="2.5" />
+          </g>
+        </svg>
+      </div>
       <span class="logo-text">POWER HOUSE</span>
     </a>
+
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#plans">Plans</a>
@@ -339,9 +372,33 @@ footer { border-top:1px solid var(--border); margin-top:80px; padding:40px 24px 
 <footer>
   <div class="footer-inner">
     <div class="footer-brand">
-      <div class="logo"><div class="logo-icon">⚡</div><span class="logo-text">POWER HOUSE</span></div>
+      <div class="logo">
+        <div class="logo-icon-svg" style="width:40px;height:40px;">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+            <defs>
+              <path id="circlePathTopF" d="M 40,100 A 60,60 0 0 1 160,100" />
+              <path id="circlePathBottomF" d="M 40,100 A 60,60 0 0 0 160,100" />
+            </defs>
+            <circle cx="100" cy="100" r="94" fill="none" stroke="currentColor" stroke-width="6" stroke-dasharray="12 4.4" class="gear-outer"/>
+            <circle cx="100" cy="100" r="88" fill="none" stroke="currentColor" stroke-width="2" />
+            <text font-family="Space Grotesk" font-weight="800" font-size="13" letter-spacing="1" style="text-transform: uppercase;">
+              <textPath href="#circlePathTopF" startOffset="50%" text-anchor="middle">Power House Gym</textPath>
+            </text>
+            <text font-family="Space Grotesk" font-weight="800" font-size="10" letter-spacing="2.5" style="text-transform: uppercase;">
+              <textPath href="#circlePathBottomF" startOffset="50%" text-anchor="middle">Dare To Be Great</textPath>
+            </text>
+            <g transform="translate(100, 100)">
+              <rect x="-45" y="-1.5" width="90" height="3" />
+              <rect x="-34" y="-14" width="6" height="28" rx="1" />
+              <rect x="28" y="-14" width="6" height="28" rx="1" />
+            </g>
+          </svg>
+        </div>
+        <span class="logo-text">POWER HOUSE</span>
+      </div>
       <p>Premium fitness center with state-of-the-art facilities, expert trainers, and a supportive community to fuel your transformation.</p>
     </div>
+
     <div class="footer-col">
       <h4>Quick Links</h4>
       <a href="#features">Features</a>
