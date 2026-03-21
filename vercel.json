@@ -1,26 +1,13 @@
 {
   "version": 2,
-  "outputDirectory": ".",
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/index.js"
     },
     {
-      "source": "/admin/assets/(.*)",
-      "destination": "/admin-web-panel/dist/assets/$1"
-    },
-    {
       "source": "/admin/(.*)",
-      "destination": "/admin-web-panel/dist/index.html"
-    },
-    {
-      "source": "/admin",
-      "destination": "/admin-web-panel/dist/index.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/landing/$1"
+      "destination": "/admin/index.html"
     }
   ]
 }
