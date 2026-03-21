@@ -1,0 +1,208 @@
+import { useState, useCallback, useRef, useEffect } from 'react';
+import api from '../api';
+import toast from 'react-hot-toast';
+import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key } from 'lucide-react';
+import { Topbar } from './Dashboard';
+
+function MemberModal({ user, onClose, onSave }) {
+  const [f, setF] = useState(user ? {
+    name: user.name||'', phone: user.phone||'', phone_alt: user.phone_alt||'', roll_no: user.roll_no||'',
+    address: user.address||'', father_name: user.father_name||'',
+    date_of_joining: user.date_of_joining ? String(user.date_of_joining).split('T')[0] : new Date().toISOString().split('T')[0],
+    body_type: user.body_type||'average', membership_plan: user.membership_plan||'Standard',
+    membership_expiry: user.membership_expiry ? String(user.membership_expiry).split('T')[0] : '',
+    fees_status: user.fees_status||'paid', notes: user.notes||''
+  } : { 
+    name:'', phone:'', phone_alt:'', roll_no:'', address:'', father_name:'',
+    date_of_joining: new Date().toISOString().split('T')[0], body_type:'average',
+    membership_plan:'Standard', membership_expiry:'', fees_status:'paid', notes:'' 
+  });
+  
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
+
+  const submit = async (e) => {
+    e.preventDefault(); setSaving(true);
+    try {
+      if (user) {
+        await api.put(`/admin/users/${user.id}`, f);
+        toast.success('Member updated');
+      } else {
+        await api.post('/admin/users/onboard', { ...f, password:'samgym' });
+        toast.success('Member created! Password: samgym'); 
+      }
+      onSave();
+    } catch(err) { toast.error(err.message||'Failed'); }
+    finally { setSaving(false); }
+  };
+
+  const PLANS = ['Standard','Gold','Platinum'];
+  const BODY_TYPES = ['slim','average','athletic','heavy'];
+
+  return (
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal-box">
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'18px' }}>
+          <div>
+            <div className="modal-title">{user ? 'Edit Member' : 'New Member'}</div>
+            {!user && <div className="modal-sub">Default password: <b>samgym</b></div>}
+          </div>
+          <button onClick={onClose} className="btn btn-ghost btn-sm" style={{ padding:'7px' }}><X size={15}/></button>
+        </div>
+        <form onSubmit={submit}>
+          <p style={{ fontSize:'0.72rem', color:'var(--text-3)', marginBottom:'12px', textTransform:'uppercase', letterSpacing:'0.08em' }}>Personal Info</p>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 14px' }}>
+            <div className="input-wrap"><label className="input-label">Full Name *</label><input className="input-field" value={f.name} onChange={e=>set('name',e.target.value)} required/></div>
+            <div className="input-wrap"><label className="input-label">Phone *</label><input className="input-field" type="tel" value={f.phone} onChange={e=>set('phone',e.target.value)} required/></div>
+            <div className="input-wrap"><label className="input-label">Alt. Phone</label><input className="input-field" type="tel" value={f.phone_alt} onChange={e=>set('phone_alt',e.target.value)}/></div>
+            <div className="input-wrap"><label className="input-label">Roll No.</label><input className="input-field" value={f.roll_no} onChange={e=>set('roll_no',e.target.value)}/></div>
+          </div>
+          <div className="input-wrap"><label className="input-label">Father's Name</label><input className="input-field" value={f.father_name} onChange={e=>set('father_name',e.target.value)}/></div>
+          <div className="input-wrap"><label className="input-label">Address</label><input className="input-field" value={f.address} onChange={e=>set('address',e.target.value)}/></div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 14px' }}>
+            <div className="input-wrap"><label className="input-label">Date of Joining</label><input type="date" className="input-field" value={f.date_of_joining} onChange={e=>set('date_of_joining',e.target.value)}/></div>
+            <div className="input-wrap"><label className="input-label">Body Type</label><select className="input-field" value={f.body_type} onChange={e=>set('body_type',e.target.value)}>{BODY_TYPES.map(b=><option key={b}>{b}</option>)}</select></div>
+          </div>
+          <p style={{ fontSize:'0.72rem', color:'var(--text-3)', margin:'4px 0 12px', textTransform:'uppercase', letterSpacing:'0.08em' }}>Membership</p>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'0 14px' }}>
+            <div className="input-wrap"><label className="input-label">Plan</label><select className="input-field" value={f.membership_plan} onChange={e=>set('membership_plan',e.target.value)}>{PLANS.map(p=><option key={p}>{p}</option>)}</select></div>
+            <div className="input-wrap"><label className="input-label">Expiry</label><input type="date" className="input-field" value={f.membership_expiry} onChange={e=>set('membership_expiry',e.target.value)}/></div>
+            <div className="input-wrap"><label className="input-label">Fees</label><select className="input-field" value={f.fees_status} onChange={e=>set('fees_status',e.target.value)}><option value="paid">Paid</option><option value="pending">Pending</option><option value="overdue">Overdue</option></select></div>
+          </div>
+          <div className="input-wrap"><label className="input-label">Notes</label><input className="input-field" placeholder="Optional notes" value={f.notes} onChange={e=>set('notes',e.target.value)}/></div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-ghost" style={{ flex:1, justifyContent:'center' }} onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-lime" style={{ flex:1, justifyContent:'center' }} disabled={saving}>{saving?(user?'Saving...':'Creating...'):(user?'Save Changes':'Create Member')}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default function Members() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [modalUser, setModalUser] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { const r = await api.get('/admin/users'); setUsers(r.data||[]); }
+    catch { toast.error('Failed to load members'); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { 
+    load(); 
+  }, [load]);
+  const downloadSample = () => {
+    const headers = ['name','phone','phone_alt','roll_no','father_name','address','date_of_joining','body_type','membership_plan','membership_expiry','fees_status','notes'];
+    const examples = [
+      ['Rahul Sharma','9876543210','9876543211','GYM001','Ramesh Sharma','12 MG Road, Delhi','2026-01-15','athletic','Gold','2027-01-15','paid','Morning batch preferred'],
+      ['Priya Singh','9123456780','','GYM002','Vijay Singh','45 Park Street, Mumbai','2026-02-01','slim','Standard','2026-08-01','paid',''],
+    ];
+    const csv = [headers, ...examples].map(row => row.map(v => `"${v}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = 'powerhouse_members_sample.csv';
+    a.click();
+  };
+
+  const handleCSV = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const form = new FormData();
+    form.append('file', file);
+    try {
+      const r = await api.post('/admin/users/bulk', form, { headers:{ 'Content-Type':'multipart/form-data' }});
+      toast.success(`${r.data.created} members imported, ${r.data.failed.length} failed`);
+      load();
+    } catch(e) { toast.error(e.message||'Upload failed'); }
+    finally { setUploading(false); e.target.value=''; }
+  };
+
+  const handleResetPassword = async (id) => {
+    if (!window.confirm('Reset this member\'s password to "samgym"? They will be forced to change it on their next login.')) return;
+    try {
+      await api.post(`/admin/users/${id}/reset-password`);
+      toast.success('Password reset to "samgym"');
+      load();
+    } catch(e) {
+      toast.error(e.message || 'Failed to reset password');
+    }
+  };
+
+  const filtered = users.filter(u => {
+    const match = (u.name||'').toLowerCase().includes(search.toLowerCase()) ||
+                  (u.phone||'').includes(search) ||
+                  (u.roll_no||'').toLowerCase().includes(search.toLowerCase());
+    return match && (filter==='all' || u.status===filter);
+  });
+
+  return (
+    <>
+      {modalUser && <MemberModal user={modalUser==='new'?null:modalUser} onClose={()=>setModalUser(null)} onSave={()=>{ setModalUser(null); load(); }}/>}
+      <input ref={fileRef} type="file" accept=".csv" style={{ display:'none' }} onChange={handleCSV}/>
+      <Topbar title="Members" sub={`${users.length} total members`}/>
+      <div className="page-body">
+        <div className="card table-card fade-up">
+          <div className="table-header">
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
+              <div className="search-bar">
+                <Search size={14} style={{ color:'var(--text-3)', flexShrink:0 }}/>
+                <input placeholder="Name, phone, roll no..." value={search} onChange={e=>setSearch(e.target.value)}/>
+                {search && <button onClick={()=>setSearch('')} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-3)' }}><X size={13}/></button>}
+              </div>
+              {['all','active','inactive','grace'].map(s=>(
+                <button key={s} className={`btn btn-sm ${filter===s?'btn-lime':'btn-ghost'}`} onClick={()=>setFilter(s)} style={{ textTransform:'capitalize' }}>{s}</button>
+              ))}
+            </div>
+            <div style={{ display:'flex', gap:'8px' }}>
+              <button className="btn btn-ghost btn-sm" onClick={load}><RefreshCcw size={13}/></button>
+              <button className="btn btn-ghost btn-sm" onClick={downloadSample} title="Download CSV template">
+                <Download size={13}/> Sample
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={()=>fileRef.current?.click()} disabled={uploading}>
+                <Upload size={13}/> {uploading?'Uploading...':'Upload CSV'}
+              </button>
+              <button className="btn btn-lime btn-sm" onClick={()=>setModalUser('new')}><UserPlus size={13}/> Add Member</button>
+            </div>
+          </div>
+          {loading ? (
+            <div style={{ padding:'40px', display:'flex', justifyContent:'center' }}><div className="spinner spinner-light" style={{ width:'26px', height:'26px' }}/></div>
+          ) : (
+            <table>
+              <thead><tr><th>Member</th><th>Phone</th><th>Roll No</th><th>Plan</th><th>Expires</th><th>Fees</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {filtered.length===0 ? (
+                  <tr><td colSpan={8}><div className="empty-state"><p>No members found</p></div></td></tr>
+                ) : filtered.map(u=>(
+                  <tr key={u.id}>
+                    <td><div style={{ display:'flex', alignItems:'center', gap:'9px' }}><div className="avatar-circle" style={{ width:'30px', height:'30px', fontSize:'0.72rem' }}>{(u.name||'?')[0].toUpperCase()}</div><div><div style={{ fontWeight:'500' }}>{u.name}</div>{u.father_name&&<div style={{ fontSize:'0.7rem', color:'var(--text-3)' }}>S/o {u.father_name}</div>}</div></div></td>
+                    <td style={{ fontFamily:'monospace', fontSize:'0.82rem', color:'var(--text-2)' }}>{u.phone}</td>
+                    <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{u.roll_no||'—'}</td>
+                    <td><span className="badge badge-blue">{u.membership_plan||'Standard'}</span></td>
+                    <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{u.membership_expiry?new Date(u.membership_expiry).toLocaleDateString('en-IN'):'—'}</td>
+                    <td><span className={`badge ${u.fees_status==='paid'?'badge-green':u.fees_status==='overdue'?'badge-red':'badge-gray'}`}><span className="badge-dot"/>{u.fees_status||'paid'}</span></td>
+                    <td><span className={`badge ${u.status==='active'?'badge-green':u.status==='grace'?'badge-red':'badge-gray'}`}><span className="badge-dot"/>{u.status||'active'}</span></td>
+                    <td>
+                      <div style={{ display:'flex', gap:'5px' }}>
+                        <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>setModalUser(u)} title="Edit Member"><Edit2 size={13}/></button>
+                        <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>handleResetPassword(u.id)} title="Reset Password"><Key size={13}/></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}

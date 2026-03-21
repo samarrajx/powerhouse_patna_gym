@@ -1,0 +1,10 @@
+{
+  "name": "powerhouse-gym-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build-admin && npm run install-backend",
+    "build-admin": "cd admin-web-panel && npm install && npm run build",
+    "install-backend": "cd backend && npm install"
+  }
+}

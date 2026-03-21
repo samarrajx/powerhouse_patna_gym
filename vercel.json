@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/backend/api/index.js"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin-web-panel/dist/index.html"
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": "/admin-web-panel/dist/$1"
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": "/admin-web-panel/dist/index.html",
+      "check": true
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/landing/$1"
+    }
+  ]
+}

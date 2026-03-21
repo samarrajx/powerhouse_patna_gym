@@ -1,0 +1,66 @@
+const express = require('express');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const supabase = require('../db/supabase');
+const authMiddleware = require('../middleware/auth');
+
+const router = express.Router();
+
+// POST /auth/login
+router.post('/login', async (req, res) => {
+  const { phone, password } = req.body;
+  if (!phone || !password) return res.status(400).json({ success: false, message: 'Phone and password required', error_code: 'MISSING_CREDS' });
+
+  const { data: user, error } = await supabase.from('users').select('*').eq('phone', phone.trim()).single();
+  if (error || !user) return res.status(401).json({ success: false, message: 'Invalid credentials', error_code: 'INVALID_CREDS' });
+  if (user.status === 'inactive') return res.status(403).json({ success: false, message: 'Account is inactive', error_code: 'ACCOUNT_INACTIVE' });
+
+  const isMatch = await bcrypt.compare(password, user.password_hash);
+  if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials', error_code: 'INVALID_CREDS' });
+
+  const token = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+  res.json({
+    success: true, message: 'Login successful', error_code: null,
+    data: {
+      token,
+      user: {
+        id: user.id, name: user.name, role: user.role, phone: user.phone,
+        phone_alt: user.phone_alt, roll_no: user.roll_no, address: user.address,
+        father_name: user.father_name, date_of_joining: user.date_of_joining,
+        body_type: user.body_type, membership_plan: user.membership_plan,
+        membership_expiry: user.membership_expiry, fees_status: user.fees_status,
+        batch_id: user.batch_id, status: user.status,
+        must_change_password: user.must_change_password === true,
+      }
+    }
+  });
+});
+
+// GET /auth/me — refresh user data
+router.get('/me', authMiddleware(), async (req, res) => {
+  const { data: user, error } = await supabase.from('users').select('id,name,role,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,membership_plan,membership_expiry,fees_status,batch_id,status,must_change_password').eq('id', req.user.userId).single();
+  if (error || !user) return res.status(404).json({ success: false, message: 'User not found', error_code: 'NOT_FOUND' });
+  res.json({ success: true, message: 'User data', data: user, error_code: null });
+});
+
+// POST /auth/change-password
+router.post('/change-password', authMiddleware(), async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) return res.status(400).json({ success: false, message: 'Both passwords required', error_code: 'MISSING_FIELDS' });
+  if (newPassword.length < 6) return res.status(400).json({ success: false, message: 'Min 6 characters', error_code: 'PWD_TOO_SHORT' });
+
+  const { data: user } = await supabase.from('users').select('password_hash').eq('id', req.user.userId).single();
+  if (!user) return res.status(404).json({ success: false, message: 'User not found', error_code: 'NOT_FOUND' });
+
+  const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
+  if (!isMatch) return res.status(400).json({ success: false, message: 'Current password is incorrect', error_code: 'PWD_MISMATCH' });
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+  await supabase.from('users').update({ password_hash: newHash, must_change_password: false }).eq('id', req.user.userId);
+  await supabase.from('audit_logs').insert([{ action: 'CHANGE_PASSWORD', performed_by: req.user.userId, details: {} }]);
+
+  res.json({ success: true, message: 'Password updated successfully', data: {}, error_code: null });
+});
+
+module.exports = router;

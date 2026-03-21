@@ -1,0 +1,18 @@
+# Node
+node_modules/
+.env
+.env.*
+dist/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+*.log
+*.lock
+
+# OS
+.DS_Store
+Thumbs.db
