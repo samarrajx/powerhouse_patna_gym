@@ -6,17 +6,16 @@
       "destination": "/backend/api/index.js"
     },
     {
-      "source": "/admin",
+      "source": "/admin/assets/(.*)",
+      "destination": "/admin-web-panel/dist/assets/$1"
+    },
+    {
+      "source": "/admin/(.*)",
       "destination": "/admin-web-panel/dist/index.html"
     },
     {
-      "source": "/admin/(.*)",
-      "destination": "/admin-web-panel/dist/$1"
-    },
-    {
-      "source": "/admin/(.*)",
-      "destination": "/admin-web-panel/dist/index.html",
-      "check": true
+      "source": "/admin",
+      "destination": "/admin-web-panel/dist/index.html"
     },
     {
       "source": "/(.*)",
