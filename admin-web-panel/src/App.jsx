@@ -6,13 +6,10 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Members from './pages/Members';
 import QrStation from './pages/QrStation';
-import Attendance from './pages/Attendance';
-import Settings from './pages/Settings';
-import Schedule from './pages/Schedule';
-import InactiveUsers from './pages/InactiveUsers';
-import Reports from './pages/Reports';
-import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut } from 'lucide-react';
+import TemplateManager from './pages/TemplateManager';
+import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare } from 'lucide-react';
 import Logo from './components/Logo';
+
 
 
 function ThemeToggle() {
@@ -33,7 +30,9 @@ function Sidebar() {
     { to:'/members',   icon: Users,            label:'Members' },
     { to:'/qr-station',icon: Scan,             label:'QR Station' },
     { to:'/attendance',icon: ClipboardList,    label:'Attendance' },
+    { to:'/templates', icon: MessageSquare,    label:'Templates' },
     { to:'/reports',   icon: BarChart3,        label:'Reports' },
+
     { section:'MANAGEMENT' },
     { to:'/schedule',  icon: Calendar,         label:'Schedule' },
     { to:'/inactive',  icon: UserX,            label:'Inactive Users' },
@@ -94,7 +93,9 @@ function ProtectedLayout() {
           <Route path="/members"    element={<Members/>}/>
           <Route path="/qr-station" element={<QrStation/>}/>
           <Route path="/attendance" element={<Attendance/>}/>
+          <Route path="/templates"  element={<TemplateManager/>}/>
           <Route path="/settings"   element={<Settings/>}/>
+
           <Route path="/schedule"   element={<Schedule/>}/>
           <Route path="/inactive"   element={<InactiveUsers/>}/>
           <Route path="/reports"    element={<Reports/>}/>

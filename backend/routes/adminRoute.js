@@ -187,4 +187,46 @@ router.get('/attendance/user/:userId', authMiddleware(['admin']), async (req, re
   res.json({ success: true, message: 'History', data: data || [], error_code: null });
 });
 
+// ─── Templates (Body Type Messages) ──────────────────────────────────────────
+router.get('/templates', authMiddleware(['admin']), async (req, res) => {
+  const { data, error } = await supabase.from('templates').select('*').order('category');
+  if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
+  res.json({ success: true, message: 'Templates list', data: data || [], error_code: null });
+});
+
+router.put('/templates/:id', authMiddleware(['admin']), async (req, res) => {
+  const { message } = req.body;
+  const { data, error } = await supabase.from('templates').update({ message, updated_at: new Date() }).eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
+  res.json({ success: true, message: 'Template updated', data, error_code: null });
+});
+
+// ─── Announcements ───────────────────────────────────────────────────────────
+router.get('/announcements', authMiddleware(['admin']), async (req, res) => {
+  const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
+  res.json({ success: true, message: 'Announcements list', data: data || [], error_code: null });
+});
+
+router.post('/announcements', authMiddleware(['admin']), async (req, res) => {
+  const { title, content, is_active } = req.body;
+  const { data, error } = await supabase.from('announcements').insert([{ title, content, is_active }]).select().single();
+  if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'INSERT_ERROR' });
+  res.json({ success: true, message: 'Announcement created', data, error_code: null });
+});
+
+router.put('/announcements/:id', authMiddleware(['admin']), async (req, res) => {
+  const { title, content, is_active } = req.body;
+  const { data, error } = await supabase.from('announcements').update({ title, content, is_active }).eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
+  res.json({ success: true, message: 'Announcement updated', data, error_code: null });
+});
+
+router.delete('/announcements/:id', authMiddleware(['admin']), async (req, res) => {
+  const { error } = await supabase.from('announcements').delete().eq('id', req.params.id);
+  if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'DELETE_ERROR' });
+  res.json({ success: true, message: 'Announcement deleted', error_code: null });
+});
+
+
 module.exports = router;

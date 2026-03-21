@@ -80,6 +80,56 @@ const migrations = [
       CREATE POLICY service_write ON public.holidays FOR ALL USING (TRUE);
     END IF;
   END $$`,
+
+  // 8. Create templates table
+  `CREATE TABLE IF NOT EXISTS public.templates (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    category TEXT NOT NULL UNIQUE,
+    message TEXT NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  )`,
+
+  // 9. Seed base templates
+  `INSERT INTO public.templates (category, message) VALUES
+    ('slim', 'Hey {name}, looking to bulk up? Check out our high-protein diet charts at the reception!'),
+    ('average', 'Hi {name}, staying consistent is key! Ready for today''s workout?'),
+    ('athletic', 'Great progress {name}! We have new advanced strength training routines available.'),
+    ('heavy', 'Hey {name}, focus on cardio and high reps today for maximum fat burn!')
+  ON CONFLICT (category) DO NOTHING`,
+
+  // 10. Create announcements table
+  `CREATE TABLE IF NOT EXISTS public.announcements (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`,
+
+  // 11. RLS for new tables
+  `ALTER TABLE public.templates ENABLE ROW LEVEL SECURITY`,
+  `ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='templates' AND policyname='public_read') THEN
+      CREATE POLICY public_read ON public.templates FOR SELECT USING (TRUE);
+    END IF;
+  END $$`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='announcements' AND policyname='public_read') THEN
+      CREATE POLICY public_read ON public.announcements FOR SELECT USING (TRUE);
+    END IF;
+  END $$`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='templates' AND policyname='service_all') THEN
+      CREATE POLICY service_all ON public.templates FOR ALL USING (TRUE);
+    END IF;
+  END $$`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='announcements' AND policyname='service_all') THEN
+      CREATE POLICY service_all ON public.announcements FOR ALL USING (TRUE);
+    END IF;
+  END $$`,
+
 ];
 
 async function run() {

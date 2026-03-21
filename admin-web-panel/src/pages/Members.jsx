@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key, Shield } from 'lucide-react';
+import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key, Shield, MessageCircle } from 'lucide-react';
+
 
 import { Topbar } from './Dashboard';
 
@@ -83,7 +84,9 @@ function MemberModal({ user, onClose, onSave }) {
 
 export default function Members() {
   const [users, setUsers] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [modalUser, setModalUser] = useState(null);
@@ -92,7 +95,14 @@ export default function Members() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { const r = await api.get('/admin/users'); setUsers(r.data||[]); }
+    try { 
+      const [uRes, tRes] = await Promise.all([
+        api.get('/admin/users'),
+        api.get('/admin/templates')
+      ]);
+      setUsers(uRes.data || []); 
+      setTemplates(tRes.data || []);
+    }
     catch { toast.error('Failed to load members'); }
     finally { setLoading(false); }
   }, []);
@@ -149,6 +159,19 @@ export default function Members() {
       toast.error(e.message || 'Failed to change role');
     }
   };
+
+  const handleWhatsApp = (user) => {
+    const bodyType = (user.body_type || 'average').toLowerCase();
+    const template = templates.find(t => t.category === bodyType) || templates[0];
+    
+    let msg = template ? template.message : "Hi {name}, how are you today?";
+    msg = msg.replace('{name}', user.name);
+    
+    const phone = user.phone.replace(/\D/g, ''); // clean non-digits
+    const waUrl = `https://wa.me/${phone.length === 10 ? '91'+phone : phone}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+  };
+
 
 
   const filtered = users.filter(u => {
@@ -212,7 +235,9 @@ export default function Members() {
                         <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>setModalUser(u)} title="Edit Member"><Edit2 size={13}/></button>
                         <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>handleResetPassword(u.id)} title="Reset Password"><Key size={13}/></button>
                         <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:u.role==='admin'?'var(--purple)':'inherit' }} onClick={()=>handleRoleChange(u)} title="Assign Role"><Shield size={13}/></button>
+                        <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:'#25D366' }} onClick={()=>handleWhatsApp(u)} title="Send WhatsApp"><MessageCircle size={13}/></button>
                       </div>
+
 
                     </td>
                   </tr>
