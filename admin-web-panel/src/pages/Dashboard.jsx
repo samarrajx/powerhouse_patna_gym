@@ -6,15 +6,22 @@ import { useTheme } from '../ThemeContext';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { Users, TrendingUp, UserX, Timer, RefreshCcw } from 'lucide-react';
+import { Users, TrendingUp, UserX, Timer, RefreshCcw, Menu } from 'lucide-react';
+import { useSidebar } from '../App';
 
 function Topbar({ title, sub }) {
   const { theme, toggle } = useTheme();
+  const { isOpen, toggle: toggleSidebar } = useSidebar();
   return (
     <div className="topbar">
-      <div className="topbar-left">
-        <h1>{title}</h1>
-        {sub && <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>{sub}</p>}
+      <div className="topbar-left" style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+        <button className="mobile-menu-btn" onClick={toggleSidebar}>
+          <Menu size={20} />
+        </button>
+        <div>
+          <h1>{title}</h1>
+          {sub && <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>{sub}</p>}
+        </div>
       </div>
       <div className="topbar-right">
         <div className="status-pill">

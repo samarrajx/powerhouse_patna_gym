@@ -76,13 +76,16 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   }
 
   Widget _buildStatsGrid() {
+    final width = MediaQuery.of(context).size.width;
+    final crossAxisCount = width > 600 ? 4 : 2;
+    
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
+      crossAxisCount: crossAxisCount,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
-      childAspectRatio: 1.5,
+      childAspectRatio: width > 600 ? 2.0 : 1.5,
       children: [
         _buildStatTile('TOTAL USERS', stats?['total_users']?.toString() ?? '...', Icons.people_outline),
         _buildStatTile('TODAY ATTENDANCE', stats?['today_attendance']?.toString() ?? '...', Icons.how_to_reg),

@@ -12,7 +12,7 @@ router.get('/generate', authMiddleware(['admin']), async (req, res) => {
     const token = jwt.sign(
       { type: 'attendance_qr' },
       process.env.JWT_SECRET,
-      { expiresIn: '30s' }
+      { expiresIn: '120s' }
     );
     res.json({ success: true, message: 'QR generated', data: { qr_code: token, expires_in: 30 }, error_code: null });
   } catch(e) {
@@ -34,7 +34,7 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
 
   const user_id = req.user.userId;
   const today = new Date().toISOString().split('T')[0];
-  const now = new Date().toTimeString().split(' ')[0]; // HH:MM:SS
+  const now = new Date().toISOString(); // Full ISO date for timestamptz
 
   // Check if user has attendance today
   const { data: existing } = await supabase.from('attendance')
@@ -43,11 +43,17 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
   let action = '';
   if (!existing) {
     const { error } = await supabase.from('attendance').insert([{ user_id, date: today, time_in: now }]);
-    if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'ATTENDANCE_ERROR' });
+    if (error) {
+      console.error('Attendance Check-In Error:', error);
+      return res.status(400).json({ success: false, message: error.message, error_code: 'ATTENDANCE_ERROR' });
+    }
     action = 'IN';
   } else if (!existing.time_out) {
     const { error } = await supabase.from('attendance').update({ time_out: now }).eq('id', existing.id);
-    if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'ATTENDANCE_ERROR' });
+    if (error) {
+      console.error('Attendance Check-Out Error:', error);
+      return res.status(400).json({ success: false, message: error.message, error_code: 'ATTENDANCE_ERROR' });
+    }
     action = 'OUT';
   } else {
     return res.status(400).json({ success: false, message: 'You have already checked out today', error_code: 'ALREADY_COMPLETED' });

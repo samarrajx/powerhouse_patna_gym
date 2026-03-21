@@ -16,7 +16,7 @@ export default function QrStation() {
       const res = await api.get('/qr/generate');
       const code = res.data?.qr_code || res.data?.code;
       setQr(code);
-      setTimeLeft(30);
+      setTimeLeft(60);
     } catch(e) {
       toast.error(e.message || 'Failed to generate QR');
       setQr(null);
@@ -32,7 +32,7 @@ export default function QrStation() {
       setTimeLeft(prev => {
         if (prev <= 1) {
           fetchToken(); // Fetch a new one immediately when 0
-          return 30;
+          return 60;
         }
         return prev - 1;
       });
@@ -41,7 +41,7 @@ export default function QrStation() {
     return () => clearInterval(timerRef.current);
   }, []);
 
-  const pct = (timeLeft / 30) * 100;
+  const pct = (timeLeft / 60) * 100;
   const danger = timeLeft <= 5;
 
   return (
@@ -58,7 +58,7 @@ export default function QrStation() {
                 Turnstile Access Token
               </h3>
               <p style={{ fontSize:'0.8rem', color:'var(--text-2)', marginTop:'4px' }}>
-                Auto-refreshes every 30 seconds
+                Auto-refreshes every 60 seconds
               </p>
             </div>
 

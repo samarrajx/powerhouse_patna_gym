@@ -1,3 +1,4 @@
+import { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -12,8 +13,11 @@ import Schedule from './pages/Schedule';
 import InactiveUsers from './pages/InactiveUsers';
 import Reports from './pages/Reports';
 import TemplateManager from './pages/TemplateManager';
-import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare, Menu } from 'lucide-react';
 import Logo from './components/Logo';
+
+const SidebarContext = createContext();
+export const useSidebar = () => useContext(SidebarContext);
 
 
 
@@ -29,7 +33,14 @@ function ThemeToggle() {
 
 function Sidebar() {
   const { user, logout } = useAuth();
+  const { isOpen, toggle } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Close sidebar on navigation on mobile
+  useEffect(() => {
+    if (isOpen && window.innerWidth <= 1024) toggle();
+  }, [location.pathname]);
 
   const navItems = [
     { section:'NAVIGATION' },
@@ -49,7 +60,9 @@ function Sidebar() {
   ];
 
   return (
-    <aside className="sidebar">
+    <>
+      <div className={`sidebar-overlay ${isOpen ? 'show' : ''}`} onClick={toggle} />
+      <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-brand">
         <Logo size={42} />
         <div>
@@ -81,11 +94,15 @@ function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }
 
 function ProtectedLayout() {
   const { user, loading } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const toggle = () => setIsOpen(!isOpen);
+
   if (loading) return (
     <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)' }}>
       <div className="spinner spinner-light" style={{ width:'32px', height:'32px' }}/>
@@ -93,9 +110,10 @@ function ProtectedLayout() {
   );
   if (!user) return <Navigate to="/login" replace/>;
   return (
-    <div className="admin-shell">
-      <Sidebar/>
-      <main className="main-area">
+    <SidebarContext.Provider value={{ isOpen, toggle }}>
+      <div className="admin-shell">
+        <Sidebar/>
+        <main className="main-area">
         <Routes>
           <Route path="/dashboard"  element={<Dashboard/>}/>
           <Route path="/members"    element={<Members/>}/>
@@ -109,8 +127,9 @@ function ProtectedLayout() {
           <Route path="/reports"    element={<Reports/>}/>
           <Route path="*"           element={<Navigate to="/dashboard" replace/>}/>
         </Routes>
-      </main>
-    </div>
+        </main>
+      </div>
+    </SidebarContext.Provider>
   );
 }
 

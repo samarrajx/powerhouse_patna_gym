@@ -42,24 +42,29 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _fetchStatus,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                _buildHeader(user?['name'] ?? 'MEMBER'),
-                const SizedBox(height: 32),
-                _buildStatusCard(isOpen, gymStatus?['schedule']),
-                const SizedBox(height: 24),
-                _buildMembershipCard(user),
-                const SizedBox(height: 24),
-                const Text('YOUR RECENT ACTIVITY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 12, color: AppColors.secondary)),
-                const SizedBox(height: 12),
-                _buildActivityList(),
-                const SizedBox(height: 100), // Space for FAB
-              ],
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+                    _buildHeader(user?['name'] ?? 'MEMBER'),
+                    const SizedBox(height: 32),
+                    _buildStatusCard(isOpen, gymStatus?['schedule']),
+                    const SizedBox(height: 24),
+                    _buildMembershipCard(user),
+                    const SizedBox(height: 24),
+                    const Text('YOUR RECENT ACTIVITY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 12, color: AppColors.secondary)),
+                    const SizedBox(height: 12),
+                    _buildActivityList(),
+                    const SizedBox(height: 100), // Space for FAB
+                  ],
+                ),
+              ),
             ),
           ),
         ),
