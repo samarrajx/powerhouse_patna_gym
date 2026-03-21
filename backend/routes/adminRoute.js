@@ -264,4 +264,12 @@ router.delete('/announcements/:id', authMiddleware(['admin']), async (req, res) 
 });
 
 
+// ─── Batches ────────────────────────────────────────────────────────────────
+router.get('/batches', authMiddleware(['admin']), async (req, res) => {
+  const { data, error } = await supabase.from('batches').select('id, name').order('name');
+  if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
+  res.json({ success: true, message: 'Batches list', data: data || [], error_code: null });
+});
+
+
 module.exports = router;

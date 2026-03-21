@@ -7,19 +7,19 @@ import AttendanceModal from '../components/AttendanceModal';
 
 import { Topbar } from './Dashboard';
 
-function MemberModal({ user, onClose, onSave }) {
+function MemberModal({ user, batches, onClose, onSave }) {
   const [f, setF] = useState(user ? {
     name: user.name||'', phone: user.phone||'', phone_alt: user.phone_alt||'', roll_no: user.roll_no||'',
     address: user.address||'', father_name: user.father_name||'',
     date_of_joining: user.date_of_joining ? String(user.date_of_joining).split('T')[0] : new Date().toISOString().split('T')[0],
     body_type: user.body_type||'normal', membership_plan: user.membership_plan||'Standard',
-
+    batch_id: user.batch_id||(batches?.[0]?.id || ''),
     membership_expiry: user.membership_expiry ? String(user.membership_expiry).split('T')[0] : '',
     fees_status: user.fees_status||'paid', notes: user.notes||''
   } : { 
     name:'', phone:'', phone_alt:'', roll_no:'', address:'', father_name:'',
     date_of_joining: new Date().toISOString().split('T')[0], body_type:'normal',
-
+    batch_id: batches?.[0]?.id || '',
     membership_plan:'Standard', membership_expiry:'', fees_status:'paid', notes:'' 
   });
   
@@ -41,7 +41,7 @@ function MemberModal({ user, onClose, onSave }) {
     finally { setSaving(false); }
   };
 
-  const PLANS = ['Standard','Gold','Platinum'];
+  const PLANS = ['Standard','Monthly','Quarterly','Semi-Annual','Annual'];
   const BODY_TYPES = ['skinny','normal','fatty'];
 
 
@@ -69,9 +69,23 @@ function MemberModal({ user, onClose, onSave }) {
             <div className="input-wrap"><label className="input-label">Date of Joining</label><input type="date" className="input-field" value={f.date_of_joining} onChange={e=>set('date_of_joining',e.target.value)}/></div>
             <div className="input-wrap"><label className="input-label">Body Type</label><select className="input-field" value={f.body_type} onChange={e=>set('body_type',e.target.value)}>{BODY_TYPES.map(b=><option key={b}>{b}</option>)}</select></div>
           </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 14px' }}>
+            <div className="input-wrap">
+              <label className="input-label">Batch</label>
+              <select className="input-field" value={f.batch_id} onChange={e=>set('batch_id',e.target.value)}>
+                {batches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
+                {batches.length === 0 && <option value="">No Batches</option>}
+              </select>
+            </div>
+            <div className="input-wrap">
+              <label className="input-label">Plan</label>
+              <select className="input-field" value={f.membership_plan} onChange={e=>set('membership_plan',e.target.value)}>
+                {PLANS.map(p=><option key={p}>{p}</option>)}
+              </select>
+            </div>
+          </div>
           <p style={{ fontSize:'0.72rem', color:'var(--text-3)', margin:'4px 0 12px', textTransform:'uppercase', letterSpacing:'0.08em' }}>Membership</p>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'0 14px' }}>
-            <div className="input-wrap"><label className="input-label">Plan</label><select className="input-field" value={f.membership_plan} onChange={e=>set('membership_plan',e.target.value)}>{PLANS.map(p=><option key={p}>{p}</option>)}</select></div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 14px' }}>
             <div className="input-wrap"><label className="input-label">Expiry</label><input type="date" className="input-field" value={f.membership_expiry} onChange={e=>set('membership_expiry',e.target.value)}/></div>
             <div className="input-wrap"><label className="input-label">Fees</label><select className="input-field" value={f.fees_status} onChange={e=>set('fees_status',e.target.value)}><option value="paid">Paid</option><option value="pending">Pending</option><option value="overdue">Overdue</option></select></div>
           </div>
@@ -109,6 +123,7 @@ function ConfirmModal({ title, message, onConfirm, onClose, loading }) {
 export default function Members() {
 
   const [users, setUsers] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -125,14 +140,27 @@ export default function Members() {
   const load = useCallback(async () => {
     setLoading(true);
     try { 
-      const [uRes, tRes] = await Promise.all([
-        api.get('/admin/users'),
-        api.get('/admin/templates')
+      const [uRes, tRes, bRes] = await Promise.all([
+        api.get('/admin/users').catch(e => ({ data: [] })),
+        api.get('/admin/templates').catch(e => ({ data: [] })),
+        api.get('/admin/batches').catch(e => ({ data: null }))
       ]);
       setUsers(uRes.data || []); 
       setTemplates(tRes.data || []);
+      
+      if (bRes.data && bRes.data.length > 0) {
+        setBatches(bRes.data);
+      } else {
+        setBatches([
+          { id: '0515f242-095a-4cae-8e5e-78d5780bbf99', name: 'Morning Batch' },
+          { id: '74115ffe-6b7b-4071-96cc-f6a5cb4937f9', name: 'Evening Batch' }
+        ]);
+      }
     }
-    catch { toast.error('Failed to load members'); }
+    catch (e) { 
+      toast.error('Failed to load data'); 
+      console.error(e);
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -229,7 +257,7 @@ export default function Members() {
 
   return (
     <>
-      {modalUser && <MemberModal user={modalUser==='new'?null:modalUser} onClose={()=>setModalUser(null)} onSave={()=>{ setModalUser(null); load(); }}/>}
+      {modalUser && <MemberModal user={modalUser==='new'?null:modalUser} batches={batches} onClose={()=>setModalUser(null)} onSave={()=>{ setModalUser(null); load(); }}/>}
       {attendanceUser && (
         <AttendanceModal 
           userId={attendanceUser.id} 
@@ -270,17 +298,18 @@ export default function Members() {
             <div style={{ padding:'40px', display:'flex', justifyContent:'center' }}><div className="spinner spinner-light" style={{ width:'26px', height:'26px' }}/></div>
           ) : (
             <table>
-              <thead><tr><th>Member</th><th>Phone</th><th>Roll No</th><th>Plan</th><th>Role</th><th>Expires</th><th>Fees</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Member</th><th>Phone</th><th>Roll No</th><th>Plan</th><th>Batch</th><th>Role</th><th>Expires</th><th>Fees</th><th>Status</th><th>Actions</th></tr></thead>
 
               <tbody>
                 {filtered.length===0 ? (
-                  <tr><td colSpan={8}><div className="empty-state"><p>No members found</p></div></td></tr>
+                  <tr><td colSpan={9}><div className="empty-state"><p>No members found</p></div></td></tr>
                 ) : filtered.map(u=>(
                   <tr key={u.id}>
                     <td><div style={{ display:'flex', alignItems:'center', gap:'9px' }}><div className="avatar-circle" style={{ width:'30px', height:'30px', fontSize:'0.72rem' }}>{(u.name||'?')[0].toUpperCase()}</div><div><div style={{ fontWeight:'500' }}>{u.name}</div>{u.father_name&&<div style={{ fontSize:'0.7rem', color:'var(--text-3)' }}>S/o {u.father_name}</div>}</div></div></td>
                     <td style={{ fontFamily:'monospace', fontSize:'0.82rem', color:'var(--text-2)' }}>{u.phone}</td>
                     <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{u.roll_no||'—'}</td>
                     <td><span className="badge badge-blue">{u.membership_plan||'Standard'}</span></td>
+                    <td><span className="badge badge-gray">{batches.find(b=>b.id===u.batch_id)?.name || '—'}</span></td>
                     <td><span className={`badge ${u.role==='admin'?'badge-purple':'badge-gray'}`} style={{ textTransform:'capitalize' }}>{u.role||'user'}</span></td>
 
                     <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{u.membership_expiry?new Date(u.membership_expiry).toLocaleDateString('en-IN'):'—'}</td>
