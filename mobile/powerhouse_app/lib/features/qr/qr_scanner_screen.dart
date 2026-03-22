@@ -59,7 +59,11 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       if (res['success'] == true) {
         _showResult(true, res['message'] ?? 'Attendance Marked!');
       } else {
-        _showResult(false, res['message'] ?? 'Invalid QR Code');
+        if (res['error_code'] == 'GYM_CLOSED') {
+          _showGymClosed(res['message'] ?? 'Gym is currently closed.');
+        } else {
+          _showResult(false, res['message'] ?? 'Invalid QR Code');
+        }
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
@@ -117,6 +121,44 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
          Navigator.pop(context);
       }
     });
+  }
+
+  void _showGymClosed(String message) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isDismissible: false,
+      enableDrag: false,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.nightlight_round, color: AppColors.secondary, size: 64),
+            const SizedBox(height: 16),
+            const Text(
+              'GYM IS CLOSED',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.onSurface),
+            ),
+            const SizedBox(height: 8),
+            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.onSurfaceVariant)),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context, true); // Go back to dashboard entirely
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                child: const Text('BACK TO DASHBOARD', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override

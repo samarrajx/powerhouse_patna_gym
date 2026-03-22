@@ -45,6 +45,19 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
 
     return Scaffold(
       backgroundColor: bg,
+      appBar: AppBar(
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset('assets/images/logo.jpg', width: 32, height: 32, fit: BoxFit.cover),
+            ),
+            const SizedBox(width: 12),
+            const Text('Admin Dashboard'),
+          ],
+        ),
+        backgroundColor: Colors.transparent,
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _fetchAll,

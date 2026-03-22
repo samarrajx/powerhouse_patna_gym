@@ -13,6 +13,8 @@ class QRGeneratorScreen extends StatefulWidget {
 
 class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
   String? qrCode;
+  bool isGymClosed = false;
+  String closedMessage = '';
   int countdown = 30;
   Timer? timer;
 
@@ -30,12 +32,20 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
 
   Future<void> _fetchQR() async {
     final res = await ApiService.get('/qr/generate');
-    if (mounted && res['success'] == true) {
-      setState(() {
-        qrCode = res['data']['qr_code'];
-        countdown = res['data']['expires_in'] ?? 30;
-      });
-      _startTimer();
+    if (mounted) {
+      if (res['success'] == true) {
+        setState(() {
+          isGymClosed = false;
+          qrCode = res['data']['qr_code'];
+          countdown = res['data']['expires_in'] ?? 30;
+        });
+        _startTimer();
+      } else if (res['error_code'] == 'GYM_CLOSED') {
+        setState(() {
+          isGymClosed = true;
+          closedMessage = res['message'] ?? 'Gym is currently closed.';
+        });
+      }
     }
   }
 
@@ -75,28 +85,45 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
                   BoxShadow(color: AppColors.primary.withValues(alpha: 0.2), blurRadius: 40, spreadRadius: 10),
                 ],
               ),
-              child: qrCode == null
-                  ? const SizedBox(width: 250, height: 250, child: Center(child: CircularProgressIndicator()))
-                  : QrImageView(
-                      data: qrCode!,
-                      version: QrVersions.auto,
-                      size: 250.0,
-                    ),
+              child: isGymClosed
+                  ? SizedBox(
+                      width: 250,
+                      height: 250,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.nightlight_round, color: AppColors.secondary, size: 48),
+                          const SizedBox(height: 16),
+                          const Text('CLOSED', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                          const SizedBox(height: 8),
+                          Text(closedMessage, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.onSurfaceVariant)),
+                        ],
+                      ),
+                    )
+                  : (qrCode == null
+                      ? const SizedBox(width: 250, height: 250, child: Center(child: CircularProgressIndicator()))
+                      : QrImageView(
+                          data: qrCode!,
+                          version: QrVersions.auto,
+                          size: 250.0,
+                        )),
             ),
             const SizedBox(height: 48),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.timer_outlined, color: AppColors.primary, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'REFRESHING IN ${countdown}S',
-                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1),
-                ),
-              ],
-            ),
+            if (!isGymClosed)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.timer_outlined, color: AppColors.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'REFRESHING IN ${countdown}S',
+                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1),
+                  ),
+                ],
+              ),
             const SizedBox(height: 64),
-            Padding(
+            if (!isGymClosed)
+              Padding(
               padding: const EdgeInsets.symmetric(horizontal: 48),
               child: Text(
                 'This QR code is dynamic and expires every 30 seconds for security.',

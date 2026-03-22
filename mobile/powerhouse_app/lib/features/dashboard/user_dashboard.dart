@@ -49,6 +49,20 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset('assets/images/logo.jpg', width: 32, height: 32, fit: BoxFit.cover),
+            ),
+            const SizedBox(width: 12),
+            const Text('PH Gym'),
+          ],
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _fetchStatus,
@@ -232,7 +246,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
         gradient: AppColors.metallicGradient,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          BoxShadow(color: AppColors.primary.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 8)),
+          BoxShadow(color: AppColors.primary.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 8)),
         ],
       ),
       child: ElevatedButton(

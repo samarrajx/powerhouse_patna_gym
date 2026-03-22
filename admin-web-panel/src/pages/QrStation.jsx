@@ -8,6 +8,8 @@ export default function QrStation() {
   const [qr, setQr] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isClosed, setIsClosed] = useState(false);
+  const [closedMessage, setClosedMessage] = useState('');
   const timerRef = useRef(null);
 
   const fetchToken = async () => {
@@ -15,10 +17,16 @@ export default function QrStation() {
     try {
       const res = await api.get('/qr/generate');
       const code = res.data?.qr_code || res.data?.code;
+      setIsClosed(false);
       setQr(code);
       setTimeLeft(60);
     } catch(e) {
-      toast.error(e.message || 'Failed to generate QR');
+      if (e.response?.data?.error_code === 'GYM_CLOSED') {
+        setIsClosed(true);
+        setClosedMessage(e.response?.data?.message || 'Gym is currently closed.');
+      } else {
+        toast.error(e.response?.data?.message || e.message || 'Failed to generate QR');
+      }
       setQr(null);
       setTimeLeft(0);
     } finally {
@@ -64,7 +72,13 @@ export default function QrStation() {
 
             {/* QR frame */}
             <div className={`qr-frame ${qr ? 'active' : ''}`} style={{ minHeight:'280px', background:'white', padding:'30px', display:'flex', justifyContent:'center', alignItems:'center', borderRadius:'16px' }}>
-              {loading && !qr ? (
+              {isClosed ? (
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'12px', color:'#999' }}>
+                   <Zap size={40} style={{ opacity:0.3 }} />
+                   <span style={{ fontSize:'1.2rem', fontWeight:'700', color:'var(--coral)' }}>CLOSED</span>
+                   <span style={{ fontSize:'0.85rem', textAlign:'center', marginTop:'-4px' }}>{closedMessage}</span>
+                </div>
+              ) : loading && !qr ? (
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'12px' }}>
                   <div className="spinner spinner-light" style={{ width:'32px', height:'32px', borderWidth:'3px', borderColor:'var(--lime)' }} />
                   <span style={{ color:'#666', fontSize:'0.85rem' }}>Generating secure hash...</span>
