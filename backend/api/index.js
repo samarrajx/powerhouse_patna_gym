@@ -9,6 +9,7 @@ const attendanceRoute = require('../routes/attendanceRoute');
 const adminRoute    = require('../routes/adminRoute');
 const scheduleRoute = require('../routes/scheduleRoute');
 const notificationRoute = require('../routes/notificationRoute');
+const userRoute = require('../routes/userRoute');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/api/attendance', attendanceRoute);
 app.use('/api/admin', adminRoute);
 app.use('/api/schedule', scheduleRoute);
 app.use('/api/notifications', notificationRoute);
+app.use('/api/user', userRoute);
 
 // GET /api/gym/status — check today holiday + weekly schedule
 app.get('/api/gym/status', async (req, res) => {

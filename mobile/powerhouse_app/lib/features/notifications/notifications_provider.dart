@@ -33,31 +33,32 @@ class NotificationModel {
   }
 }
 
-class NotificationsNotifier extends StateNotifier<AsyncValue<List<NotificationModel>>> {
-  NotificationsNotifier() : super(const AsyncValue.loading()) {
-    fetchNotifications();
+class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
+  @override
+  Future<List<NotificationModel>> build() async {
+    return _fetch();
+  }
+
+  Future<List<NotificationModel>> _fetch() async {
+    final res = await ApiService.get('/notifications');
+    if (res['success'] == true) {
+      final List<dynamic> data = res['data'];
+      return data.map((e) => NotificationModel.fromJson(e)).toList();
+    }
+    throw Exception(res['message'] ?? 'Failed to load');
   }
 
   Future<void> fetchNotifications() async {
-    try {
-      final res = await ApiService.get('/notifications');
-      if (res['success'] == true) {
-        final List<dynamic> data = res['data'];
-        state = AsyncValue.data(data.map((e) => NotificationModel.fromJson(e)).toList());
-      } else {
-        state = AsyncValue.error(res['message'] ?? 'Failed to load', StackTrace.current);
-      }
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _fetch());
   }
 
   Future<void> markAsRead(String id) async {
     try {
       final res = await ApiService.put('/notifications/$id/read', {});
       if (res['success'] == true) {
-        state.whenData((list) {
-          state = AsyncValue.data(list.map((n) => n.id == id ? NotificationModel(
+        state = state.whenData((list) {
+          return list.map((n) => n.id == id ? NotificationModel(
             id: n.id,
             userId: n.userId,
             type: n.type,
@@ -65,7 +66,7 @@ class NotificationsNotifier extends StateNotifier<AsyncValue<List<NotificationMo
             message: n.message,
             isRead: true,
             createdAt: n.createdAt,
-          ) : n).toList());
+          ) : n).toList();
         });
       }
     } catch (_) {}
@@ -79,6 +80,6 @@ class NotificationsNotifier extends StateNotifier<AsyncValue<List<NotificationMo
   }
 }
 
-final notificationsProvider = StateNotifierProvider<NotificationsNotifier, AsyncValue<List<NotificationModel>>>((ref) {
+final notificationsProvider = AsyncNotifierProvider<NotificationsNotifier, List<NotificationModel>>(() {
   return NotificationsNotifier();
 });

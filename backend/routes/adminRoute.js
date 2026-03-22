@@ -194,6 +194,42 @@ router.post('/users/:id/restore', authMiddleware(['admin']), async (req, res) =>
   res.json({ success: true, message: 'User restored to active', data, error_code: null });
 });
 
+// ─── Freeze User ─────────────────────────────────────────────────────────────
+router.post('/users/:id/freeze', authMiddleware(['admin']), async (req, res) => {
+  const { id } = req.params;
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase.from('users').update({ is_frozen: true, freeze_start_date: today }).eq('id', id).select().single();
+  if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'FREEZE_ERROR' });
+  await supabase.from('audit_logs').insert([{ action: 'FREEZE_USER', performed_by: req.user.userId, target_user: id, details: { date: today } }]);
+  res.json({ success: true, message: 'Membership frozen', data });
+});
+
+// ─── Unfreeze User ───────────────────────────────────────────────────────────
+router.post('/users/:id/unfreeze', authMiddleware(['admin']), async (req, res) => {
+  const { id } = req.params;
+  const { data: user, error: getErr } = await supabase.from('users').select('*').eq('id', id).single();
+  if (getErr || !user) return res.status(404).json({ success: false, message: 'User not found' });
+  if (!user.is_frozen || !user.freeze_start_date) return res.status(400).json({ success: false, message: 'User is not frozen' });
+
+  const start = new Date(user.freeze_start_date);
+  const end = new Date();
+  const diffTime = Math.abs(end - start);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  let newExpiry = user.membership_expiry;
+  if (newExpiry) {
+    const expDate = new Date(newExpiry);
+    expDate.setDate(expDate.getDate() + diffDays);
+    newExpiry = expDate.toISOString().split('T')[0];
+  }
+
+  const { data, error } = await supabase.from('users').update({ is_frozen: false, freeze_start_date: null, membership_expiry: newExpiry }).eq('id', id).select().single();
+  if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UNFREEZE_ERROR' });
+  
+  await supabase.from('audit_logs').insert([{ action: 'UNFREEZE_USER', performed_by: req.user.userId, target_user: id, details: { days_added: diffDays } }]);
+  res.json({ success: true, message: `Membership unfrozen. Added ${diffDays} days to expiry.`, data });
+});
+
 // ─── Today's attendance (admin) ──────────────────────────────────────────────
 router.get('/attendance/today', authMiddleware(['admin']), async (req, res) => {
   const today = new Date().toISOString().split('T')[0];

@@ -58,7 +58,10 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         actions: [
           Consumer(
             builder: (context, ref, child) {
-              final count = ref.watch(notificationsProvider.notifier).unreadCount;
+              final count = ref.watch(notificationsProvider).maybeWhen(
+                data: (list) => list.where((n) => !n.isRead).length,
+                orElse: () => 0,
+              );
               return Stack(
                 children: [
                    IconButton(

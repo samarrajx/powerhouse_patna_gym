@@ -32,16 +32,73 @@ router.post('/login', async (req, res) => {
         membership_expiry: user.membership_expiry, fees_status: user.fees_status,
         batch_id: user.batch_id, status: user.status,
         must_change_password: user.must_change_password === true,
-      }
+        current_streak: user.current_streak,
+        best_streak: user.best_streak,
+        is_frozen: user.is_frozen,
+      },
+      comeback_eligible: _checkComeback(user)
     }
   });
 });
 
-// GET /auth/me — refresh user data
 router.get('/me', authMiddleware(), async (req, res) => {
-  const { data: user, error } = await supabase.from('users').select('id,name,role,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,membership_plan,membership_expiry,fees_status,batch_id,status,must_change_password').eq('id', req.user.userId).single();
+  const { data: user, error } = await supabase.from('users').select('*').eq('id', req.user.userId).single();
   if (error || !user) return res.status(404).json({ success: false, message: 'User not found', error_code: 'NOT_FOUND' });
-  res.json({ success: true, message: 'User data', data: user, error_code: null });
+  
+  res.json({ 
+    success: true, 
+    message: 'User data', 
+    data: {
+      ...user,
+      must_change_password: user.must_change_password === true,
+    },
+    comeback_eligible: _checkComeback(user),
+    error_code: null 
+  });
+});
+
+// Helper
+function _checkComeback(user) {
+  if (!user.streak_last_updated) return false;
+  const last = new Date(user.streak_last_updated);
+  const diff = (new Date() - last) / (1000 * 60 * 60 * 24);
+  
+  // 15 days inactivity AND either never claimed or claimed > 30 days ago
+  if (diff > 15) {
+     if (!user.last_comeback_date) return true;
+     const lastClaim = new Date(user.last_comeback_date);
+     const diffClaim = (new Date() - lastClaim) / (1000 * 60 * 60 * 24);
+     return diffClaim > 30;
+  }
+  return false;
+}
+
+// ─── Claim Comeback ──────────────────────────────────────────────────────────
+router.post('/claim-comeback', authMiddleware(), async (req, res) => {
+  const { data: user, error: getErr } = await supabase.from('users').select('*').eq('id', req.user.userId).single();
+  if (getErr || !user) return res.status(404).json({ success: false, message: 'User not found' });
+
+  if (!_checkComeback(user)) {
+    return res.status(400).json({ success: false, message: 'Not eligible for comeback bonus' });
+  }
+
+  let newExpiry = user.membership_expiry;
+  if (newExpiry) {
+    const expDate = new Date(newExpiry);
+    expDate.setDate(expDate.getDate() + 2); // 2 days bonus
+    newExpiry = expDate.toISOString().split('T')[0];
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const { error } = await supabase.from('users').update({ 
+    membership_expiry: newExpiry, 
+    last_comeback_date: today 
+  }).eq('id', req.user.userId);
+
+  if (error) return res.status(400).json({ success: false, message: error.message });
+
+  await supabase.from('audit_logs').insert([{ action: 'CLAIM_COMEBACK', performed_by: req.user.userId, details: { days_added: 2 } }]);
+  res.json({ success: true, message: 'Welcome back! 2 days added to your membership.' });
 });
 
 // POST /auth/change-password

@@ -123,7 +123,11 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
     return res.status(403).json({ success: false, message: 'Membership expired. Please renew at the desk.', error_code: 'EXPIRED' });
   }
 
-  // B. Inactive Status Block
+  // B. Inactive & Freeze Status Block
+  if (userRecord.is_frozen) {
+    return res.status(403).json({ success: false, message: 'Membership is currently frozen. Contact office to unfreeze.', error_code: 'FROZEN' });
+  }
+
   if (userRecord.status !== 'active') {
     return res.status(403).json({ success: false, message: `Account status is ${userRecord.status}. Please contact admin.`, error_code: 'INACTIVE' });
   }

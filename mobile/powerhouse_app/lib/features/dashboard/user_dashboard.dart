@@ -6,6 +6,7 @@ import '../auth/auth_provider.dart';
 import '../qr/qr_scanner_screen.dart';
 import '../notifications/notifications_provider.dart';
 import '../notifications/notification_center.dart';
+import 'leaderboard_screen.dart';
 
 class UserDashboard extends ConsumerStatefulWidget {
   const UserDashboard({super.key});
@@ -46,8 +47,15 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authProvider).user;
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
     final isOpen = gymStatus?['is_open'] ?? false;
+
+    if (authState.comebackEligible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showComebackPopup(ref);
+      });
+    }
 
     return Scaffold(
       backgroundColor: AppColors.bg(context),
@@ -65,7 +73,10 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
         actions: [
           Consumer(
             builder: (context, ref, child) {
-              final count = ref.watch(notificationsProvider.notifier).unreadCount;
+              final count = ref.watch(notificationsProvider).maybeWhen(
+                data: (list) => list.where((n) => !n.isRead).length,
+                orElse: () => 0,
+              );
               return Stack(
                 children: [
                    IconButton(
@@ -115,11 +126,14 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('RECENT ACTIVITY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11, color: AppColors.text3(context))),
-                    GestureDetector(
-                      onTap: () {
-                        // Navigate to history tab logic would go here
-                      },
-                      child: const Text('VIEW ALL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.primary, letterSpacing: 1)),
+                    TextButton.icon(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen())),
+                      icon: const Icon(Icons.leaderboard_outlined, size: 14),
+                      label: const Text('RANKINGS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                      ),
                     ),
                   ],
                 ),
@@ -282,6 +296,60 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     if (streak <= 50) return {'name': 'Platinum', 'color': Colors.cyan, 'nextGoal': 51};
     if (streak <= 60) return {'name': 'Diamond', 'color': Colors.blue, 'nextGoal': 61};
     return {'name': 'Legendary', 'color': Colors.redAccent, 'nextGoal': 100};
+  }
+
+  void _showComebackPopup(WidgetRef ref) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [Color(0xFF6A11CB), Color(0xFF2575FC)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(32),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.celebration, color: Colors.white, size: 64),
+              const SizedBox(height: 24),
+              const Text(
+                'WELCOME BACK!',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 2),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'We missed you! As a welcome back gift, we\'ve added 2 bonus days to your membership.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final success = await ref.read(authProvider.notifier).claimComeback();
+                    if (success && mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Bonus claimed! 2 days added.')),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.blueAccent,
+                  ),
+                  child: const Text('CLAIM MY GIFT'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildMembershipCard(Map<String, dynamic>? user) {

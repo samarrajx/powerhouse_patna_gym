@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../db/supabase');
-const authMiddleware = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/auth');
 
 // GET /api/notifications -> Get user notifications + global announcements
 router.get('/', authMiddleware(['user', 'admin']), async (req, res) => {

@@ -6,6 +6,7 @@ class AuthState {
   final bool isAuthenticated;
   final String? role;
   final Map<String, dynamic>? user;
+  final bool comebackEligible;
   final String? errorMessage;
 
   AuthState({
@@ -13,6 +14,7 @@ class AuthState {
     this.isAuthenticated = false,
     this.role,
     this.user,
+    this.comebackEligible = false,
     this.errorMessage,
   });
 
@@ -21,6 +23,7 @@ class AuthState {
     bool? isAuthenticated,
     String? role,
     Map<String, dynamic>? user,
+    bool? comebackEligible,
     String? errorMessage,
   }) {
     return AuthState(
@@ -28,6 +31,7 @@ class AuthState {
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       role: role ?? this.role,
       user: user ?? this.user,
+      comebackEligible: comebackEligible ?? this.comebackEligible,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
@@ -53,6 +57,7 @@ class AuthNotifier extends Notifier<AuthState> {
             isAuthenticated: true,
             user: res['data'],
             role: res['data']['role'],
+            comebackEligible: res['comeback_eligible'] == true,
             isLoading: false,
           );
         } else {
@@ -85,6 +90,7 @@ class AuthNotifier extends Notifier<AuthState> {
           isAuthenticated: true,
           user: res['data']['user'],
           role: res['data']['user']['role'],
+          comebackEligible: res['data']['comeback_eligible'] == true,
           isLoading: false,
         );
       } else {
@@ -105,6 +111,19 @@ class AuthNotifier extends Notifier<AuthState> {
         'newPassword': newPwd,
       });
       return res['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> claimComeback() async {
+    try {
+      final res = await ApiService.post('/auth/claim-comeback', {});
+      if (res['success'] == true) {
+        await checkAuth(); // Refresh user data to get new expiry
+        return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }

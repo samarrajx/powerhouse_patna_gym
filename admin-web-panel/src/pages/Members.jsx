@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key, Shield, MessageCircle, CalendarCheck } from 'lucide-react';
+import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key, Shield, MessageCircle, CalendarCheck, Pause, Play } from 'lucide-react';
 import AttendanceModal from '../components/AttendanceModal';
 
 
@@ -246,6 +246,27 @@ export default function Members() {
     window.open(waUrl, '_blank');
   };
 
+  const handleFreezeToggle = async (user) => {
+    const isFrozen = user.is_frozen;
+    setConfirmData({
+      title: isFrozen ? 'Unfreeze Membership' : 'Freeze Membership',
+      message: isFrozen 
+        ? `Are you sure you want to unfreeze ${user.name}? Their expiry date will be pushed forward by the duration of the freeze.`
+        : `Are you sure you want to freeze ${user.name}'s membership? They will be unable to check-in until unfrozen. Their membership clock will pause.`,
+      onConfirm: async () => {
+        setActing(true);
+        try {
+          const endpoint = isFrozen ? 'unfreeze' : 'freeze';
+          const res = await api.post(`/admin/users/${user.id}/${endpoint}`);
+          toast.success(res.message || (isFrozen ? 'Membership unfrozen' : 'Membership frozen'));
+          load();
+          setConfirmData(null);
+        } catch(e) { toast.error(e.message || 'Action failed'); }
+        finally { setActing(false); }
+      }
+    });
+  };
+
 
 
   const filtered = users.filter(u => {
@@ -259,6 +280,7 @@ export default function Members() {
       const today = new Date().toISOString().split('T')[0];
       return u.membership_expiry && u.membership_expiry < today;
     }
+    if (filter === 'frozen') return u.is_frozen;
     return u.status === filter;
   });
 
@@ -286,7 +308,7 @@ export default function Members() {
                 <input placeholder="Name, phone, roll no..." value={search} onChange={e=>setSearch(e.target.value)}/>
                 {search && <button onClick={()=>setSearch('')} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-3)' }}><X size={13}/></button>}
               </div>
-              {['all','active','inactive','grace','expired'].map(s=>(
+              {['all','active','inactive','grace','expired','frozen'].map(s=>(
                 <button key={s} className={`btn btn-sm ${filter===s?'btn-primary':'btn-ghost'}`} onClick={()=>setFilter(s)} style={{ textTransform:'capitalize' }}>{s}</button>
               ))}
             </div>
@@ -322,13 +344,20 @@ export default function Members() {
 
                       <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{u.membership_expiry?new Date(u.membership_expiry).toLocaleDateString('en-IN'):'—'}</td>
                       <td><span className={`badge ${u.fees_status==='paid'?'badge-green':u.fees_status==='overdue'?'badge-red':'badge-gray'}`}><span className="badge-dot"/>{u.fees_status||'paid'}</span></td>
-                      <td><span className={`badge ${u.status==='active'?'badge-green':u.status==='grace'?'badge-red':'badge-gray'}`}><span className="badge-dot"/>{u.status||'active'}</span></td>
+                      <td>
+                        {u.is_frozen ? (
+                          <span className="badge badge-purple"><span className="badge-dot"/>Frozen</span>
+                        ) : (
+                          <span className={`badge ${u.status==='active'?'badge-green':u.status==='grace'?'badge-red':'badge-gray'}`}><span className="badge-dot"/>{u.status||'active'}</span>
+                        )}
+                      </td>
                       <td>
                         <div style={{ display:'flex', gap:'5px' }}>
                           <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>setModalUser(u)} title="Edit Member"><Edit2 size={13}/></button>
                           <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:'var(--blue)' }} onClick={() => setAttendanceUser(u)} title="Mark Attendance"><CalendarCheck size={13}/></button>
                           <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>handleResetPassword(u.id)} title="Reset Password"><Key size={13}/></button>
                           <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:u.role==='admin'?'var(--purple)':'inherit' }} onClick={()=>handleRoleChange(u)} title="Assign Role"><Shield size={13}/></button>
+                          <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:u.is_frozen?'var(--success)':'var(--primary)' }} onClick={()=>handleFreezeToggle(u)} title={u.is_frozen?'Unfreeze Membership':'Freeze Membership'}>{u.is_frozen?<Play size={13}/>:<Pause size={13}/>}</button>
                           <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:'#25D366' }} onClick={()=>handleWhatsApp(u)} title="Send WhatsApp"><MessageCircle size={13}/></button>
                         </div>
                       </td>
