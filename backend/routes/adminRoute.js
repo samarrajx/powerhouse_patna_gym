@@ -12,6 +12,15 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   
+  // PROACTIVE SYNC: Update all active members whose membership has expired
+  try {
+    await supabase.from('users')
+      .update({ status: 'inactive' })
+      .eq('status', 'active')
+      .lt('membership_expiry', today);
+  } catch (err) {
+    console.error('Proactive expiry sync failed:', err);
+  }
   // Calculate last 7 days
   const last7Days = [];
   for (let i = 6; i >= 0; i--) {

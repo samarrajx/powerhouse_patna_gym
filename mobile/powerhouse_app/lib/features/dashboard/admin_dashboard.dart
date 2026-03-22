@@ -106,7 +106,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         crossAxisCount: 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 1.4,
+        childAspectRatio: 1.15, // Increased from 1.4 for more vertical space
       ),
       itemCount: tiles.length,
       itemBuilder: (_, i) {

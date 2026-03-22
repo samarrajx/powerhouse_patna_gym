@@ -252,7 +252,14 @@ export default function Members() {
     const match = (u.name||'').toLowerCase().includes(search.toLowerCase()) ||
                   (u.phone||'').includes(search) ||
                   (u.roll_no||'').toLowerCase().includes(search.toLowerCase());
-    return match && (filter==='all' || u.status===filter);
+    
+    if (!match) return false;
+    if (filter === 'all') return true;
+    if (filter === 'expired') {
+      const today = new Date().toISOString().split('T')[0];
+      return u.membership_expiry && u.membership_expiry < today;
+    }
+    return u.status === filter;
   });
 
   return (
@@ -279,7 +286,7 @@ export default function Members() {
                 <input placeholder="Name, phone, roll no..." value={search} onChange={e=>setSearch(e.target.value)}/>
                 {search && <button onClick={()=>setSearch('')} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-3)' }}><X size={13}/></button>}
               </div>
-              {['all','active','inactive','grace'].map(s=>(
+              {['all','active','inactive','grace','expired'].map(s=>(
                 <button key={s} className={`btn btn-sm ${filter===s?'btn-primary':'btn-ghost'}`} onClick={()=>setFilter(s)} style={{ textTransform:'capitalize' }}>{s}</button>
               ))}
             </div>
@@ -297,39 +304,39 @@ export default function Members() {
           {loading ? (
             <div style={{ padding:'40px', display:'flex', justifyContent:'center' }}><div className="spinner spinner-light" style={{ width:'26px', height:'26px' }}/></div>
           ) : (
-            <table>
-              <thead><tr><th>Member</th><th>Phone</th><th>Roll No</th><th>Plan</th><th>Batch</th><th>Role</th><th>Expires</th><th>Fees</th><th>Status</th><th>Actions</th></tr></thead>
+            <div className="table-responsive">
+              <table>
+                <thead><tr><th>Member</th><th>Phone</th><th>Roll No</th><th>Plan</th><th>Batch</th><th>Role</th><th>Expires</th><th>Fees</th><th>Status</th><th>Actions</th></tr></thead>
 
-              <tbody>
-                {filtered.length===0 ? (
-                  <tr><td colSpan={9}><div className="empty-state"><p>No members found</p></div></td></tr>
-                ) : filtered.map(u=>(
-                  <tr key={u.id}>
-                    <td><div style={{ display:'flex', alignItems:'center', gap:'9px' }}><div className="avatar-circle" style={{ width:'30px', height:'30px', fontSize:'0.72rem' }}>{(u.name||'?')[0].toUpperCase()}</div><div><div style={{ fontWeight:'500' }}>{u.name}</div>{u.father_name&&<div style={{ fontSize:'0.7rem', color:'var(--text-3)' }}>S/o {u.father_name}</div>}</div></div></td>
-                    <td style={{ fontFamily:'monospace', fontSize:'0.82rem', color:'var(--text-2)' }}>{u.phone}</td>
-                    <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{u.roll_no||'—'}</td>
-                    <td><span className="badge badge-blue">{u.membership_plan||'Standard'}</span></td>
-                    <td><span className="badge badge-gray">{batches.find(b=>b.id===u.batch_id)?.name || '—'}</span></td>
-                    <td><span className={`badge ${u.role==='admin'?'badge-purple':'badge-gray'}`} style={{ textTransform:'capitalize' }}>{u.role||'user'}</span></td>
+                <tbody>
+                  {filtered.length===0 ? (
+                    <tr><td colSpan={10}><div className="empty-state"><p>No members found</p></div></td></tr>
+                  ) : filtered.map(u=>(
+                    <tr key={u.id}>
+                      <td><div style={{ display:'flex', alignItems:'center', gap:'9px' }}><div className="avatar-circle" style={{ width:'30px', height:'30px', fontSize:'0.72rem' }}>{(u.name||'?')[0].toUpperCase()}</div><div><div style={{ fontWeight:'500' }}>{u.name}</div>{u.father_name&&<div style={{ fontSize:'0.7rem', color:'var(--text-3)' }}>S/o {u.father_name}</div>}</div></div></td>
+                      <td style={{ fontFamily:'monospace', fontSize:'0.82rem', color:'var(--text-2)' }}>{u.phone}</td>
+                      <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{u.roll_no||'—'}</td>
+                      <td><span className="badge badge-blue">{u.membership_plan||'Standard'}</span></td>
+                      <td><span className="badge badge-gray">{batches.find(b=>b.id===u.batch_id)?.name || '—'}</span></td>
+                      <td><span className={`badge ${u.role==='admin'?'badge-purple':'badge-gray'}`} style={{ textTransform:'capitalize' }}>{u.role||'user'}</span></td>
 
-                    <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{u.membership_expiry?new Date(u.membership_expiry).toLocaleDateString('en-IN'):'—'}</td>
-                    <td><span className={`badge ${u.fees_status==='paid'?'badge-green':u.fees_status==='overdue'?'badge-red':'badge-gray'}`}><span className="badge-dot"/>{u.fees_status||'paid'}</span></td>
-                    <td><span className={`badge ${u.status==='active'?'badge-green':u.status==='grace'?'badge-red':'badge-gray'}`}><span className="badge-dot"/>{u.status||'active'}</span></td>
-                    <td>
-                      <div style={{ display:'flex', gap:'5px' }}>
-                        <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>setModalUser(u)} title="Edit Member"><Edit2 size={13}/></button>
-                        <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:'var(--blue)' }} onClick={() => setAttendanceUser(u)} title="Mark Attendance"><CalendarCheck size={13}/></button>
-                        <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>handleResetPassword(u.id)} title="Reset Password"><Key size={13}/></button>
-                        <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:u.role==='admin'?'var(--purple)':'inherit' }} onClick={()=>handleRoleChange(u)} title="Assign Role"><Shield size={13}/></button>
-                        <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:'#25D366' }} onClick={()=>handleWhatsApp(u)} title="Send WhatsApp"><MessageCircle size={13}/></button>
-                      </div>
-
-
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{u.membership_expiry?new Date(u.membership_expiry).toLocaleDateString('en-IN'):'—'}</td>
+                      <td><span className={`badge ${u.fees_status==='paid'?'badge-green':u.fees_status==='overdue'?'badge-red':'badge-gray'}`}><span className="badge-dot"/>{u.fees_status||'paid'}</span></td>
+                      <td><span className={`badge ${u.status==='active'?'badge-green':u.status==='grace'?'badge-red':'badge-gray'}`}><span className="badge-dot"/>{u.status||'active'}</span></td>
+                      <td>
+                        <div style={{ display:'flex', gap:'5px' }}>
+                          <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>setModalUser(u)} title="Edit Member"><Edit2 size={13}/></button>
+                          <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:'var(--blue)' }} onClick={() => setAttendanceUser(u)} title="Mark Attendance"><CalendarCheck size={13}/></button>
+                          <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>handleResetPassword(u.id)} title="Reset Password"><Key size={13}/></button>
+                          <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:u.role==='admin'?'var(--purple)':'inherit' }} onClick={()=>handleRoleChange(u)} title="Assign Role"><Shield size={13}/></button>
+                          <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:'#25D366' }} onClick={()=>handleWhatsApp(u)} title="Send WhatsApp"><MessageCircle size={13}/></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

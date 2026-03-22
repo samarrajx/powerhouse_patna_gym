@@ -47,24 +47,19 @@ class SettingsScreen extends ConsumerWidget {
                   context,
                   icon: Icons.lock_outline,
                   title: 'Change Password',
-                  onTap: () {
-                    // TODO: Implement change password
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Feature coming soon')),
-                    );
-                  },
+                  onTap: () => _showChangePasswordDialog(context, ref),
                 ),
                 _buildTile(
                   context,
                   icon: Icons.privacy_tip_outlined,
                   title: 'Privacy Policy',
-                  onTap: () {},
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _DocViewScreen(title: 'PRIVACY POLICY'))),
                 ),
                 _buildTile(
                   context,
                   icon: Icons.description_outlined,
                   title: 'Terms of Service',
-                  onTap: () {},
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _DocViewScreen(title: 'TERMS OF SERVICE'))),
                 ),
               ],
             ),
@@ -148,13 +143,64 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  void _showChangePasswordDialog(BuildContext context, WidgetRef ref) {
+    final oldCtrl = TextEditingController();
+    final newCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    bool loading = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDim) => AlertDialog(
+          backgroundColor: AppColors.surf(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('CHANGE PASSWORD'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: oldCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Current Password')),
+              const SizedBox(height: 12),
+              TextField(controller: newCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'New Password')),
+              const SizedBox(height: 12),
+              TextField(controller: confirmCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Confirm New Password')),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('CANCEL', style: TextStyle(color: AppColors.text3(context)))),
+            TextButton(
+              onPressed: loading ? null : () async {
+                if (newCtrl.text != confirmCtrl.text) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
+                  return;
+                }
+                setDim(() => loading = true);
+                final res = await ref.read(authProvider.notifier).changePassword(oldCtrl.text, newCtrl.text);
+                if (context.mounted) {
+                   setDim(() => loading = false);
+                   if (res == true) {
+                     Navigator.pop(ctx);
+                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed successfully')));
+                   } else {
+                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to change password')));
+                   }
+                }
+              },
+              child: loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('UPDATE', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showLogoutSync(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surf(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Logout'),
+        title: const Text('LOGOUT'),
         content: const Text('Are you sure you want to sign out?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('CANCEL', style: TextStyle(color: AppColors.text3(context)))),
@@ -166,6 +212,41 @@ class SettingsScreen extends ConsumerWidget {
             child: const Text('LOGOUT', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DocViewScreen extends StatelessWidget {
+  final String title;
+  const _DocViewScreen({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg(context),
+      appBar: AppBar(title: Text(title)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Last Updated: March 2026',
+              style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'This is a placeholder for the Power House Gym $title. In a production environment, this would contain the legally binding text regarding user data, facility rules, and membership conditions.',
+              style: TextStyle(color: AppColors.text1(context), fontSize: 15, height: 1.6),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Please contact the gym administration at the front desk for the printed and signed version of these documents.',
+              style: TextStyle(color: AppColors.text2(context), fontSize: 14, height: 1.5),
+            ),
+          ],
+        ),
       ),
     );
   }

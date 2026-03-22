@@ -56,8 +56,12 @@ class AuthNotifier extends Notifier<AuthState> {
             isLoading: false,
           );
         } else {
-          await ApiService.clearToken();
-          state = AuthState(isLoading: false);
+          if (res['status_code'] == 401) {
+            await ApiService.clearToken();
+            state = AuthState(isLoading: false);
+          } else {
+            state = AuthState(isLoading: false, errorMessage: res['message']);
+          }
         }
       } else {
         state = AuthState(isLoading: false);
@@ -91,6 +95,18 @@ class AuthNotifier extends Notifier<AuthState> {
       }
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: 'Network error');
+    }
+  }
+
+  Future<bool> changePassword(String oldPwd, String newPwd) async {
+    try {
+      final res = await ApiService.post('/auth/change-password', {
+        'oldPassword': oldPwd,
+        'newPassword': newPwd,
+      });
+      return res['success'] == true;
+    } catch (_) {
+      return false;
     }
   }
 
