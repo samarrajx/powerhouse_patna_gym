@@ -40,23 +40,19 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final bg = AppColors.bg(context);
-    final sec = AppColors.sec(context);
-
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: AppColors.bg(context),
       appBar: AppBar(
         title: Row(
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset('assets/images/logo.jpg', width: 32, height: 32, fit: BoxFit.cover),
+              child: Image.asset('assets/images/logo.jpg', width: 34, height: 34, fit: BoxFit.cover),
             ),
-            const SizedBox(width: 12),
-            const Text('Admin Dashboard'),
+            const SizedBox(width: 14),
+            const Text('PH GYM ADMIN'),
           ],
         ),
-        backgroundColor: Colors.transparent,
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -64,27 +60,29 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
           color: AppColors.primary,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 8),
-                Text('ADMIN', style: TextStyle(color: sec, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 2)),
-                const Text('COMMAND CENTER', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
+                Text('SYSTEM OVERVIEW', style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                const SizedBox(height: 4),
+                Text('COMMAND CENTER', style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 28, letterSpacing: -0.5)),
+                const SizedBox(height: 32),
                 _buildStatsGrid(context),
-                const SizedBox(height: 28),
-                _buildSectionHeader('QUICK ACTIONS', sec),
+                const SizedBox(height: 32),
+                Text('QUICK ACTIONS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11, color: AppColors.text3(context))),
                 const SizedBox(height: 14),
                 _buildActionGrid(context),
-                const SizedBox(height: 28),
-                _buildLiveMonitor(context, sec),
-                const SizedBox(height: 28),
+                const SizedBox(height: 32),
+                _buildLiveMonitor(context),
+                const SizedBox(height: 32),
                 if (stats?['weekly_footfall'] != null) ...[
-                  _buildSectionHeader('WEEKLY FOOTFALL', sec),
-                  const SizedBox(height: 14),
-                  _buildFootfall(context, stats!['weekly_footfall'] as List),
+                   Text('WEEKLY FOOTFALL', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11, color: AppColors.text3(context))),
+                   const SizedBox(height: 14),
+                   _buildFootfall(context, stats!['weekly_footfall'] as List),
                 ],
+                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -93,57 +91,59 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     );
   }
 
-  Widget _buildSectionHeader(String text, Color color) {
-    return Text(text, style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 11, color: color));
-  }
-
   Widget _buildStatsGrid(BuildContext context) {
-    final surf = AppColors.surf(context);
-    final surfH = AppColors.surfH(context);
-    final onSurf = AppColors.onSurf(context);
-    final sec = AppColors.sec(context);
-
     final tiles = [
-      {'label': 'TOTAL MEMBERS', 'value': stats?['total_users']?.toString() ?? '—', 'icon': Icons.people_outline, 'color': Colors.blue},
-      {'label': 'TODAY', 'value': stats?['today_attendance']?.toString() ?? '—', 'icon': Icons.how_to_reg, 'color': Colors.green},
-      {'label': 'INACTIVE', 'value': stats?['inactive_users']?.toString() ?? '—', 'icon': Icons.person_off_outlined, 'color': AppColors.error},
-      {'label': 'EXPIRING SOON', 'value': stats?['expiring_soon']?.toString() ?? '—', 'icon': Icons.timer_outlined, 'color': AppColors.warning},
+      {'label': 'TOTAL MEMBERS', 'value': stats?['total_users']?.toString() ?? '0', 'icon': Icons.people_outline, 'color': AppColors.blue},
+      {'label': 'TODAY CHECK-INS', 'value': stats?['today_attendance']?.toString() ?? '0', 'icon': Icons.how_to_reg, 'color': AppColors.success},
+      {'label': 'INACTIVE ACCOUNTS', 'value': stats?['inactive_users']?.toString() ?? '0', 'icon': Icons.person_off_outlined, 'color': AppColors.error},
+      {'label': 'EXPIRING SOON', 'value': stats?['expiring_soon']?.toString() ?? '0', 'icon': Icons.timer_outlined, 'color': Colors.orange},
     ];
 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: MediaQuery.of(context).size.width > 600 ? 2.0 : 1.6,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.4,
       ),
       itemCount: tiles.length,
       itemBuilder: (_, i) {
         final t = tiles[i];
+        final Color c = t['color'] as Color;
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: surf,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: surfH),
+            color: AppColors.surf(context),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.surfHigh(context)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(color: (t['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                child: Icon(t['icon'] as IconData, color: t['color'] as Color, size: 18),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: c.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                child: Icon(t['icon'] as IconData, color: c, size: 20),
               ),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                isLoading
-                    ? Container(width: 40, height: 20, decoration: BoxDecoration(color: surfH, borderRadius: BorderRadius.circular(4)))
-                    : Text(t['value'] as String, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: onSurf)),
-                Text(t['label'] as String, style: TextStyle(fontSize: 8, color: sec, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
-              ]),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t['value'] as String, 
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -1),
+                  ),
+                  Text(
+                    t['label'] as String, 
+                    style: TextStyle(fontSize: 9, color: AppColors.text3(context), fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                  ),
+                ],
+              ),
             ],
           ),
         );
@@ -152,12 +152,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   }
 
   Widget _buildActionGrid(BuildContext context) {
-    final surfH = AppColors.surfH(context);
-    final sec = AppColors.sec(context);
-
     final actions = [
-      {'label': 'NEW MEMBER', 'icon': Icons.person_add_outlined, 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddUserScreen())).then((_) => _fetchAll())},
-      {'label': 'ATTENDANCE', 'icon': Icons.how_to_reg_outlined, 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceMonitorScreen()))},
+      {'label': 'NEW MEMBER', 'icon': Icons.person_add_alt_1_outlined, 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddUserScreen())).then((_) => _fetchAll())},
+      {'label': 'VIEW MONITOR', 'icon': Icons.monitor_heart_outlined, 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceMonitorScreen()))},
     ];
 
     return Row(
@@ -166,67 +163,86 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
           onTap: a['onTap'] as VoidCallback,
           child: Container(
             margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(color: surfH, borderRadius: BorderRadius.circular(12)),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(a['icon'] as IconData, color: AppColors.primary, size: 26),
-              const SizedBox(height: 8),
-              Text(a['label'] as String, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: sec, letterSpacing: 0.8)),
-            ]),
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            decoration: BoxDecoration(
+              color: AppColors.surf(context), 
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.surfHigh(context)),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center, 
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: AppColors.primaryDim, shape: BoxShape.circle),
+                  child: Icon(a['icon'] as IconData, color: AppColors.primary, size: 24),
+                ),
+                const SizedBox(height: 12),
+                Text(a['label'] as String, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              ],
+            ),
           ),
         ),
       )).toList(),
     );
   }
 
-  Widget _buildLiveMonitor(BuildContext context, Color sec) {
-    final surf = AppColors.surf(context);
-    final surfH = AppColors.surfH(context);
-
+  Widget _buildLiveMonitor(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: surf, borderRadius: BorderRadius.circular(12), border: Border.all(color: surfH)),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surf(context), 
+        borderRadius: BorderRadius.circular(20), 
+        border: Border.all(color: AppColors.surfHigh(context)),
+      ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(children: [
-                Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
-                const SizedBox(width: 8),
-                const Text('LIVE TODAY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, fontSize: 12)),
+                Container(
+                  width: 10, height: 10, 
+                  decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppColors.success, blurRadius: 4)]),
+                ),
+                const SizedBox(width: 12),
+                const Text('LIVE ACTIVITY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5, fontSize: 14)),
               ]),
-              Text('${_todayAttendance.length} CHECK-INS', style: TextStyle(color: sec, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text('${_todayAttendance.length} CHECK-INS', style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1)),
             ],
           ),
+          const SizedBox(height: 20),
           if (_todayAttendance.isEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Text('No scans yet today', style: TextStyle(color: sec, fontSize: 12)),
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Text('Awaiting first scan of the day...', style: TextStyle(color: AppColors.text3(context), fontSize: 13, fontWeight: FontWeight.w600)),
             )
           else ...[
-            const SizedBox(height: 12),
-            ...(_todayAttendance.take(3).map((r) {
+            ...(_todayAttendance.take(4).map((r) {
               final user = r['users'] as Map<String, dynamic>?;
               final timeIn = r['time_in'] as String?;
-              String time = '';
+              String time = '--:--';
               if (timeIn != null) {
                 try { final dt = DateTime.parse(timeIn).toLocal(); time = '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}'; } catch(_) {}
               }
               return Padding(
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(bottom: 12),
                 child: Row(children: [
-                  const Icon(Icons.person, color: AppColors.primary, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(user?['name'] ?? '—', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-                  Text(time, style: TextStyle(color: sec, fontSize: 12)),
+                  Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(color: AppColors.primaryDim, borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.person, color: AppColors.primary, size: 16),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(child: Text(user?['name']?.toString().toUpperCase() ?? '—', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800))),
+                  Text(time, style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w900)),
                 ]),
               );
             }).toList()),
-            if (_todayAttendance.length > 3)
+            if (_todayAttendance.length > 4)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text('+${_todayAttendance.length - 3} more', style: TextStyle(color: sec, fontSize: 11)),
+                child: Text('View ${_todayAttendance.length - 4} more in Attendance link', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w700)),
               ),
           ],
         ],
@@ -235,35 +251,38 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   }
 
   Widget _buildFootfall(BuildContext context, List data) {
-    final surf = AppColors.surf(context);
-    final surfH = AppColors.surfH(context);
-    final sec = AppColors.sec(context);
-
     final maxScans = data.isEmpty ? 1 : data.map((d) => (d['scans'] as num?)?.toInt() ?? 0).reduce((a, b) => a > b ? a : b);
     return Container(
-      height: 120,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: surf, borderRadius: BorderRadius.circular(12), border: Border.all(color: surfH)),
+      height: 160,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surf(context), 
+        borderRadius: BorderRadius.circular(20), 
+        border: Border.all(color: AppColors.surfHigh(context)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: data.map<Widget>((d) {
           final scans = (d['scans'] as num?)?.toInt() ?? 0;
           final ratio = maxScans > 0 ? scans / maxScans : 0.0;
+          final isHigh = ratio > 0.7;
           return Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                Text(scans.toString(), style: TextStyle(fontSize: 9, color: sec, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
+                Text(scans.toString(), style: TextStyle(fontSize: 10, color: isHigh ? AppColors.primary : AppColors.text3(context), fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
                 Container(
-                  height: 60 * ratio + 4,
+                  height: 80 * ratio + 4,
                   decoration: BoxDecoration(
-                    color: ratio > 0.6 ? AppColors.primary : surfH,
-                    borderRadius: BorderRadius.circular(3),
+                    gradient: isHigh ? AppColors.primaryGradient : null,
+                    color: isHigh ? null : AppColors.surfHigh(context),
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: isHigh ? [BoxShadow(color: AppColors.primaryGlow.withOpacity(0.2), blurRadius: 8)] : null,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(d['day']?.toString() ?? '', style: TextStyle(fontSize: 8, color: sec)),
+                const SizedBox(height: 8),
+                Text(d['day']?.toString().substring(0, 3).toUpperCase() ?? '', style: TextStyle(fontSize: 9, color: AppColors.text3(context), fontWeight: FontWeight.w800)),
               ]),
             ),
           );

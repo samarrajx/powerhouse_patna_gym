@@ -41,7 +41,7 @@ export default function Attendance() {
         {/* Summary row */}
         <div className="grid-3" style={{ marginBottom:'20px' }}>
           {[
-            { label:'Total Check-ins', value: records.length, color:'var(--lime)' },
+            { label:'Total Check-ins', value: records.length, color:'var(--primary)' },
             { label:'Still Present', value: records.filter(r=>!r.time_out).length, color:'var(--blue)' },
             { label:'Checked Out', value: records.filter(r=>r.time_out).length, color:'var(--text-2)' },
           ].map(({ label, value, color }, i) => (
@@ -60,7 +60,7 @@ export default function Attendance() {
               <button className="btn btn-ghost btn-sm" onClick={load}>
                 <RefreshCcw size={14} /> Refresh
               </button>
-              <button className="btn btn-lime btn-sm" onClick={() => setShowModal(true)}>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowModal(true)}>
                 <Plus size={14} /> Manual Entry
               </button>
             </div>
@@ -108,7 +108,7 @@ export default function Attendance() {
                         </div>
                       </td>
                       <td style={{ color:'var(--text-2)', fontFamily:'monospace', fontSize:'0.82rem' }}>{r.users?.phone || '—'}</td>
-                      <td style={{ fontFamily:'monospace', color:'var(--lime)', fontWeight:'600' }}>{fmt(r.time_in)}</td>
+                      <td style={{ fontFamily:'monospace', color:'var(--primary)', fontWeight:'600' }}>{fmt(r.time_in)}</td>
                       <td style={{ fontFamily:'monospace', color: outTime ? 'var(--text-2)' : 'var(--coral)', fontWeight:'600' }}>{fmt(r.time_out)}</td>
                       <td style={{ color:'var(--text-2)', fontSize:'0.82rem' }}>{duration}</td>
                       <td>

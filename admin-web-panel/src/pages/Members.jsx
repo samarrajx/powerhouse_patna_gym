@@ -92,7 +92,7 @@ function MemberModal({ user, batches, onClose, onSave }) {
           <div className="input-wrap"><label className="input-label">Notes</label><input className="input-field" placeholder="Optional notes" value={f.notes} onChange={e=>set('notes',e.target.value)}/></div>
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" style={{ flex:1, justifyContent:'center' }} onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-lime" style={{ flex:1, justifyContent:'center' }} disabled={saving}>{saving?(user?'Saving...':'Creating...'):(user?'Save Changes':'Create Member')}</button>
+            <button type="submit" className="btn btn-primary" style={{ flex:1, justifyContent:'center' }} disabled={saving}>{saving?(user?'Saving...':'Creating...'):(user?'Save Changes':'Create Member')}</button>
           </div>
         </form>
       </div>
@@ -111,7 +111,7 @@ function ConfirmModal({ title, message, onConfirm, onClose, loading }) {
         <p style={{ fontSize:'0.85rem', color:'var(--text-2)', marginBottom:'20px', lineHeight:'1.5' }}>{message}</p>
         <div className="modal-footer" style={{ marginTop:'0' }}>
           <button type="button" className="btn btn-ghost" style={{ flex:1, justifyContent:'center' }} onClick={onClose} disabled={loading}>Cancel</button>
-          <button type="button" className="btn btn-lime" style={{ flex:1, justifyContent:'center' }} onClick={onConfirm} disabled={loading}>
+          <button type="button" className="btn btn-primary" style={{ flex:1, justifyContent:'center' }} onClick={onConfirm} disabled={loading}>
             {loading ? <div className="spinner spinner-dark" style={{ width:'14px', height:'14px' }}/> : 'Confirm'}
           </button>
         </div>
@@ -280,7 +280,7 @@ export default function Members() {
                 {search && <button onClick={()=>setSearch('')} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-3)' }}><X size={13}/></button>}
               </div>
               {['all','active','inactive','grace'].map(s=>(
-                <button key={s} className={`btn btn-sm ${filter===s?'btn-lime':'btn-ghost'}`} onClick={()=>setFilter(s)} style={{ textTransform:'capitalize' }}>{s}</button>
+                <button key={s} className={`btn btn-sm ${filter===s?'btn-primary':'btn-ghost'}`} onClick={()=>setFilter(s)} style={{ textTransform:'capitalize' }}>{s}</button>
               ))}
             </div>
             <div style={{ display:'flex', gap:'8px' }}>
@@ -291,7 +291,7 @@ export default function Members() {
               <button className="btn btn-ghost btn-sm" onClick={()=>fileRef.current?.click()} disabled={uploading}>
                 <Upload size={13}/> {uploading?'Uploading...':'Upload CSV'}
               </button>
-              <button className="btn btn-lime btn-sm" onClick={()=>setModalUser('new')}><UserPlus size={13}/> Add Member</button>
+              <button className="btn btn-primary btn-sm" onClick={()=>setModalUser('new')}><UserPlus size={13}/> Add Member</button>
             </div>
           </div>
           {loading ? (

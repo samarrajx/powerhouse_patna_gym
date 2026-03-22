@@ -96,8 +96,8 @@ export default function Dashboard() {
           padding:'16px 24px',
         }}>
           <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-            <div style={{ width:'10px', height:'10px', borderRadius:'50%', background: gymOpen ? 'var(--lime)' : 'var(--coral)', boxShadow:`0 0 8px ${gymOpen ? 'var(--lime-glow)' : 'rgba(255,107,107,0.5)'}` }} />
-            <span style={{ fontWeight:'600', color: gymOpen ? 'var(--lime)' : 'var(--coral)' }}>
+            <div style={{ width:'10px', height:'10px', borderRadius:'50%', background: gymOpen ? 'var(--primary)' : 'var(--coral)', boxShadow:`0 0 8px ${gymOpen ? 'var(--primary-glow)' : 'rgba(255,107,107,0.5)'}` }} />
+            <span style={{ fontWeight:'600', color: gymOpen ? 'var(--primary)' : 'var(--coral)' }}>
               {gymOpen ? '🏋️  Facility is OPEN for today' : '🔒  Facility is CLOSED today'}
             </span>
           </div>
@@ -110,7 +110,7 @@ export default function Dashboard() {
         {/* Stats */}
         <div className="stat-grid">
           <StatCard label="Active Members"   value={stats?.total_users}       icon={Users}     accent="var(--text-1)" sub="Total registered"  delay="1" />
-          <StatCard label="Today's Scans"    value={stats?.today_attendance}  icon={TrendingUp} accent="var(--lime)"   sub="Check-ins so far" delay="2" />
+          <StatCard label="Today's Scans"    value={stats?.today_attendance}  icon={TrendingUp} accent="var(--primary)"   sub="Check-ins so far" delay="2" />
           <StatCard label="Inactive Members" value={stats?.inactive_users}    icon={UserX}      accent="var(--coral)"  sub="Need attention"   delay="3" />
           <StatCard label="Expiring in 7d"   value={stats?.expiring_soon ?? 0} icon={Timer}     accent="var(--blue)"   sub="Membership alerts" delay="4" />
         </div>
@@ -129,16 +129,16 @@ export default function Dashboard() {
               <AreaChart data={stats?.weekly_footfall || []}>
 
                 <defs>
-                  <linearGradient id="limeGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#C8FA00" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#C8FA00" stopOpacity={0} />
+                  <linearGradient id="primaryGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis dataKey="day" tick={{ fill:'var(--text-3)', fontSize:11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill:'var(--text-3)', fontSize:11 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background:'rgba(10,10,20,0.9)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'10px', color:'#fff' }} />
-                <Area type="monotone" dataKey="scans" stroke="#C8FA00" strokeWidth={2} fill="url(#limeGrad)" />
+                <Area type="monotone" dataKey="scans" stroke="var(--primary)" strokeWidth={3} fill="url(#primaryGrad)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -146,7 +146,7 @@ export default function Dashboard() {
           {/* Quick actions */}
           <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
             {[
-              { label:'Generate QR Code', sub:'Create 60-second attendance token', color:'var(--lime)', path:'/qr', emoji:'🔐' },
+              { label:'Generate QR Code', sub:'Create 30-second attendance token', color:'var(--primary)', path:'/qr-station', emoji:'🔐' },
               { label:'Manage Members', sub:'Add, edit, or deactivate memberships', color:'var(--blue)', path:'/members', emoji:'👥' },
               { label:'View Attendance', sub:"Monitor today's check-in logs", color:'var(--coral)', path:'/attendance', emoji:'📋' },
             ].map(({ label, sub, color, path, emoji }) => (

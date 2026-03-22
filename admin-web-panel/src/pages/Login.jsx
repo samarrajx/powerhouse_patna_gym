@@ -64,7 +64,7 @@ export default function Login() {
             </div>
           </div>
 
-          <button className="btn btn-lime" type="submit" disabled={loading}
+          <button className="btn btn-primary" type="submit" disabled={loading}
             style={{ width:'100%', justifyContent:'center', marginTop:'8px', padding:'13px' }}>
             {loading ? <><div className="spinner" style={{ borderTopColor:'#000' }} /> Signing in...</> : 'Sign In to Console'}
           </button>

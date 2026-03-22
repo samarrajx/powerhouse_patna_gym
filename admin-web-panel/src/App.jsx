@@ -157,7 +157,7 @@ export default function App() {
 
           <Toaster position="top-right" toastOptions={{
             style: { background:'var(--bg2, #0D0D1A)', color:'var(--text-1, #fff)', border:'1px solid var(--glass-border-2)', borderRadius:'12px', fontSize:'0.875rem' },
-            success: { iconTheme: { primary:'#C8FA00', secondary:'#000' }},
+            success: { iconTheme: { primary:'var(--primary)', secondary:'#000' }},
             error:   { iconTheme: { primary:'#FF6B6B', secondary:'#fff' }},
           }}/>
         </BrowserRouter>

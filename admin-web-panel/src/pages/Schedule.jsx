@@ -107,7 +107,7 @@ export default function Schedule() {
               <h3>Holiday Calendar</h3>
               <p style={{ fontSize:'0.75rem', color:'var(--text-2)', marginTop:'2px' }}>{holidays.length} entries</p>
             </div>
-            <button className="btn btn-lime btn-sm" onClick={() => setShowHolidayForm(!showHolidayForm)}>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowHolidayForm(!showHolidayForm)}>
               <Plus size={14}/> Add Holiday
             </button>
           </div>
@@ -129,7 +129,7 @@ export default function Schedule() {
                   <option value="false">Open</option>
                 </select>
               </div>
-              <button type="submit" className="btn btn-lime btn-sm" style={{ alignSelf:'flex-end' }}>Save</button>
+              <button type="submit" className="btn btn-primary btn-sm" style={{ alignSelf:'flex-end' }}>Save</button>
             </form>
           )}
 

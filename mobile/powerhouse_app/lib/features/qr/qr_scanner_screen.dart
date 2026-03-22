@@ -44,7 +44,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   }
 
   Future<void> _handleScan(String code) async {
-    // Show loading
     if (!mounted) return;
     showDialog(
       context: context,
@@ -74,44 +73,56 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   void _showResult(bool success, String message) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.transparent,
       isDismissible: false,
       enableDrag: false,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (context) => Container(
+        margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: AppColors.surf(context),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.surfHigh(context)),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              success ? Icons.check_circle : Icons.error,
-              color: success ? Colors.green : AppColors.error,
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              success ? 'SUCCESS' : 'FAILED',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: success ? Colors.green : AppColors.error),
-            ),
-            const SizedBox(height: 8),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.onSurfaceVariant)),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await controller.start(); // Restart camera
-                  setState(() => isScanning = true);
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.surfaceHigh),
-                child: const Text('SCAN AGAIN', style: TextStyle(color: AppColors.onSurface)),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: (success ? AppColors.success : AppColors.primary).withOpacity(0.1),
+                shape: BoxShape.circle,
               ),
+              child: Icon(
+                success ? Icons.check_circle_outline : Icons.error_outline,
+                color: success ? AppColors.success : AppColors.primary,
+                size: 48,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              success ? 'SUCCESS' : 'SCAN FAILED',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: success ? AppColors.success : AppColors.primary, letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message, 
+              textAlign: TextAlign.center, 
+              style: TextStyle(color: AppColors.text2(context), fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await controller.start(); // Restart camera
+                setState(() => isScanning = true);
+              },
+              child: const Text('TRY AGAIN'),
             ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () => Navigator.pop(context, true), // Pop to dashboard
-              child: const Text('BACK TO DASHBOARD', style: TextStyle(color: AppColors.secondary, fontSize: 12)),
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('BACK TO DASHBOARD', style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1)),
             ),
           ],
         ),
@@ -126,34 +137,43 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   void _showGymClosed(String message) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.transparent,
       isDismissible: false,
       enableDrag: false,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (context) => Container(
+        margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: AppColors.surf(context),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.surfHigh(context)),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.nightlight_round, color: AppColors.secondary, size: 64),
-            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: AppColors.primaryDim, shape: BoxShape.circle),
+              child: const Icon(Icons.lock_clock, color: AppColors.primary, size: 48),
+            ),
+            const SizedBox(height: 24),
             const Text(
               'GYM IS CLOSED',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.onSurface),
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: AppColors.primary, letterSpacing: 0.5),
             ),
-            const SizedBox(height: 8),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.onSurfaceVariant)),
+            const SizedBox(height: 12),
+            Text(
+              message, 
+              textAlign: TextAlign.center, 
+              style: TextStyle(color: AppColors.text2(context), fontSize: 14, fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context, true); // Go back to dashboard entirely
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                child: const Text('BACK TO DASHBOARD', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-              ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context, true);
+              },
+              child: const Text('BACK TO DASHBOARD'),
             ),
           ],
         ),
@@ -165,15 +185,18 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('SCAN QR CODE', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+        title: const Text('SCAN QR CODE'),
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context), 
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.white),
+        ),
         actions: [
           IconButton(
-            onPressed: () => controller.switchCamera(),
-            icon: const Icon(Icons.cameraswitch, color: Colors.grey),
+            onPressed: () => controller.toggleTorch(),
+            icon: const Icon(Icons.flashlight_on, color: Colors.white),
           ),
         ],
       ),
@@ -183,35 +206,57 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             controller: controller,
             onDetect: _onDetect,
           ),
-          // Scanner Overlay
-          Center(
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.5), width: 2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Stack(
-                children: [
-                   // Decorative corners
-                   _buildCorner(0, 0, 1, 0),
-                   _buildCorner(null, 0, 0, 1),
-                   _buildCorner(0, null, 1, 0),
-                   _buildCorner(null, null, 0, 1),
-                ],
-              ),
+          // Scanner Overlay Mask
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.5),
             ),
           ),
-          const Positioned(
-            bottom: 100,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Text(
-                'ALIGN QR CODE WITHIN FRAME',
-                style: TextStyle(color: Colors.white70, fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold),
-              ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 260,
+                  height: 260,
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Hollow center
+                      Center(
+                        child: Container(
+                          width: 260,
+                          height: 260,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.transparent),
+                          ),
+                        ),
+                      ),
+                       // Decorative corners
+                       _buildCorner(0, 0, 1, 1),
+                       _buildCorner(null, 0, -1, 1),
+                       _buildCorner(0, null, 1, -1),
+                       _buildCorner(null, null, -1, -1),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: const Text(
+                    'ALIGN QR WITHIN FRAME',
+                    style: TextStyle(color: Colors.white, fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -219,20 +264,20 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     );
   }
 
-  Widget _buildCorner(double? top, double? left, int rotateX, int rotateY) {
+  Widget _buildCorner(double? top, double? left, double scaleX, double scaleY) {
     return Positioned(
       top: top,
       left: left,
       child: Transform.scale(
-        scaleX: rotateX == 1 ? 1 : -1,
-        scaleY: rotateY == 1 ? 1 : -1,
+        scaleX: scaleX,
+        scaleY: scaleY,
         child: Container(
-          width: 20,
-          height: 20,
+          width: 32,
+          height: 32,
           decoration: const BoxDecoration(
             border: Border(
-              top: BorderSide(color: AppColors.primary, width: 4),
-              left: BorderSide(color: AppColors.primary, width: 4),
+              top: BorderSide(color: AppColors.primary, width: 5),
+              left: BorderSide(color: AppColors.primary, width: 5),
             ),
           ),
         ),

@@ -19,7 +19,8 @@ export default function QrStation() {
       const code = res.data?.qr_code || res.data?.code;
       setIsClosed(false);
       setQr(code);
-      setTimeLeft(60);
+      const expiry = res.data?.expires_in || 30;
+      setTimeLeft(expiry);
     } catch(e) {
       if (e.response?.data?.error_code === 'GYM_CLOSED') {
         setIsClosed(true);
@@ -40,7 +41,7 @@ export default function QrStation() {
       setTimeLeft(prev => {
         if (prev <= 1) {
           fetchToken(); // Fetch a new one immediately when 0
-          return 60;
+          return 30;
         }
         return prev - 1;
       });
@@ -49,7 +50,7 @@ export default function QrStation() {
     return () => clearInterval(timerRef.current);
   }, []);
 
-  const pct = (timeLeft / 60) * 100;
+  const pct = (timeLeft / 30) * 100;
   const danger = timeLeft <= 5;
 
   return (
@@ -62,11 +63,11 @@ export default function QrStation() {
           <div className="card fade-up-1" style={{ display:'flex', flexDirection:'column', gap:'20px' }}>
             <div>
               <h3 style={{ fontSize:'1.1rem', fontWeight:'700', display:'flex', alignItems:'center', gap:'8px' }}>
-                <Zap size={18} style={{ color:'var(--lime)' }} />
+                <Zap size={18} style={{ color:'var(--primary)' }} />
                 Turnstile Access Token
               </h3>
               <p style={{ fontSize:'0.8rem', color:'var(--text-2)', marginTop:'4px' }}>
-                Auto-refreshes every 60 seconds
+                Auto-refreshes every 30 seconds
               </p>
             </div>
 
@@ -80,7 +81,7 @@ export default function QrStation() {
                 </div>
               ) : loading && !qr ? (
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'12px' }}>
-                  <div className="spinner spinner-light" style={{ width:'32px', height:'32px', borderWidth:'3px', borderColor:'var(--lime)' }} />
+                  <div className="spinner spinner-light" style={{ width:'32px', height:'32px', borderWidth:'3px', borderColor:'var(--primary)' }} />
                   <span style={{ color:'#666', fontSize:'0.85rem' }}>Generating secure hash...</span>
                 </div>
               ) : qr ? (
@@ -102,7 +103,7 @@ export default function QrStation() {
                 </span>
               </div>
               <div className="progress-bar">
-                <div className="progress-fill" style={{ width:`${pct}%`, background: danger ? 'var(--coral)' : 'var(--lime)' }} />
+                <div className="progress-fill" style={{ width:`${pct}%`, background: danger ? 'var(--coral)' : 'var(--primary)' }} />
               </div>
             </div>
           </div>

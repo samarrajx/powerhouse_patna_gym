@@ -51,46 +51,49 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
     await showDialog(
       context: context,
       builder: (_) => StatefulBuilder(builder: (ctx, setS) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('ADD HOLIDAY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          GestureDetector(
-            onTap: () async {
-              final d = await showDatePicker(context: ctx, initialDate: DateTime.now(), firstDate: DateTime.now().subtract(const Duration(days: 30)), lastDate: DateTime.now().add(const Duration(days: 365)), builder: (c,child)=>Theme(data:ThemeData.dark(),child:child!));
-              if (d != null) setS(() => picked = d);
-            },
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(8)),
-              child: Row(children: [
-                const Icon(Icons.calendar_today, size: 16, color: AppColors.secondary),
-                const SizedBox(width: 8),
-                Text(picked != null ? '${picked!.day}/${picked!.month}/${picked!.year}' : 'Select Date', style: const TextStyle(color: AppColors.onSurface)),
-              ]),
+        title: const Text('ADD GYM HOLIDAY'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min, 
+          children: [
+            InkWell(
+              onTap: () async {
+                final d = await showDatePicker(
+                  context: ctx, 
+                  initialDate: DateTime.now(), 
+                  firstDate: DateTime.now().subtract(const Duration(days: 30)), 
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (d != null) setS(() => picked = d);
+              },
+              child: InputDecorator(
+                decoration: const InputDecoration(labelText: 'DATE'),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(picked != null ? '${picked!.day}/${picked!.month}/${picked!.year}' : 'Select Date', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    const Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
+                  ],
+                ),
+              ),
             ),
-          ),
-          TextField(
-            controller: reasonCtrl,
-            style: const TextStyle(color: AppColors.onSurface),
-            decoration: InputDecoration(
-              hintText: 'Reason (e.g. Diwali)',
-              hintStyle: const TextStyle(color: AppColors.secondary),
-              filled: true, fillColor: AppColors.surfaceHigh,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonCtrl,
+              decoration: const InputDecoration(labelText: 'REASON EX: DIWALI'),
             ),
-          ),
-        ]),
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               if (picked == null || reasonCtrl.text.isEmpty) return;
               final date = '${picked!.year}-${picked!.month.toString().padLeft(2,'0')}-${picked!.day.toString().padLeft(2,'0')}';
               await ApiService.post('/schedule/holidays', {'date': date, 'reason': reasonCtrl.text});
               if (mounted) { Navigator.pop(ctx); _fetchHolidays(); }
             },
-            child: const Text('ADD', style: TextStyle(color: AppColors.primary)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('SAVE', style: TextStyle(color: Colors.white)),
           ),
         ],
       )),
@@ -104,30 +107,39 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
     await showDialog(
       context: context,
       builder: (_) => StatefulBuilder(builder: (ctx, setS) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text((day['day_of_week'] as String? ?? '').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          Row(children: [
-            const Text('Open: ', style: TextStyle(color: AppColors.secondary)),
-            Switch(value: isOpen, onChanged: (v) => setS(() => isOpen = v), activeColor: AppColors.primary),
-          ]),
-          if (isOpen) ...[
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: TextField(controller: openCtrl, style: const TextStyle(color: AppColors.onSurface), decoration: InputDecoration(labelText: 'Open', labelStyle: const TextStyle(color: AppColors.secondary), filled: true, fillColor: AppColors.surfaceHigh, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)))),
-              const SizedBox(width: 12),
-              Expanded(child: TextField(controller: closeCtrl, style: const TextStyle(color: AppColors.onSurface), decoration: InputDecoration(labelText: 'Close', labelStyle: const TextStyle(color: AppColors.secondary), filled: true, fillColor: AppColors.surfaceHigh, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)))),
-            ]),
+        title: Text((day['day_of_week'] as String? ?? '').toUpperCase()),
+        content: Column(
+          mainAxisSize: MainAxisSize.min, 
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('GYM STATUS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                Switch(value: isOpen, onChanged: (v) => setS(() => isOpen = v), activeColor: AppColors.primary),
+              ],
+            ),
+            Text(isOpen ? 'GYM IS OPEN' : 'GYM IS CLOSED', style: TextStyle(color: isOpen ? AppColors.success : AppColors.error, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+            if (isOpen) ...[
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: TextField(controller: openCtrl, decoration: const InputDecoration(labelText: 'OPENING'))),
+                  const SizedBox(width: 16),
+                  Expanded(child: TextField(controller: closeCtrl, decoration: const InputDecoration(labelText: 'CLOSING'))),
+                ],
+              ),
+            ],
           ],
-        ]),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               await ApiService.put('/schedule/weekly/${day['day_of_week']}', {'is_open': isOpen, 'open_time': openCtrl.text, 'close_time': closeCtrl.text});
               if (mounted) { Navigator.pop(ctx); _fetchSchedule(); }
             },
-            child: const Text('SAVE', style: TextStyle(color: AppColors.primary)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('UPDATE', style: TextStyle(color: Colors.white)),
           ),
         ],
       )),
@@ -137,33 +149,28 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
       appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text('HOLIDAY & SCHEDULE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.5)),
+        title: const Text('GYM OPERATIONS'),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.secondary,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1),
-          tabs: const [Tab(text: 'HOLIDAYS'), Tab(text: 'SCHEDULE')],
+          labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+          tabs: const [Tab(text: 'HOLIDAYS'), Tab(text: 'TIMINGS')],
         ),
       ),
-      body: TabBarView(controller: _tabController, children: [
-        _buildHolidaysTab(),
-        _buildScheduleTab(),
-      ]),
+      body: TabBarView(
+        controller: _tabController, 
+        children: [
+          _buildHolidaysTab(),
+          _buildScheduleTab(),
+        ],
+      ),
       floatingActionButton: ListenableBuilder(
         listenable: _tabController,
         builder: (_, __) => _tabController.index == 0
-            ? FloatingActionButton.extended(
+            ? FloatingActionButton(
                 onPressed: _addHolidayDialog,
-                backgroundColor: AppColors.surfaceHigh,
-                icon: const Icon(Icons.add, color: AppColors.primary),
-                label: const Text('ADD HOLIDAY', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11)),
+                child: const Icon(Icons.add, color: Colors.white),
               )
             : const SizedBox.shrink(),
       ),
@@ -172,36 +179,54 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
 
   Widget _buildHolidaysTab() {
     if (_holidayLoading) return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-    if (_holidays.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.celebration, color: AppColors.surfaceHigh, size: 52),
-      const SizedBox(height: 12),
-      const Text('No holidays set', style: TextStyle(color: AppColors.secondary)),
-      const SizedBox(height: 80),
-    ]));
+    if (_holidays.isEmpty) {
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.celebration, color: AppColors.text3(context).withOpacity(0.3), size: 64),
+        const SizedBox(height: 16),
+        Text('NO UPCOMING HOLIDAYS', style: TextStyle(color: AppColors.text3(context), fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 13)),
+      ]));
+    }
     return RefreshIndicator(
       onRefresh: _fetchHolidays,
       color: AppColors.primary,
       child: ListView.builder(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         itemCount: _holidays.length,
         itemBuilder: (_, i) {
           final h = _holidays[i];
           return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.surfaceHigh)),
-            child: Row(children: [
-              const Icon(Icons.event_busy, color: AppColors.error, size: 20),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(h['date'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(h['reason'] ?? '', style: const TextStyle(color: AppColors.secondary, fontSize: 12)),
-              ])),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
-                onPressed: () => _deleteHoliday(h['id'].toString()),
-              ),
-            ]),
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.surf(context), 
+              borderRadius: BorderRadius.circular(16), 
+              border: Border.all(color: AppColors.surfHigh(context)),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: AppColors.primaryDim, borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.event_busy, color: AppColors.primary, size: 20),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, 
+                    children: [
+                      Text((h['reason'] ?? 'HOLIDAY').toString().toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                      const SizedBox(height: 2),
+                      Text(h['date'] ?? '', style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
+                  onPressed: () => _deleteHoliday(h['id'].toString()),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -210,31 +235,54 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
 
   Widget _buildScheduleTab() {
     if (_scheduleLoading) return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: _schedule.length,
-      itemBuilder: (_, i) {
-        final d = _schedule[i];
-        final isOpen = d['is_open'] ?? true;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.surfaceHigh)),
-          child: Row(children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(color: isOpen ? Colors.green.withValues(alpha: 0.1) : AppColors.surfaceHigh, borderRadius: BorderRadius.circular(8)),
-              child: Icon(isOpen ? Icons.check : Icons.close, color: isOpen ? Colors.green : AppColors.secondary, size: 18),
+    return RefreshIndicator(
+      onRefresh: _fetchSchedule,
+      color: AppColors.primary,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        itemCount: _schedule.length,
+        itemBuilder: (_, i) {
+          final d = _schedule[i];
+          final isOpen = d['is_open'] ?? true;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.surf(context), 
+              borderRadius: BorderRadius.circular(16), 
+              border: Border.all(color: AppColors.surfHigh(context)),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
             ),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text((d['day_of_week'] as String? ?? '').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              Text(isOpen ? '${d['open_time']} — ${d['close_time']}' : 'CLOSED', style: TextStyle(color: isOpen ? AppColors.secondary : AppColors.error, fontSize: 12)),
-            ])),
-            IconButton(icon: const Icon(Icons.edit_outlined, color: AppColors.secondary, size: 18), onPressed: () => _editScheduleDialog(d)),
-          ]),
-        );
-      },
+            child: Row(
+              children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: (isOpen ? AppColors.success : AppColors.error).withOpacity(0.1), 
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(isOpen ? Icons.check_circle_outline : Icons.block, color: isOpen ? AppColors.success : AppColors.error, size: 22),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, 
+                    children: [
+                      Text((d['day_of_week'] as String? ?? '').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                      const SizedBox(height: 2),
+                      Text(isOpen ? '${d['open_time']} to ${d['close_time']}' : 'GYM IS CLOSED', style: TextStyle(color: isOpen ? AppColors.text3(context) : AppColors.error, fontSize: 12, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.edit_outlined, color: AppColors.text3(context), size: 20), 
+                  onPressed: () => _editScheduleDialog(d),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

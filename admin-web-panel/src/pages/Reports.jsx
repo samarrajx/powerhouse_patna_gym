@@ -47,7 +47,7 @@ export default function Reports() {
       <div className="page-body">
         <div className="card fade-up-1" style={{ marginBottom:'20px' }}>
           <h3 style={{ fontSize:'0.95rem', fontWeight:'600', marginBottom:'16px', display:'flex', alignItems:'center', gap:'8px' }}>
-            <FileBarChart size={16} style={{ color:'var(--lime)' }}/> Date Range Query
+            <FileBarChart size={16} style={{ color:'var(--primary)' }}/> Date Range Query
           </h3>
           <form onSubmit={run} style={{ display:'flex', gap:'14px', alignItems:'flex-end', flexWrap:'wrap' }}>
             <div className="input-wrap" style={{ marginBottom:0 }}>
@@ -58,7 +58,7 @@ export default function Reports() {
               <label className="input-label">To Date</label>
               <input type="date" className="input-field" value={to} onChange={e=>setTo(e.target.value)} style={{ width:'160px' }}/>
             </div>
-            <button type="submit" className="btn btn-lime" disabled={loading} style={{ marginBottom:'1px' }}>
+            <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginBottom:'1px' }}>
               {loading ? 'Loading...' : 'Generate Report'}
             </button>
             {rows.length > 0 && (
@@ -73,7 +73,7 @@ export default function Reports() {
           <div className="card table-card fade-up-2">
             <div className="table-header">
               <h3>Results — {rows.length} records</h3>
-              <button className="btn btn-lime btn-sm" onClick={exportCSV}><Download size={13}/> Download</button>
+              <button className="btn btn-primary btn-sm" onClick={exportCSV}><Download size={13}/> Download</button>
             </div>
             <table>
               <thead><tr><th>Member</th><th>Phone</th><th>Date</th><th>Check In</th><th>Check Out</th><th>Duration</th></tr></thead>
@@ -93,7 +93,7 @@ export default function Reports() {
                       </td>
                       <td style={{ fontFamily:'monospace', fontSize:'0.82rem', color:'var(--text-2)' }}>{r.users?.phone||'—'}</td>
                       <td style={{ fontSize:'0.82rem' }}>{r.date||'—'}</td>
-                      <td style={{ fontFamily:'monospace', color:'var(--lime)', fontWeight:'600' }}>
+                      <td style={{ fontFamily:'monospace', color:'var(--primary)', fontWeight:'600' }}>
                         {inT ? `${String(inT.getHours()).padStart(2,'0')}:${String(inT.getMinutes()).padStart(2,'0')}` : '—'}
                       </td>
                       <td style={{ fontFamily:'monospace', color: outT ? 'var(--text-2)' : 'var(--coral)', fontWeight:'600' }}>

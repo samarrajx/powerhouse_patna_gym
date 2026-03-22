@@ -85,7 +85,7 @@ export default function InactiveUsers() {
                     <td style={{ fontSize:'0.82rem', color:'var(--coral)' }}>{u.membership_expiry ? new Date(u.membership_expiry).toLocaleDateString('en-IN') : '—'}</td>
                     <td><span className={`badge ${u.status==='grace' ? 'badge-red' : 'badge-gray'}`}><span className="badge-dot"/>{u.status}</span></td>
                     <td>
-                      <button className="btn btn-lime btn-sm" onClick={() => restore(u.id, u.name)} disabled={restoring===u.id}>
+                      <button className="btn btn-primary btn-sm" onClick={() => restore(u.id, u.name)} disabled={restoring===u.id}>
                         {restoring===u.id ? '...' : <><UserCheck size={13}/> Restore</>}
                       </button>
                     </td>

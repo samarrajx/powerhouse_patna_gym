@@ -107,7 +107,7 @@ export default function TemplateManager() {
                   style={{ marginBottom: '12px', resize: 'none', fontSize: '0.82rem' }}
                 />
                 <button 
-                  className="btn btn-lime btn-sm"
+                  className="btn btn-primary btn-sm"
                   onClick={() => handleUpdateTemplate(t.id, document.getElementById(`templ-${t.id}`).value)}
                   style={{ width: '100%', justifyContent: 'center' }}
                 >
@@ -125,7 +125,7 @@ export default function TemplateManager() {
               <div className="brand-icon" style={{ width:'32px', height:'32px', fontSize:'14px', background: 'var(--blue)', boxShadow: '0 4px 16px rgba(96,165,250,0.3)' }}><Megaphone size={16}/></div>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Gym Announcements</h2>
             </div>
-            <button className="btn btn-lime btn-sm" onClick={() => { setEditingAnnounce(null); setShowAnnounceModal(true); }}>
+            <button className="btn btn-primary btn-sm" onClick={() => { setEditingAnnounce(null); setShowAnnounceModal(true); }}>
               <Plus size={16}/> New Announcement
             </button>
           </div>
@@ -189,7 +189,7 @@ export default function TemplateManager() {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-ghost" onClick={() => setShowAnnounceModal(false)} style={{ flex: 1 }}>Cancel</button>
-                <button type="submit" className="btn btn-lime" style={{ flex: 1 }}>{editingAnnounce ? 'Update' : 'Publish'}</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>{editingAnnounce ? 'Update' : 'Publish'}</button>
               </div>
             </form>
           </div>

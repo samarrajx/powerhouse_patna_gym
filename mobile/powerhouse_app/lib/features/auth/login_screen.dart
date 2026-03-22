@@ -25,129 +25,160 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final bg = AppColors.bg(context);
-    final surfHigh = AppColors.surfH(context);
-    final onSurf = AppColors.onSurf(context);
-    final sec = AppColors.sec(context);
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: AppColors.bg(context),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
+              constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo
+                  // Logo with Red Glow
                   Container(
-                    width: 120,
-                    height: 120,
+                    width: 130,
+                    height: 130,
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: surfHigh,
                       shape: BoxShape.circle,
                       boxShadow: [
-                        BoxShadow(color: AppColors.primary.withValues(alpha: 0.1), blurRadius: 20, spreadRadius: 5),
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.25),
+                          blurRadius: 30,
+                          spreadRadius: 2,
+                        ),
                       ],
+                      border: Border.all(color: AppColors.primary.withOpacity(0.2), width: 2),
                     ),
                     child: ClipOval(
                       child: Image.asset(
                         'assets/images/logo.jpg',
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.fitness_center, color: AppColors.primary, size: 50),
+                            const Icon(Icons.fitness_center, color: AppColors.primary, size: 60),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Text('POWER HOUSE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 28, color: AppColors.primary, letterSpacing: 2)),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'POWER HOUSE',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 32, color: AppColors.primary, letterSpacing: 1.5),
+                  ),
                   const SizedBox(height: 4),
-                  Text('GYM & FITNESS', style: TextStyle(letterSpacing: 4, color: sec, fontSize: 11)),
-                  const SizedBox(height: 48),
+                  Text(
+                    'GYM & FITNESS CENTER',
+                    style: TextStyle(letterSpacing: 4, color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 54),
 
-                  // Phone
-                  _buildLabel('PHONE NUMBER', sec),
+                  // Phone Input
+                  _buildInputLabel(context, 'PHONE NUMBER'),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
-                    style: TextStyle(color: onSurf),
-                    decoration: InputDecoration(
-                      prefixIcon: Icon(Icons.phone_android, color: AppColors.primary, size: 20),
-                      hintText: 'Enter your phone number',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.phone_android, size: 20),
+                      hintText: 'Enter your 10-digit number',
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
-                  // Password
-                  _buildLabel('PASSWORD', sec),
+                  // Password Input
+                  _buildInputLabel(context, 'PASSWORD'),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: TextStyle(color: onSurf),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
-                      prefixIcon: Icon(Icons.lock_outline, color: AppColors.primary, size: 20),
-                      hintText: 'Enter your password',
+                      prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                      hintText: '••••••••',
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: sec, size: 20),
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.grey, size: 20),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 32),
 
-                  // Error
+                  // Error Message
                   if (authState.errorMessage != null)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.only(bottom: 24),
                       child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                          color: AppColors.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.error.withOpacity(0.2)),
                         ),
-                        child: Row(children: [
-                          const Icon(Icons.error_outline, color: AppColors.error, size: 16),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(authState.errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13))),
-                        ]),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                authState.errorMessage!,
+                                style: const TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
 
-                  // Login button
-                  SizedBox(
+                  // Login Button with Primary Gradient
+                  Container(
                     width: double.infinity,
-                    height: 54,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: AppColors.metallicGradient,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: ElevatedButton(
-                        onPressed: authState.isLoading
-                            ? null
-                            : () => ref.read(authProvider.notifier).login(
+                    height: 58,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryGlow.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: authState.isLoading
+                          ? null
+                          : () => ref.read(authProvider.notifier).login(
                                 _phoneController.text.trim(),
                                 _passwordController.text,
                               ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        child: authState.isLoading
-                            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3F4041)))
-                            : const Text('LOGIN', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF3F4041), letterSpacing: 2, fontSize: 15)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
+                      child: authState.isLoading
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text(
+                              'SIGN IN',
+                              style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2, fontSize: 16),
+                            ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Text('Power House Gym, Patna', style: TextStyle(color: sec, fontSize: 11)),
+                  const SizedBox(height: 32),
+                  
+                  // Footer
+                  Text(
+                    'By signing in you agree to our Terms',
+                    style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'PH GYM v1.0.1',
+                    style: TextStyle(color: AppColors.text3(context), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1),
+                  ),
                 ],
               ),
             ),
@@ -157,10 +188,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildLabel(String text, Color color) {
+  Widget _buildInputLabel(BuildContext context, String text) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: Text(text, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: Text(
+          text,
+          style: TextStyle(fontSize: 10, color: AppColors.text3(context), fontWeight: FontWeight.w900, letterSpacing: 1.5),
+        ),
+      ),
     );
   }
 }

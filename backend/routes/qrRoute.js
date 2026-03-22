@@ -44,11 +44,11 @@ router.get('/generate', authMiddleware(['admin']), async (req, res) => {
       return res.status(403).json({ success: false, message: gymStatus.reason, error_code: 'GYM_CLOSED' });
     }
 
-    // Generate a 30-second token
+    // Generate a 30-second token (35s for buffer)
     const token = jwt.sign(
       { type: 'attendance_qr' },
       process.env.JWT_SECRET,
-      { expiresIn: '120s' }
+      { expiresIn: '35s' }
     );
     res.json({ success: true, message: 'QR generated', data: { qr_code: token, expires_in: 30 }, error_code: null });
   } catch(e) {
@@ -61,56 +61,81 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
   const { code_hash } = req.body;
   if (!code_hash) return res.status(400).json({ success: false, message: 'QR token required', error_code: 'MISSING_QR' });
 
+  // 1. Gym Status Check
   const gymStatus = await checkGymOpen();
   if (!gymStatus.isOpen) {
     return res.status(403).json({ success: false, message: gymStatus.reason, error_code: 'GYM_CLOSED' });
   }
 
+  // 2. Token Verification
   try {
     const decoded = jwt.verify(code_hash, process.env.JWT_SECRET);
     if (decoded.type !== 'attendance_qr') throw new Error('Invalid token type');
   } catch (err) {
-    console.error('[QR VERIFY ERROR]:', err.message);
     return res.status(400).json({ success: false, message: `Invalid or expired QR: ${err.message}`, error_code: 'INVALID_QR' });
   }
 
   const user_id = req.user.userId;
   const user_role = req.user.role;
-  const today = new Date().toISOString().split('T')[0];
-  const now = new Date().toISOString();
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const dayNameLower = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
 
-  console.log(`[QR SCAN] User: ${user_id} (${user_role}) | Code length: ${code_hash?.length}`);
+  // 3. User Membership & Batch Check
+  const { data: userRecord, error: userErr } = await supabase.from('users')
+    .select('*, batches(days_active)')
+    .eq('id', user_id)
+    .single();
 
-  // Check if user has attendance today
+  if (userErr || !userRecord) {
+    return res.status(401).json({ success: false, message: 'User record not found', error_code: 'AUTH_ERROR' });
+  }
+
+  // A. Auto-Expiry Logic
+  if (userRecord.membership_expiry && userRecord.membership_expiry < today) {
+    if (userRecord.status === 'active') {
+      await supabase.from('users').update({ status: 'inactive' }).eq('id', user_id);
+    }
+    return res.status(403).json({ success: false, message: 'Membership expired. Please renew at the desk.', error_code: 'EXPIRED' });
+  }
+
+  // B. Inactive Status Block
+  if (userRecord.status !== 'active') {
+    return res.status(403).json({ success: false, message: `Account status is ${userRecord.status}. Please contact admin.`, error_code: 'INACTIVE' });
+  }
+
+  // C. Batch Day Enforcement
+  const batchDays = userRecord.batches?.days_active || [];
+  if (batchDays.length > 0 && !batchDays.includes(dayNameLower)) {
+    return res.status(403).json({ success: false, message: `Your batch is not active on ${dayNameLower.toUpperCase()}.`, error_code: 'BATCH_RESTRICTED' });
+  }
+
+  // 4. Attendance Logic
   const { data: existing } = await supabase.from('attendance')
     .select('*').eq('user_id', user_id).eq('date', today).single();
 
   let action = '';
+  const nowIso = now.toISOString();
+
   if (!existing) {
-    const { error } = await supabase.from('attendance').insert([{ user_id, date: today, time_in: now }]);
-    if (error) {
-      console.error('Attendance Check-In Error:', error);
-      return res.status(400).json({ success: false, message: `DB Error: ${error.message} (${error.code})`, error_code: 'ATTENDANCE_ERROR' });
-    }
+    const { error } = await supabase.from('attendance').insert([{ user_id, date: today, time_in: nowIso }]);
+    if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'ATTENDANCE_ERROR' });
     action = 'IN';
   } else if (!existing.time_out) {
-    const { error } = await supabase.from('attendance').update({ time_out: now }).eq('id', existing.id);
-    if (error) {
-      console.error('Attendance Check-Out Error:', error);
-      return res.status(400).json({ success: false, message: `DB Error: ${error.message} (${error.code})`, error_code: 'ATTENDANCE_ERROR' });
-    }
+    const { error } = await supabase.from('attendance').update({ time_out: nowIso }).eq('id', existing.id);
+    if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'ATTENDANCE_ERROR' });
     action = 'OUT';
   } else {
     return res.status(400).json({ success: false, message: 'You have already checked out today', error_code: 'ALREADY_COMPLETED' });
   }
 
-  const { data: userDetails } = await supabase.from('users').select('name, roll_no').eq('id', user_id).single();
-
+  // 5. Logging & Response
   await supabase.from('audit_logs').insert([{
-    action: 'QR_SCAN', performed_by: user_id, target_user: user_id, details: { action, time: now }
+    action: 'QR_SCAN', performed_by: user_id, target_user: user_id, details: { action, time: nowIso }
   }]);
 
-  res.json({ success: true, message: `Checked ${action} successfully`, data: { action, user: userDetails }, error_code: null });
+  res.json({ success: true, message: `Checked ${action} successfully`, data: { action, user: { name: userRecord.name, roll_no: userRecord.roll_no } }, error_code: null });
 });
+
 
 module.exports = router;

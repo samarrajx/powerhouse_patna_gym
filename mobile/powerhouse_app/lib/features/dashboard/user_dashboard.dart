@@ -48,47 +48,52 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     final isOpen = gymStatus?['is_open'] ?? false;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
       appBar: AppBar(
         title: Row(
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset('assets/images/logo.jpg', width: 32, height: 32, fit: BoxFit.cover),
+              child: Image.asset('assets/images/logo.jpg', width: 34, height: 34, fit: BoxFit.cover),
             ),
-            const SizedBox(width: 12),
-            const Text('PH Gym'),
+            const SizedBox(width: 14),
+            const Text('PH GYM'),
           ],
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _fetchStatus,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
+                _buildHeader(user?['name'] ?? 'MEMBER'),
+                const SizedBox(height: 32),
+                _buildStatusCard(isOpen, gymStatus?['schedule']),
+                const SizedBox(height: 24),
+                _buildMembershipCard(user),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const SizedBox(height: 20),
-                    _buildHeader(user?['name'] ?? 'MEMBER'),
-                    const SizedBox(height: 32),
-                    _buildStatusCard(isOpen, gymStatus?['schedule']),
-                    const SizedBox(height: 24),
-                    _buildMembershipCard(user),
-                    const SizedBox(height: 24),
-                    const Text('YOUR RECENT ACTIVITY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 12, color: AppColors.secondary)),
-                    const SizedBox(height: 12),
-                    _buildActivityList(),
-                    const SizedBox(height: 100), // Space for FAB
+                    Text('RECENT ACTIVITY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11, color: AppColors.text3(context))),
+                    GestureDetector(
+                      onTap: () {
+                        // Navigate to history tab logic would go here
+                      },
+                      child: const Text('VIEW ALL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.primary, letterSpacing: 1)),
+                    ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 12),
+                _buildActivityList(),
+                const SizedBox(height: 120), // Bottom padding
+              ],
             ),
           ),
         ),
@@ -102,8 +107,9 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('WELCOME BACK,', style: TextStyle(color: AppColors.secondary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
-        Text(name.toUpperCase(), style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppColors.onSurface, letterSpacing: -0.5)),
+        Text('WELCOME BACK,', style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+        const SizedBox(height: 4),
+        Text(name.toUpperCase(), style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 28, letterSpacing: -0.5)),
       ],
     );
   }
@@ -112,21 +118,25 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.surfaceHigh),
+        color: AppColors.surf(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.surfHigh(context)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isOpen ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+              color: (isOpen ? AppColors.success : AppColors.error).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               isOpen ? Icons.door_front_door : Icons.door_back_door,
-              color: isOpen ? Colors.green : Colors.red,
+              color: isOpen ? AppColors.success : AppColors.error,
+              size: 28,
             ),
           ),
           const SizedBox(width: 16),
@@ -136,13 +146,16 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
               children: [
                 Text(
                   isOpen ? 'GYM IS OPEN' : 'GYM IS CLOSED',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: isOpen ? Colors.green : Colors.red, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.w900, color: isOpen ? AppColors.success : AppColors.error, fontSize: 15, letterSpacing: 0.5),
                 ),
+                const SizedBox(height: 2),
                 if (schedule != null)
                   Text(
                     'Today: ${schedule['open_time']} - ${schedule['close_time']}',
-                    style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12),
-                  ),
+                    style: TextStyle(color: AppColors.text3(context), fontSize: 13, fontWeight: FontWeight.w600),
+                  )
+                else
+                   Text('Consult staff for timings', style: TextStyle(color: AppColors.text3(context), fontSize: 13)),
               ],
             ),
           ),
@@ -154,28 +167,43 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   Widget _buildMembershipCard(Map<String, dynamic>? user) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: AppColors.metallicGradient,
-        borderRadius: BorderRadius.circular(8),
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: AppColors.primaryGlow.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          const Text('MEMBERSHIP STATUS', style: TextStyle(color: Color(0xFF3F4041), fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.5)),
-          const SizedBox(height: 8),
-          Text(
-            (user?['membership_plan'] ?? 'STANDARD').toUpperCase(),
-            style: const TextStyle(color: Color(0xFF1E1E1E), fontSize: 24, fontWeight: FontWeight.w900),
+          Positioned(
+            right: -20,
+            bottom: -20,
+            child: Icon(Icons.fitness_center, size: 140, color: Colors.white.withOpacity(0.1)),
           ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildMetric('EXPIRY', user?['membership_expiry'] ?? 'N/A'),
-              _buildMetric('BATCH', user?['batch_id']?.toString() ?? 'GEN'),
-              _buildMetric('STATUS', user?['fees_status'] ?? 'PAID'),
-            ],
+          Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('MEMBERSHIP PLAN', style: TextStyle(color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 2)),
+                const SizedBox(height: 4),
+                Text(
+                  (user?['membership_plan'] ?? 'STANDARD').toUpperCase(),
+                  style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildMetric('EXPIRY DATE', user?['membership_expiry'] != null ? 
+                      DateTime.parse(user!['membership_expiry']).toLocaleDateString() : 'N/A'),
+                    _buildMetric('BATCH', user?['batch_id']?.toString() ?? 'DEFAULT'),
+                    _buildMetric('FEE STATUS', (user?['fees_status'] ?? 'PAID').toUpperCase()),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -186,8 +214,9 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFF3F4041), fontSize: 10, fontWeight: FontWeight.bold)),
-        Text(value, style: const TextStyle(color: Color(0xFF1E1E1E), fontSize: 14, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
+        const SizedBox(height: 2),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
       ],
     );
   }
@@ -195,74 +224,104 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   Widget _buildActivityList() {
     if (_recentActivity.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(4)),
-        child: const Center(child: Text('No sessions yet — scan the QR to check in!', style: TextStyle(color: AppColors.secondary, fontSize: 12))),
+        height: 120,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.surf(context),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.surfHigh(context)),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.history, color: AppColors.text3(context), size: 32),
+              const SizedBox(height: 8),
+              Text('No sessions yet today', style: TextStyle(color: AppColors.text3(context), fontSize: 13, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
       );
     }
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _recentActivity.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final r = _recentActivity[index];
+    return Column(
+      children: _recentActivity.asMap().entries.map((entry) {
+        final index = entry.key;
+        final r = entry.value;
         final date = r['date'] as String? ?? '';
         final timeIn = r['time_in'] as String?;
-        String label = '';
+        String label = 'Session Logged';
         if (timeIn != null) {
           try {
             final dt = DateTime.parse(timeIn).toLocal();
-            label = '${dt.hour.toString().padLeft(2,"0")}:${dt.minute.toString().padLeft(2,"0")}';
+            label = 'Checked in at ${dt.hour.toString().padLeft(2,"0")}:${dt.minute.toString().padLeft(2,"0")}';
           } catch (_) {}
         }
         return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(4)),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppColors.surf(context), 
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.surfHigh(context)),
+          ),
           child: Row(
             children: [
-              const Icon(Icons.check_circle_outline, color: AppColors.primary, size: 20),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: AppColors.primaryDim, borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.flash_on, color: AppColors.primary, size: 20),
+              ),
               const SizedBox(width: 16),
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Gym Session', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.onSurface)),
-                  Text(date, style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
+                  Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  Text(date, style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w600)),
                 ],
               )),
-              Text(label, style: const TextStyle(color: AppColors.secondary, fontSize: 12, fontWeight: FontWeight.bold)),
+              const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
             ],
           ),
         );
-      },
+      }).toList(),
     );
   }
 
   Widget _buildCheckInButton() {
     return Container(
-      width: 200,
-      height: 60,
+      width: 220,
+      height: 64,
       decoration: BoxDecoration(
-        gradient: AppColors.metallicGradient,
-        borderRadius: BorderRadius.circular(30),
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
-          BoxShadow(color: AppColors.primary.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 8)),
+          BoxShadow(color: AppColors.primaryGlow.withOpacity(0.4), blurRadius: 25, offset: const Offset(0, 10)),
         ],
       ),
       child: ElevatedButton(
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const QRScannerScreen()));
         },
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent, 
+          shadowColor: Colors.transparent,
+          padding: EdgeInsets.zero,
+        ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.qr_code_scanner, color: Color(0xFF3F4041)),
+            Icon(Icons.qr_code_scanner, color: Colors.white, size: 24),
             SizedBox(width: 12),
-            Text('CHECK IN', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF3F4041), letterSpacing: 1.2)),
+            Text('SCAN QR', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 16, letterSpacing: 1)),
           ],
         ),
       ),
     );
+  }
+}
+
+extension DateTimeFormat on DateTime {
+  String toLocaleDateString() {
+    return "${day.toString().padLeft(2, '0')}/${month.toString().padLeft(2, '0')}/${year}";
   }
 }

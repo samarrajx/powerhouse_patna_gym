@@ -50,26 +50,12 @@ class _AddUserScreenState extends State<AddUserScreen> {
               _selectedBatchId = _batches.first['id'];
             }
           });
-        } else {
-          _useFallbackBatches();
         }
       }
-    } catch (e) {
-      debugPrint('Error fetching batches: $e');
-      if (mounted) _useFallbackBatches();
+    } catch (_) {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _useFallbackBatches() {
-    setState(() {
-      _batches = [
-        {'id': '0515f242-095a-4cae-8e5e-78d5780bbf99', 'name': 'Morning Batch'},
-        {'id': '74115ffe-6b7b-4071-96cc-f6a5cb4937f9', 'name': 'Evening Batch'},
-      ];
-      _selectedBatchId = _batches.first['id'];
-    });
   }
 
   Future<void> _selectDate(BuildContext context, bool joining) async {
@@ -78,19 +64,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
       initialDate: joining ? _dateOfJoining : _membershipExpiry,
       firstDate: DateTime(2020),
       lastDate: DateTime(2101),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              onPrimary: Colors.black,
-              surface: AppColors.surface,
-              onSurface: AppColors.onSurface,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() {
@@ -148,41 +121,42 @@ class _AddUserScreenState extends State<AddUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
       appBar: AppBar(
-        title: const Text('NEW MEMBER ONBOARDING', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-        backgroundColor: AppColors.background,
-        elevation: 0,
+        title: const Text('ONBOARD MEMBER'),
       ),
       body: _isLoading && _batches.isEmpty ? const Center(child: CircularProgressIndicator(color: AppColors.primary)) : SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildSectionLabel('PERSONAL INFORMATION'),
+              const SizedBox(height: 12),
               _buildField('FULL NAME *', _nameController, Icons.person_outline),
-              const SizedBox(height: 20),
-              _buildField('PHONE NUMBER *', _phoneController, Icons.phone_android_outlined, keyboardType: TextInputType.phone),
-              const SizedBox(height: 20),
-              _buildField('ALT PHONE (OPTIONAL)', _phoneAltController, Icons.phone_android_outlined, keyboardType: TextInputType.phone),
-              const SizedBox(height: 20),
-              _buildField('ROLL NO (OPTIONAL)', _rollNoController, Icons.numbers_outlined),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _buildField('PHONE NUMBER *', _phoneController, Icons.phone_android_outlined, keyboardType: TextInputType.phone)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildField('ALT PHONE', _phoneAltController, Icons.contact_phone_outlined, keyboardType: TextInputType.phone)),
+                ],
+              ),
+              const SizedBox(height: 16),
               _buildField('FATHER\'S NAME', _fatherNameController, Icons.family_restroom_outlined),
-              const SizedBox(height: 20),
-              _buildField('ADDRESS', _addressController, Icons.home_outlined),
-              const SizedBox(height: 20),
               
+              const SizedBox(height: 32),
+              _buildSectionLabel('MEMBERSHIP SETTINGS'),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(child: _buildDatePicker('JOINING DATE', _dateOfJoining, () => _selectDate(context, true))),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildDatePicker('MEMBERSHIP EXPIRY', _membershipExpiry, () => _selectDate(context, false))),
+                  Expanded(child: _buildDatePicker('EXPIRY DATE', _membershipExpiry, () => _selectDate(context, false))),
                 ],
               ),
-              const SizedBox(height: 20),
-
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(child: _buildBatchDropdown()),
@@ -190,18 +164,23 @@ class _AddUserScreenState extends State<AddUserScreen> {
                   Expanded(child: _buildDropdown('BODY TYPE', _bodyType, ['skinny', 'normal', 'fatty'], (v) => setState(() => _bodyType = v!))),
                 ],
               ),
-              const SizedBox(height: 20),
-
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildDropdown('PLAN', _membershipPlan, ['Standard', 'Monthly', 'Quarterly', 'Semi-Annual', 'Annual'], (v) => setState(() => _membershipPlan = v!))),
+                  Expanded(child: _buildDropdown('PLAN', _membershipPlan, ['Monthly', 'Quarterly', 'Semi-Annual', 'Annual'], (v) => setState(() => _membershipPlan = v!))),
                   const SizedBox(width: 16),
                   Expanded(child: _buildDropdown('FEES STATUS', _feesStatus, ['paid', 'pending'], (v) => setState(() => _feesStatus = v!))),
                 ],
               ),
-              const SizedBox(height: 20),
-
-              _buildField('NOTES (OPTIONAL)', _notesController, Icons.note_add_outlined, maxLines: 3),
+              
+              const SizedBox(height: 32),
+              _buildSectionLabel('ADDITIONAL DETAILS'),
+              const SizedBox(height: 12),
+              _buildField('ROLL NO (OPTIONAL)', _rollNoController, Icons.numbers_outlined),
+              const SizedBox(height: 16),
+              _buildField('ADDRESS', _addressController, Icons.home_outlined, maxLines: 2),
+              const SizedBox(height: 16),
+              _buildField('INTERNAL NOTES', _notesController, Icons.note_add_outlined, maxLines: 3),
               
               const SizedBox(height: 48),
               SizedBox(
@@ -209,19 +188,26 @@ class _AddUserScreenState extends State<AddUserScreen> {
                 height: 56,
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: AppColors.metallicGradient,
-                    borderRadius: BorderRadius.circular(4),
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(color: AppColors.primaryGlow.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+                    ],
                   ),
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent, 
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
                     child: _isLoading 
-                      ? const CircularProgressIndicator(color: Color(0xFF3F4041))
-                      : const Text('ONBOARD MEMBER', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('CREATE MEMBER ACCOUNT', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -229,94 +215,58 @@ class _AddUserScreenState extends State<AddUserScreen> {
     );
   }
 
+  Widget _buildSectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(text, style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+    );
+  }
+
   Widget _buildField(String label, TextEditingController controller, IconData icon, {TextInputType? keyboardType, int maxLines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.secondary, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          style: const TextStyle(color: AppColors.onSurface),
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
-            filled: true,
-            fillColor: AppColors.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
-          ),
-          validator: (v) => (label.contains('*') && v!.isEmpty) ? 'Required' : null,
-        ),
-      ],
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20),
+      ),
+      validator: (v) => (label.contains('*') && v!.isEmpty) ? 'Required' : null,
     );
   }
 
   Widget _buildDatePicker(String label, DateTime date, VoidCallback onTap) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.secondary, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  DateFormat('yyyy-MM-dd').format(date),
-                  style: const TextStyle(color: AppColors.onSurface),
-                ),
-              ],
-            ),
-          ),
+    return InkWell(
+      onTap: onTap,
+      child: InputDecorator(
+        decoration: InputDecoration(labelText: label),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            const Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.secondary, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: value,
-          dropdownColor: AppColors.surface,
-          items: items.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-          onChanged: onChanged,
-        ),
-      ],
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: InputDecoration(labelText: label),
+      items: items.map((p) => DropdownMenuItem(value: p, child: Text(p.toUpperCase(), style: const TextStyle(fontSize: 13)))).toList(),
+      onChanged: onChanged,
     );
   }
 
   Widget _buildBatchDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('BATCH', style: TextStyle(fontSize: 10, color: AppColors.secondary, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedBatchId,
-          dropdownColor: AppColors.surface,
-          items: _batches.map((b) => DropdownMenuItem(value: b['id'] as String, child: Text(b['name'] ?? 'Unknown'))).toList(),
-          onChanged: (v) => setState(() => _selectedBatchId = v),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColors.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-          ),
-        ),
-      ],
+    return DropdownButtonFormField<String>(
+      value: _selectedBatchId,
+      decoration: const InputDecoration(labelText: 'BATCH'),
+      hint: const Text('Select Batch'),
+      items: _batches.map((b) => DropdownMenuItem(value: b['id'] as String, child: Text((b['name'] ?? '???').toUpperCase(), style: const TextStyle(fontSize: 13)))).toList(),
+      onChanged: (v) => setState(() => _selectedBatchId = v),
     );
   }
 }

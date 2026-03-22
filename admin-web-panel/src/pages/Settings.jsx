@@ -62,7 +62,7 @@ export default function Settings() {
           {/* Change Password */}
           <div className="card fade-up-2">
             <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'18px' }}>
-              <ShieldCheck size={18} style={{ color:'var(--lime)' }} />
+              <ShieldCheck size={18} style={{ color:'var(--primary)' }} />
               <h3 style={{ fontSize:'1rem', fontWeight:'600' }}>Change Password</h3>
             </div>
             <form onSubmit={changePass}>
@@ -74,7 +74,7 @@ export default function Settings() {
                 <label className="input-label">New Password</label>
                 <input className="input-field" type="password" placeholder="Min. 6 characters" value={newPass} onChange={e=>setNewPass(e.target.value)} required />
               </div>
-              <button className="btn btn-lime" type="submit" disabled={saving} style={{ marginTop:'4px' }}>
+              <button className="btn btn-primary" type="submit" disabled={saving} style={{ marginTop:'4px' }}>
                 {saving ? 'Saving...' : 'Update Password'}
               </button>
             </form>
@@ -87,10 +87,10 @@ export default function Settings() {
               <h3 style={{ fontSize:'1rem', fontWeight:'600' }}>System Status</h3>
             </div>
             {[
-              { label:'Database', value:'PostgreSQL 15 (Supabase)', status:'Healthy', color:'var(--lime)' },
-              { label:'API Server', value:'Node.js on Vercel', status:'Running', color:'var(--lime)' },
-              { label:'Authentication', value:'JWT + Bcrypt', status:'Secured', color:'var(--lime)' },
-              { label:'Security', value:'RLS Policies Active', status:'Enforced', color:'var(--lime)' },
+              { label:'Database', value:'PostgreSQL 15 (Supabase)', status:'Healthy', color:'var(--primary)' },
+              { label:'API Server', value:'Node.js on Vercel', status:'Running', color:'var(--primary)' },
+              { label:'Authentication', value:'JWT + Bcrypt', status:'Secured', color:'var(--primary)' },
+              { label:'Security', value:'RLS Policies Active', status:'Enforced', color:'var(--primary)' },
               { label:'Daily CRON', value:'Inactivity cleanup at 02:00 IST', status:'Scheduled', color:'var(--blue)' },
             ].map(({ label, value, status, color }) => (
               <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
@@ -98,7 +98,7 @@ export default function Settings() {
                   <div style={{ fontWeight:'500', fontSize:'0.875rem' }}>{label}</div>
                   <div style={{ fontSize:'0.75rem', color:'var(--text-3)', marginTop:'2px' }}>{value}</div>
                 </div>
-                <span className="badge" style={{ background: color === 'var(--lime)' ? 'rgba(200,250,0,0.1)' : 'rgba(96,165,250,0.1)', color, border:`1px solid ${color}33` }}>
+                <span className="badge" style={{ background: color === 'var(--primary)' ? 'rgba(229, 57, 53, 0.1)' : 'rgba(96,165,250,0.1)', color, border:`1px solid ${color}33` }}>
                   <span className="badge-dot" />{status}
                 </span>
               </div>

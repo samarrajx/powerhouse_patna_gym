@@ -63,25 +63,26 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
+      appBar: AppBar(
+        title: const Text('ATTENDANCE'),
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('ATTENDANCE', style: TextStyle(color: AppColors.secondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 2)),
-                  const Text('YOUR HISTORY', style: TextStyle(color: AppColors.onSurface, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                  Text('YOUR RECORDS', style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                   const SizedBox(height: 4),
                   if (!_isLoading && _records.isNotEmpty)
-                    Text('${_records.length} sessions recorded', style: const TextStyle(color: AppColors.secondary, fontSize: 12)),
+                    Text('You have ${_records.length} sessions recorded', style: TextStyle(color: AppColors.text2(context), fontSize: 13, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -114,50 +115,52 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.surfaceHigh),
+        color: AppColors.surf(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.surfHigh(context)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: hasCheckout ? AppColors.surfaceHigh : Colors.green.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: hasCheckout ? AppColors.primaryDim : AppColors.success.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              hasCheckout ? Icons.check_circle : Icons.radio_button_checked,
-              color: hasCheckout ? AppColors.primary : Colors.green,
-              size: 20,
+              hasCheckout ? Icons.check_circle_outline : Icons.flash_on,
+              color: hasCheckout ? AppColors.primary : AppColors.success,
+              size: 22,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_formatDate(date), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.onSurface, fontSize: 14)),
+                Text(_formatDate(date), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.login, size: 12, color: AppColors.secondary),
-                    const SizedBox(width: 4),
-                    Text(_formatTime(timeIn), style: const TextStyle(color: AppColors.secondary, fontSize: 12)),
+                    Text(_formatTime(timeIn), style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w600)),
                     if (hasCheckout) ...[
-                      const Text('  →  ', style: TextStyle(color: AppColors.surfaceHigh, fontSize: 12)),
-                      const Icon(Icons.logout, size: 12, color: AppColors.secondary),
-                      const SizedBox(width: 4),
-                      Text(_formatTime(timeOut), style: const TextStyle(color: AppColors.secondary, fontSize: 12)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text('→', style: TextStyle(color: AppColors.text3(context).withOpacity(0.5), fontSize: 12)),
+                      ),
+                      Text(_formatTime(timeOut), style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w600)),
                     ] else ...[
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
-                        child: const Text('ACTIVE', style: TextStyle(color: Colors.green, fontSize: 9, fontWeight: FontWeight.bold)),
+                        decoration: BoxDecoration(color: AppColors.success.withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
+                        child: const Text('ACTIVE', style: TextStyle(color: AppColors.success, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                       ),
                     ],
                   ],
@@ -169,8 +172,8 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('${dur.inHours}h ${dur.inMinutes % 60}m', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 13)),
-                const Text('session', style: TextStyle(color: AppColors.secondary, fontSize: 10)),
+                Text('${dur.inHours}h ${dur.inMinutes % 60}m', style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primary, fontSize: 13)),
+                Text('SESSION', style: TextStyle(color: AppColors.text3(context), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
               ],
             ),
         ],
@@ -183,11 +186,11 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.fitness_center, color: AppColors.surfaceHigh, size: 56),
+          Icon(Icons.history_toggle_off, color: AppColors.text3(context).withOpacity(0.3), size: 64),
           const SizedBox(height: 16),
-          const Text('NO SESSIONS YET', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, letterSpacing: 1)),
+          Text('NO SESSIONS YET', style: TextStyle(color: AppColors.text3(context), fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
           const SizedBox(height: 8),
-          const Text('Scan the QR to mark your first visit', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
+          Text('Scan the QR to start your journey', style: TextStyle(color: AppColors.text3(context).withOpacity(0.6), fontSize: 12, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -198,11 +201,15 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, color: AppColors.error, size: 40),
-          const SizedBox(height: 12),
-          Text(_error!, style: const TextStyle(color: AppColors.secondary)),
+          const Icon(Icons.error_outline, color: AppColors.error, size: 48),
           const SizedBox(height: 16),
-          TextButton(onPressed: _fetchHistory, child: const Text('RETRY')),
+          Text(_error!, style: TextStyle(color: AppColors.text2(context), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _fetchHistory, 
+            style: ElevatedButton.styleFrom(minimumSize: const Size(120, 44)),
+            child: const Text('RETRY'),
+          ),
         ],
       ),
     );

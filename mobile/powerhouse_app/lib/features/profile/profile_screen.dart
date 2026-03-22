@@ -52,27 +52,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: isError ? AppColors.error : AppColors.surfaceHigh,
+      backgroundColor: isError ? AppColors.error : AppColors.darkSurfHigh,
       behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ));
-  }
-
-  void _confirmLogout() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('LOGOUT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        content: const Text('Are you sure you want to log out?', style: TextStyle(color: AppColors.secondary)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
-          TextButton(
-            onPressed: () { Navigator.pop(context); ref.read(authProvider.notifier).logout(); },
-            child: const Text('LOGOUT', style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -80,91 +63,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final user = ref.watch(authProvider).user;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
+      appBar: AppBar(
+        title: const Text('PROFILE'),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 8),
-              const Text('MY', style: TextStyle(color: AppColors.secondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 2)),
-              const Text('PROFILE', style: TextStyle(color: AppColors.onSurface, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-              const SizedBox(height: 24),
-
-              // Avatar + Name
               _buildMemberCard(user),
-              const SizedBox(height: 20),
+              const SizedBox(height: 32),
 
-              // Info tiles
-              _buildSection('MEMBERSHIP', [
-                _buildTile('Plan', user?['membership_plan'] ?? '—'),
-                _buildTile('Expires', _formatDate(user?['membership_expiry'])),
-                _buildTile('Fees Status', user?['fees_status']?.toString().toUpperCase() ?? '—'),
-              ]),
-              const SizedBox(height: 16),
-              _buildSection('CONTACT', [
-                _buildTile('Phone', user?['phone'] ?? '—'),
-                if (user?['phone_alt'] != null) _buildTile('Alt Phone', user?['phone_alt']),
-                _buildTile('Father / Guardian', user?['father_name'] ?? '—'),
-                _buildTile('Address', user?['address'] ?? '—'),
-              ]),
-              const SizedBox(height: 16),
-              _buildSection('GYM INFO', [
-                _buildTile('Roll No', user?['roll_no'] ?? '—'),
-                _buildTile('Joined', _formatDate(user?['date_of_joining'])),
-                _buildTile('Body Type', user?['body_type'] ?? '—'),
+              _buildSection(context, 'MEMBERSHIP', [
+                _buildTile(context, 'Plan', user?['membership_plan'] ?? 'STANDARD'),
+                _buildTile(context, 'Expires', _formatDate(user?['membership_expiry'])),
+                _buildTile(context, 'Fees Status', (user?['fees_status'] ?? 'PAID').toString().toUpperCase(), color: AppColors.success),
               ]),
               const SizedBox(height: 24),
 
-              // Change Password
-              _buildPasswordSection(),
-              const SizedBox(height: 16),
+              _buildSection(context, 'CONTACT INFORMATION', [
+                _buildTile(context, 'Phone', user?['phone'] ?? '—'),
+                if (user?['phone_alt'] != null) _buildTile(context, 'Alt Phone', user?['phone_alt']),
+                _buildTile(context, 'Father / Guardian', user?['father_name'] ?? '—'),
+                _buildTile(context, 'Address', user?['address'] ?? '—'),
+              ]),
+              const SizedBox(height: 24),
 
-              // Theme toggle
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(color: AppColors.surf(context), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.surfH(context))),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: Row(children: [
-                    Icon(Icons.brightness_6_outlined, color: AppColors.sec(context), size: 18),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text('DARK THEME', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.onSurf(context)))),
-                    Consumer(builder: (ctx, ref2, _) {
-                      final isDark = ref2.watch(themeProvider) == ThemeMode.dark;
-                      return Switch(
-                        value: isDark,
-                        onChanged: (_) => ref2.read(themeProvider.notifier).toggleTheme(),
-                      );
-                    }),
-                  ]),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Logout
-              GestureDetector(
-                onTap: _confirmLogout,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.logout, color: AppColors.error, size: 18),
-                      SizedBox(width: 8),
-                      Text('LOGOUT', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                    ],
-                  ),
-                ),
-              ),
+              _buildSection(context, 'GYM RECORD', [
+                _buildTile(context, 'Roll No', user?['roll_no']?.toString() ?? '—'),
+                _buildTile(context, 'Joined', _formatDate(user?['date_of_joining'])),
+                _buildTile(context, 'Body Type', user?['body_type'] ?? 'ATHLETIC'),
+              ]),
               const SizedBox(height: 32),
+
+              _buildPasswordSection(),
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -174,25 +109,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildMemberCard(Map<String, dynamic>? user) {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(gradient: AppColors.metallicGradient, borderRadius: BorderRadius.circular(12)),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: AppColors.primaryGlow.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
+        ],
+      ),
       child: Row(
         children: [
           Container(
-            width: 56, height: 56,
-            decoration: BoxDecoration(color: const Color(0xFF3F4041), borderRadius: BorderRadius.circular(28)),
-            child: const Icon(Icons.person, color: AppColors.primary, size: 28),
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: const Icon(Icons.person, color: Colors.white, size: 32),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user?['name']?.toString().toUpperCase() ?? '—',
-                    style: const TextStyle(color: Color(0xFF1E1E1E), fontWeight: FontWeight.w900, fontSize: 18)),
+                Text(
+                  user?['name']?.toString().toUpperCase() ?? 'MEMBER',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
+                ),
                 const SizedBox(height: 2),
-                Text(user?['role']?.toString().toUpperCase() ?? 'MEMBER',
-                    style: const TextStyle(color: Color(0xFF3F4041), fontSize: 11, fontWeight: FontWeight.bold)),
+                Text(
+                  user?['role']?.toString().toUpperCase() ?? 'GYM MEMBER',
+                  style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1),
+                ),
               ],
             ),
           ),
@@ -201,27 +152,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildSection(String title, List<Widget> tiles) {
+  Widget _buildSection(BuildContext context, String title, List<Widget> tiles) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(color: AppColors.secondary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Text(
+            title,
+            style: TextStyle(
+              color: AppColors.text3(context),
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
         Container(
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.surfaceHigh)),
+          decoration: BoxDecoration(
+            color: AppColors.surf(context),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.surfHigh(context)),
+          ),
           child: Column(children: tiles),
         ),
       ],
     );
   }
 
-  Widget _buildTile(String label, String? value) {
+  Widget _buildTile(BuildContext context, String label, String value, {Color? color}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(flex: 2, child: Text(label, style: const TextStyle(color: AppColors.secondary, fontSize: 12))),
-          Expanded(flex: 3, child: Text(value ?? '—', style: const TextStyle(color: AppColors.onSurface, fontSize: 13, fontWeight: FontWeight.w500), textAlign: TextAlign.right)),
+          Text(label, style: TextStyle(color: AppColors.text3(context), fontSize: 13, fontWeight: FontWeight.w600)),
+          Text(
+            value,
+            style: TextStyle(
+              color: color ?? AppColors.text1(context),
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -229,48 +202,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildPasswordSection() {
     return Container(
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.surfaceHigh)),
+      decoration: BoxDecoration(
+        color: AppColors.surf(context), 
+        borderRadius: BorderRadius.circular(16), 
+        border: Border.all(color: AppColors.surfHigh(context)),
+      ),
       child: Column(
         children: [
-          GestureDetector(
+          InkWell(
             onTap: () => setState(() => _changingPwd = !_changingPwd),
+            borderRadius: BorderRadius.circular(16),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  const Icon(Icons.lock_outline, color: AppColors.secondary, size: 18),
-                  const SizedBox(width: 12),
-                  const Expanded(child: Text('CHANGE PASSWORD', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5))),
-                  Icon(_changingPwd ? Icons.expand_less : Icons.expand_more, color: AppColors.secondary),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: AppColors.primaryDim, borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.lock_outline, color: AppColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(child: Text('SECURITY & PASSWORD', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14))),
+                  Icon(_changingPwd ? Icons.expand_less : Icons.expand_more, color: Colors.grey),
                 ],
               ),
             ),
           ),
           if (_changingPwd) ...[
-            const Divider(height: 1, color: AppColors.surfaceHigh),
+            const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
                   _buildPwdField('Current Password', _oldPwdCtrl, _obscureOld, () => setState(() => _obscureOld = !_obscureOld)),
-                  const SizedBox(height: 12),
-                  _buildPwdField('New Password', _newPwdCtrl, _obscureNew, () => setState(() => _obscureNew = !_obscureNew)),
-                  const SizedBox(height: 12),
-                  _buildPwdField('Confirm New Password', _confirmPwdCtrl, _obscureConfirm, () => setState(() => _obscureConfirm = !_obscureConfirm)),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _pwdLoading ? null : _changePassword,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryContainer,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: _pwdLoading
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
-                          : const Text('UPDATE PASSWORD', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                    ),
+                  _buildPwdField('New Password', _newPwdCtrl, _obscureNew, () => setState(() => _obscureNew = !_obscureNew)),
+                  const SizedBox(height: 16),
+                  _buildPwdField('Confirm New Password', _confirmPwdCtrl, _obscureConfirm, () => setState(() => _obscureConfirm = !_obscureConfirm)),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _pwdLoading ? null : _changePassword,
+                    child: _pwdLoading
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('UPDATE PASSWORD'),
                   ),
                 ],
               ),
@@ -285,13 +259,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return TextField(
       controller: ctrl,
       obscureText: obscure,
-      style: const TextStyle(color: AppColors.onSurface, fontSize: 14),
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: AppColors.secondary, fontSize: 12),
-        filled: true, fillColor: AppColors.surfaceHigh,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-        suffixIcon: IconButton(icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, color: AppColors.secondary, size: 18), onPressed: toggle),
+        suffixIcon: IconButton(
+          icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, size: 20, color: Colors.grey),
+          onPressed: toggle,
+        ),
       ),
     );
   }

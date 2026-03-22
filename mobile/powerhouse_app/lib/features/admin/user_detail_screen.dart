@@ -72,23 +72,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           setState(() {
             _batches = List<Map<String, dynamic>>.from(res['data']);
           });
-        } else {
-          _useFallbackBatches();
         }
       }
-    } catch (e) {
-      debugPrint('Error fetching batches: $e');
-      if (mounted) _useFallbackBatches();
-    }
-  }
-
-  void _useFallbackBatches() {
-    setState(() {
-      _batches = [
-        {'id': '0515f242-095a-4cae-8e5e-78d5780bbf99', 'name': 'Morning Batch'},
-        {'id': '74115ffe-6b7b-4071-96cc-f6a5cb4937f9', 'name': 'Evening Batch'},
-      ];
-    });
+    } catch (_) {}
   }
 
   Future<void> _selectDate(BuildContext context, bool joining) async {
@@ -97,19 +83,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       initialDate: joining ? _dateOfJoining : _membershipExpiry,
       firstDate: DateTime(2020),
       lastDate: DateTime(2101),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              onPrimary: Colors.black,
-              surface: AppColors.surface,
-              onSurface: AppColors.onSurface,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() {
@@ -168,12 +141,15 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Reset Password?'),
-        content: const Text('Password will be reset to "samgym". User must change it on next login.'),
+        title: const Text('RESET PASSWORD?'),
+        content: const Text('Password will be reset to "samgym". Member must change it on next login.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('RESET', style: TextStyle(color: AppColors.error))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true), 
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('RESET', style: TextStyle(color: Colors.white)),
+          ),
         ],
       ),
     );
@@ -196,11 +172,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 
   void _launchWhatsApp() async {
-    final name = _userData['name'] ?? 'User';
+    final name = _userData['name'] ?? 'Member';
     final phone = _userData['phone'];
     if (phone == null) return;
 
-    // Get message based on body type template
     String message = "Hi $name, staying consistent is key! Ready for today's workout?";
     if (_bodyType == 'skinny') {
       message = "Hey $name, looking to bulk up? Check out our high-protein diet charts at the reception!";
@@ -211,10 +186,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     final url = "https://wa.me/91$phone?text=${Uri.encodeComponent(message)}";
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch WhatsApp. Is it installed?')));
-      }
     }
   }
 
@@ -224,81 +195,68 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     final url = "tel:$phone";
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch dialer.')));
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
       appBar: AppBar(
-        title: Text(_isEditing ? 'EDIT MEMBER' : 'MEMBER PROFILE', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-        backgroundColor: AppColors.background,
-        elevation: 0,
+        title: Text(_isEditing ? 'EDIT MEMBER' : 'MEMBER PROFILE'),
         actions: [
           if (!_isEditing)
-            IconButton(onPressed: () => setState(() => _isEditing = true), icon: const Icon(Icons.edit_outlined, color: AppColors.primary))
+            IconButton(
+              onPressed: () => setState(() => _isEditing = true), 
+              icon: Icon(Icons.edit_outlined, color: AppColors.text3(context), size: 22),
+            )
           else
-            IconButton(onPressed: _isLoading ? null : _saveChanges, icon: const Icon(Icons.check, color: Colors.green)),
+            TextButton(
+              onPressed: _isLoading ? null : _saveChanges, 
+              child: const Text('SAVE', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w900, letterSpacing: 1)),
+            ),
         ],
       ),
       body: _isLoading ? const Center(child: CircularProgressIndicator(color: AppColors.primary)) : SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Card
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: AppColors.surfaceHigh,
-                      child: Text(_userData['name']?[0]?.toUpperCase() ?? 'U', style: const TextStyle(color: AppColors.primary, fontSize: 24)),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(_userData['name'] ?? 'Unknown', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                          Text('ID: #${_userData['id'].toString().substring(0, 8)}', style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Action Buttons
-              if (!_isEditing) Row(
-                children: [
-                  Expanded(child: _buildActionButton(Icons.phone, 'CALL', AppColors.primary, _launchCall)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildActionButton(Icons.chat_bubble_outline, 'WHATSAPP', Colors.green, _launchWhatsApp)),
-                  const SizedBox(width: 12),
-                  _buildIconButton(Icons.lock_reset, 'PWD', AppColors.onSurfaceVariant, _resetPassword),
-                ],
-              ),
+              _buildHeaderCard(),
               const SizedBox(height: 32),
 
-              // Form Fields
-              _buildField('FULL NAME *', _nameController, Icons.person_outline, enabled: _isEditing),
-              const SizedBox(height: 20),
-              _buildField('PHONE NUMBER *', _phoneController, Icons.phone_android_outlined, enabled: _isEditing, keyboardType: TextInputType.phone),
-              const SizedBox(height: 20),
-              _buildField('ALT PHONE', _phoneAltController, Icons.phone_android_outlined, enabled: _isEditing, keyboardType: TextInputType.phone),
-              const SizedBox(height: 20),
+              if (!_isEditing) ...[
+                Row(
+                  children: [
+                    Expanded(child: _buildActionBtn(Icons.phone, 'CALL', Colors.blue, _launchCall)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildActionBtn(Icons.chat_bubble_outline, 'WHATSAPP', AppColors.success, _launchWhatsApp)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildActionBtn(Icons.lock_reset, 'RESET ACCOUNT PASSWORD', AppColors.primary, _resetPassword, isFullWidth: true),
+                const SizedBox(height: 32),
+              ],
+
+              _buildSectionLabel('PERSONAL DETAILS'),
+              const SizedBox(height: 12),
+              _buildField('FULL NAME', _nameController, Icons.person_outline, enabled: _isEditing),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _buildField('PHONE', _phoneController, Icons.phone_android_outlined, enabled: _isEditing, keyboardType: TextInputType.phone)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildField('ALT PHONE', _phoneAltController, Icons.contact_phone_outlined, enabled: _isEditing, keyboardType: TextInputType.phone)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildField('FATHER / GUARDIAN', _fatherNameController, Icons.family_restroom_outlined, enabled: _isEditing),
               
+              const SizedBox(height: 32),
+              _buildSectionLabel('MEMBERSHIP & BATCH'),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(child: _buildDatePicker('JOINING DATE', _dateOfJoining, _isEditing ? () => _selectDate(context, true) : null)),
@@ -306,37 +264,32 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                   Expanded(child: _buildDatePicker('EXPIRY DATE', _membershipExpiry, _isEditing ? () => _selectDate(context, false) : null)),
                 ],
               ),
-              const SizedBox(height: 20),
-
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildBatchDropdown()),
-                  const SizedBox(width: 16),
-                  Expanded(child: _buildDropdown('BODY TYPE', _bodyType, ['skinny', 'normal', 'fatty'], _isEditing ? (v) => setState(() => _bodyType = v!) : null)),
+                   Expanded(child: _buildBatchDropdown()),
+                   const SizedBox(width: 16),
+                   Expanded(child: _buildDropdown('FEES STATUS', _feesStatus, ['paid', 'pending'], _isEditing ? (v) => setState(() => _feesStatus = v!) : null)),
                 ],
               ),
-              const SizedBox(height: 20),
-
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildDropdown('PLAN', _membershipPlan, ['Standard', 'Monthly', 'Quarterly', 'Semi-Annual', 'Annual'], _isEditing ? (v) => setState(() => _membershipPlan = v!) : null)),
-                  const SizedBox(width: 16),
-                  Expanded(child: _buildDropdown('ROLE', _role, ['user', 'admin'], _isEditing ? (v) => setState(() => _role = v!) : null)),
+                   Expanded(child: _buildDropdown('PLAN', _membershipPlan, ['Monthly', 'Quarterly', 'Semi-Annual', 'Annual'], _isEditing ? (v) => setState(() => _membershipPlan = v!) : null)),
+                   const SizedBox(width: 16),
+                   Expanded(child: _buildDropdown('BODY TYPE', _bodyType, ['skinny', 'normal', 'fatty'], _isEditing ? (v) => setState(() => _bodyType = v!) : null)),
                 ],
               ),
-              const SizedBox(height: 20),
-              
-              _buildDropdown('FEES STATUS', _feesStatus, ['paid', 'pending'], _isEditing ? (v) => setState(() => _feesStatus = v!) : null),
-              const SizedBox(height: 20),
 
+              const SizedBox(height: 32),
+              _buildSectionLabel('OTHER INFORMATION'),
+              const SizedBox(height: 12),
               _buildField('ROLL NO', _rollNoController, Icons.numbers_outlined, enabled: _isEditing),
-              const SizedBox(height: 20),
-              _buildField('FATHER\'S NAME', _fatherNameController, Icons.family_restroom_outlined, enabled: _isEditing),
-              const SizedBox(height: 20),
-              _buildField('ADDRESS', _addressController, Icons.home_outlined, enabled: _isEditing),
-              const SizedBox(height: 20),
-              _buildField('NOTES', _notesController, Icons.note_add_outlined, enabled: _isEditing, maxLines: 3),
-              const SizedBox(height: 48),
+              const SizedBox(height: 16),
+              _buildField('ADDRESS', _addressController, Icons.home_outlined, enabled: _isEditing, maxLines: 2),
+              const SizedBox(height: 16),
+              _buildField('INTERNAL NOTES', _notesController, Icons.note_add_outlined, enabled: _isEditing, maxLines: 3),
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -344,143 +297,121 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller, IconData icon, {bool enabled = true, TextInputType? keyboardType, int maxLines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.secondary, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          enabled: enabled,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          style: TextStyle(color: enabled ? AppColors.onSurface : AppColors.onSurfaceVariant),
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
-            filled: true,
-            fillColor: enabled ? AppColors.surface : AppColors.surface.withValues(alpha: 0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
+  Widget _buildHeaderCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: AppColors.primaryGlow.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: const Icon(Icons.person, color: Colors.white, size: 32),
           ),
-          validator: (v) => (label.contains('*') && v!.isEmpty) ? 'Required' : null,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton(IconData icon, String label, Color color, VoidCallback onTap) {
-    return ElevatedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 18, color: Colors.black),
-      label: Text(label, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  (_userData['name'] ?? 'MEMBER').toString().toUpperCase(),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'ID: #${_userData['id'].toString().substring(0, 8).toUpperCase()}',
+                  style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildIconButton(IconData icon, String label, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 8, color: AppColors.onSurfaceVariant)),
-        ],
+  Widget _buildSectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(text, style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+    );
+  }
+
+  Widget _buildField(String label, TextEditingController controller, IconData icon, {bool enabled = true, TextInputType? keyboardType, int maxLines = 1}) {
+    return TextFormField(
+      controller: controller,
+      enabled: enabled,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20),
+      ),
+    );
+  }
+
+  Widget _buildActionBtn(IconData icon, String label, Color color, VoidCallback onTap, {bool isFullWidth = false}) {
+    return SizedBox(
+      width: isFullWidth ? double.infinity : null,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color.withOpacity(0.1),
+          foregroundColor: color,
+          side: BorderSide(color: color.withOpacity(0.2)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          elevation: 0,
+        ),
       ),
     );
   }
 
   Widget _buildDatePicker(String label, DateTime date, VoidCallback? onTap) {
     final bool enabled = onTap != null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.secondary, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(4),
-              border: enabled ? Border.all(color: AppColors.primary.withValues(alpha: 0.3)) : null,
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today, color: enabled ? AppColors.primary : AppColors.onSurfaceVariant, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  DateFormat('yyyy-MM-dd').format(date),
-                  style: TextStyle(color: enabled ? AppColors.onSurface : AppColors.onSurfaceVariant, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
+    return InkWell(
+      onTap: onTap,
+      child: InputDecorator(
+        decoration: InputDecoration(labelText: label),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            Icon(Icons.calendar_today, size: 16, color: enabled ? AppColors.primary : Colors.grey),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildDropdown(String label, String value, List<String> items, ValueChanged<String?>? onChanged) {
-    final bool enabled = onChanged != null;
-    final dropdownItems = items.toSet().toList();
-    if (!dropdownItems.contains(value)) {
-      dropdownItems.insert(0, value);
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.secondary, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: value,
-          dropdownColor: AppColors.surface,
-          style: TextStyle(color: enabled ? AppColors.onSurface : AppColors.onSurfaceVariant),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: enabled ? AppColors.surface : AppColors.surface.withValues(alpha: 0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-          ),
-          items: dropdownItems.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-          onChanged: onChanged,
-        ),
-      ],
+    return DropdownButtonFormField<String>(
+      value: items.contains(value) ? value : null,
+      decoration: InputDecoration(labelText: label),
+      items: items.map((p) => DropdownMenuItem(value: p, child: Text(p.toUpperCase(), style: const TextStyle(fontSize: 13)))).toList(),
+      onChanged: onChanged,
     );
   }
 
   Widget _buildBatchDropdown() {
-    final bool enabled = _isEditing;
-    final currentBatch = _batches.firstWhere((b) => b['id'] == _batchId, orElse: () => {'id': _batchId, 'name': 'Unknown'});
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('BATCH', style: TextStyle(fontSize: 10, color: AppColors.secondary, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: _batches.any((b) => b['id'] == _batchId) ? _batchId : null,
-          dropdownColor: AppColors.surface,
-          hint: Text(currentBatch['name'] ?? 'Select Batch', style: TextStyle(color: enabled ? AppColors.onSurface : AppColors.onSurfaceVariant)),
-          items: _batches.map((b) => DropdownMenuItem(value: b['id'] as String, child: Text(b['name'] ?? 'Unknown'))).toList(),
-          onChanged: enabled ? (v) => setState(() => _batchId = v) : null,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: enabled ? AppColors.surface : AppColors.surface.withValues(alpha: 0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-          ),
-        ),
-      ],
+    return DropdownButtonFormField<String>(
+      value: _batches.any((b) => b['id'] == _batchId) ? _batchId : null,
+      decoration: const InputDecoration(labelText: 'ASSIGNED BATCH'),
+      hint: const Text('Select Batch'),
+      items: _batches.map((b) => DropdownMenuItem(value: b['id'] as String, child: Text((b['name'] ?? '???').toUpperCase(), style: const TextStyle(fontSize: 13)))).toList(),
+      onChanged: _isEditing ? (v) => setState(() => _batchId = v) : null,
     );
   }
 }

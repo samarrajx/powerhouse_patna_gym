@@ -45,29 +45,25 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
       appBar: AppBar(
-        title: const Text('USER MANAGEMENT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-        backgroundColor: AppColors.background,
-        elevation: 0,
+        title: const Text('MEMBERS'),
         actions: [
-          IconButton(onPressed: _fetchUsers, icon: const Icon(Icons.refresh, color: AppColors.secondary)),
+          IconButton(
+            onPressed: _fetchUsers, 
+            icon: Icon(Icons.refresh, color: AppColors.text3(context), size: 20),
+          ),
         ],
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: TextField(
               onChanged: (v) => setState(() => searchQuery = v),
-              style: const TextStyle(color: AppColors.onSurface),
-              decoration: InputDecoration(
-                hintText: 'Search members...',
-                hintStyle: const TextStyle(color: AppColors.onSurfaceVariant),
-                prefixIcon: const Icon(Icons.search, color: AppColors.secondary),
-                filled: true,
-                fillColor: AppColors.surface,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
+              decoration: const InputDecoration(
+                hintText: 'Search by name, phone or roll...',
+                prefixIcon: Icon(Icons.search, size: 20),
               ),
             ),
           ),
@@ -76,21 +72,25 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
                 : RefreshIndicator(
                     onRefresh: _fetchUsers,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.all(16),
+                    color: AppColors.primary,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                       itemCount: filteredUsers.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final user = filteredUsers[index];
-                        return InkWell(
-                          onTap: () async {
-                            final changed = await Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => UserDetailScreen(user: user)),
-                            );
-                            if (changed == true) _fetchUsers();
-                          },
-                          child: _buildUserCard(user),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: InkWell(
+                            onTap: () async {
+                              final changed = await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => UserDetailScreen(user: user)),
+                              );
+                              if (changed == true) _fetchUsers();
+                            },
+                            borderRadius: BorderRadius.circular(16),
+                            child: _buildUserCard(user),
+                          ),
                         );
                       },
                     ),
@@ -106,34 +106,55 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           );
           if (added == true) _fetchUsers();
         },
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Color(0xFF3F4041)),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
   Widget _buildUserCard(Map<String, dynamic> user) {
-    final status = user['status'] ?? 'active';
+    final status = (user['status'] ?? 'active').toString().toLowerCase();
+    final isActive = status == 'active';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.surfaceHigh),
+        color: AppColors.surf(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.surfHigh(context)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: AppColors.surfaceHigh,
-            child: Text(user['name']?[0]?.toUpperCase() ?? 'U', style: const TextStyle(color: AppColors.primary)),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.primaryDim,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                user['name']?[0]?.toUpperCase() ?? '?', 
+                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 18),
+              ),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text(user['phone'] ?? 'No phone', style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
+                Text(
+                  (user['name'] ?? 'UNKNOWN').toString().toUpperCase(), 
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, letterSpacing: -0.2),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  user['phone'] ?? 'NO PHONE', 
+                  style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w600),
+                ),
               ],
             ),
           ),
@@ -141,18 +162,26 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: status == 'active' ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(2),
+                  color: (isActive ? AppColors.success : AppColors.error).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   status.toUpperCase(),
-                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: status == 'active' ? Colors.green : Colors.red),
+                  style: TextStyle(
+                    fontSize: 8, 
+                    fontWeight: FontWeight.w900, 
+                    color: isActive ? AppColors.success : AppColors.error,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(user['membership_plan'] ?? 'Standard', style: const TextStyle(fontSize: 10, color: AppColors.secondary)),
+              const SizedBox(height: 6),
+              Text(
+                (user['membership_plan'] ?? 'BASIC').toString().toUpperCase(), 
+                style: TextStyle(fontSize: 10, color: AppColors.text3(context), fontWeight: FontWeight.w800, letterSpacing: 0.2),
+              ),
             ],
           ),
         ],
