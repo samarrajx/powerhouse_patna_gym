@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// ─── Theme Provider ────────────────────────────────────────────────────────────
+// ─── Theme Provider ─────────────────────────────────────────────────────────
 class ThemeNotifier extends Notifier<ThemeMode> {
   @override
   ThemeMode build() {
     _loadTheme();
-    return ThemeMode.dark; // default
+    return ThemeMode.dark;
   }
 
   Future<void> _loadTheme() async {
@@ -17,42 +17,31 @@ class ThemeNotifier extends Notifier<ThemeMode> {
   }
 
   Future<void> toggleTheme() async {
-    final newMode = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-    state = newMode;
+    final next = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    state = next;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkTheme', newMode == ThemeMode.dark);
+    await prefs.setBool('isDarkTheme', next == ThemeMode.dark);
   }
-
-  bool get isDark => state == ThemeMode.dark;
 }
 
 final themeProvider = NotifierProvider<ThemeNotifier, ThemeMode>(() => ThemeNotifier());
 
-// ─── Semantic Color Tokens (adaptive) ─────────────────────────────────────────
+// ─── App Colors ──────────────────────────────────────────────────────────────
+// Static const values (dark-mode defaults, backwards-compatible)
 class AppColors {
-  // Dark palette
-  static const Color darkBackground    = Color(0xFF0E0E0E);
-  static const Color darkSurface       = Color(0xFF131313);
-  static const Color darkSurfaceHigh   = Color(0xFF1F2020);
-  static const Color darkOnSurface     = Color(0xFFE7E5E5);
-  static const Color darkOnSurfaceVar  = Color(0xFFACABAA);
-  static const Color darkSecondary     = Color(0xFF9E9E9E);
-
-  // Light palette
-  static const Color lightBackground   = Color(0xFFF4F4F5);
-  static const Color lightSurface      = Color(0xFFFFFFFF);
-  static const Color lightSurfaceHigh  = Color(0xFFECECED);
-  static const Color lightOnSurface    = Color(0xFF1A1A1A);
-  static const Color lightOnSurfaceVar = Color(0xFF6B6B6B);
-  static const Color lightSecondary    = Color(0xFF888888);
-
-  // Shared
-  static const Color primary           = Color(0xFFC6C6C6);
-  static const Color primaryContainer  = Color(0xFF454747);
-  static const Color accent            = Color(0xFFFAF9F9);
-  static const Color error             = Color(0xFFEE7D77);
-  static const Color success           = Color(0xFF4CAF50);
-  static const Color warning           = Color(0xFFFF9800);
+  // ── Const palette (dark theme defaults) ─────────────────────────────────
+  static const Color background       = Color(0xFF0E0E0E);
+  static const Color surface          = Color(0xFF131313);
+  static const Color surfaceHigh      = Color(0xFF1F2020);
+  static const Color primary          = Color(0xFFC6C6C6);
+  static const Color primaryContainer = Color(0xFF454747);
+  static const Color secondary        = Color(0xFF9E9E9E);
+  static const Color accent           = Color(0xFFFAF9F9);
+  static const Color error            = Color(0xFFEE7D77);
+  static const Color success          = Color(0xFF4CAF50);
+  static const Color warning          = Color(0xFFFF9800);
+  static const Color onSurface        = Color(0xFFE7E5E5);
+  static const Color onSurfaceVariant = Color(0xFFACABAA);
 
   static const LinearGradient metallicGradient = LinearGradient(
     colors: [primary, primaryContainer],
@@ -60,26 +49,37 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  // Context-aware helpers
-  static Color background(BuildContext context)   => Theme.of(context).brightness == Brightness.dark ? darkBackground   : lightBackground;
-  static Color surface(BuildContext context)      => Theme.of(context).brightness == Brightness.dark ? darkSurface      : lightSurface;
-  static Color surfaceHigh(BuildContext context)  => Theme.of(context).brightness == Brightness.dark ? darkSurfaceHigh  : lightSurfaceHigh;
-  static Color onSurface(BuildContext context)    => Theme.of(context).brightness == Brightness.dark ? darkOnSurface    : lightOnSurface;
-  static Color onSurfaceVar(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? darkOnSurfaceVar : lightOnSurfaceVar;
-  static Color secondary(BuildContext context)    => Theme.of(context).brightness == Brightness.dark ? darkSecondary    : lightSecondary;
+  // ── Light palette consts ─────────────────────────────────────────────────
+  static const Color lightBackground   = Color(0xFFF4F4F5);
+  static const Color lightSurface      = Color(0xFFFFFFFF);
+  static const Color lightSurfaceHigh  = Color(0xFFECECED);
+  static const Color lightOnSurface    = Color(0xFF1A1A1A);
+  static const Color lightOnSurfaceVar = Color(0xFF6B6B6B);
+  static const Color lightSecondary    = Color(0xFF888888);
+
+  // ── Context-aware helpers (use these in non-const widgets) ───────────────
+  static Color bg(BuildContext ctx)         => _dark(ctx) ? background         : lightBackground;
+  static Color surf(BuildContext ctx)       => _dark(ctx) ? surface            : lightSurface;
+  static Color surfH(BuildContext ctx)      => _dark(ctx) ? surfaceHigh        : lightSurfaceHigh;
+  static Color onSurf(BuildContext ctx)     => _dark(ctx) ? onSurface          : lightOnSurface;
+  static Color onSurfVar(BuildContext ctx)  => _dark(ctx) ? onSurfaceVariant   : lightOnSurfaceVar;
+  static Color sec(BuildContext ctx)        => _dark(ctx) ? secondary          : lightSecondary;
+
+  static bool _dark(BuildContext ctx) => Theme.of(ctx).brightness == Brightness.dark;
 }
 
-// ─── App Themes ────────────────────────────────────────────────────────────────
+// ─── App Themes ──────────────────────────────────────────────────────────────
 class AppTheme {
-  static ThemeData get darkTheme => _buildTheme(Brightness.dark);
-  static ThemeData get lightTheme => _buildTheme(Brightness.light);
+  static ThemeData get darkTheme  => _build(Brightness.dark);
+  static ThemeData get lightTheme => _build(Brightness.light);
 
-  static ThemeData _buildTheme(Brightness brightness) {
-    final isDark = brightness == Brightness.dark;
-    final bg      = isDark ? AppColors.darkBackground   : AppColors.lightBackground;
-    final surface = isDark ? AppColors.darkSurface      : AppColors.lightSurface;
-    final onSurf  = isDark ? AppColors.darkOnSurface    : AppColors.lightOnSurface;
-    final secondary = isDark ? AppColors.darkSecondary  : AppColors.lightSecondary;
+  static ThemeData _build(Brightness brightness) {
+    final isDark  = brightness == Brightness.dark;
+    final bg      = isDark ? AppColors.background       : AppColors.lightBackground;
+    final surf    = isDark ? AppColors.surface          : AppColors.lightSurface;
+    final surfH   = isDark ? AppColors.surfaceHigh      : AppColors.lightSurfaceHigh;
+    final onSurf  = isDark ? AppColors.onSurface        : AppColors.lightOnSurface;
+    final sec     = isDark ? AppColors.secondary        : AppColors.lightSecondary;
 
     return ThemeData(
       useMaterial3: true,
@@ -91,25 +91,25 @@ class AppTheme {
         onPrimary: const Color(0xFF3F4041),
         primaryContainer: AppColors.primaryContainer,
         onPrimaryContainer: AppColors.primary,
-        secondary: secondary,
+        secondary: sec,
         onSecondary: bg,
-        secondaryContainer: isDark ? AppColors.darkSurfaceHigh : AppColors.lightSurfaceHigh,
+        secondaryContainer: surfH,
         onSecondaryContainer: onSurf,
-        surface: surface,
+        surface: surf,
         onSurface: onSurf,
         error: AppColors.error,
         onError: Colors.white,
-        surfaceContainerHighest: isDark ? AppColors.darkSurfaceHigh : AppColors.lightSurfaceHigh,
-        outline: isDark ? AppColors.darkSurfaceHigh : AppColors.lightSurfaceHigh,
+        surfaceContainerHighest: surfH,
+        outline: surfH,
       ),
       textTheme: TextTheme(
-        displayLarge: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.04, color: onSurf),
+        displayLarge:  TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.04, color: onSurf),
         headlineLarge: TextStyle(fontWeight: FontWeight.w800, color: onSurf),
-        headlineMedium: TextStyle(fontWeight: FontWeight.w700, color: onSurf),
-        titleLarge: TextStyle(fontWeight: FontWeight.w600, color: onSurf),
-        bodyMedium: TextStyle(color: secondary),
-        bodySmall: TextStyle(color: secondary),
-        labelSmall: TextStyle(color: secondary, letterSpacing: 1),
+        headlineMedium:TextStyle(fontWeight: FontWeight.w700, color: onSurf),
+        titleLarge:    TextStyle(fontWeight: FontWeight.w600, color: onSurf),
+        bodyMedium:    TextStyle(color: sec),
+        bodySmall:     TextStyle(color: sec),
+        labelSmall:    TextStyle(color: sec, letterSpacing: 1),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: bg,
@@ -119,16 +119,17 @@ class AppTheme {
         titleTextStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.5, color: onSurf),
       ),
       cardTheme: CardThemeData(
-        color: surface,
+        color: surf,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? AppColors.darkSurfaceHigh : AppColors.lightSurfaceHigh,
+        fillColor: surfH,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-        hintStyle: TextStyle(color: secondary),
-        prefixIconColor: secondary,
+        hintStyle: TextStyle(color: sec),
+        prefixIconColor: sec,
+        labelStyle: TextStyle(color: sec),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -139,16 +140,23 @@ class AppTheme {
         ),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: surface,
+        backgroundColor: surf,
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: secondary,
+        unselectedItemColor: sec,
         elevation: 0,
+        type: BottomNavigationBarType.fixed,
+        selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+        unselectedLabelStyle: const TextStyle(fontSize: 10),
       ),
-      dividerTheme: DividerThemeData(color: isDark ? AppColors.darkSurfaceHigh : AppColors.lightSurfaceHigh, thickness: 1),
+      dividerTheme: DividerThemeData(color: surfH, thickness: 1),
       switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? AppColors.primary : secondary),
-        trackColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? AppColors.primaryContainer : (isDark ? AppColors.darkSurfaceHigh : AppColors.lightSurfaceHigh)),
+        thumbColor: WidgetStateProperty.resolveWith((s) =>
+            s.contains(WidgetState.selected) ? AppColors.primary : sec),
+        trackColor: WidgetStateProperty.resolveWith((s) =>
+            s.contains(WidgetState.selected) ? AppColors.primaryContainer : surfH),
       ),
+      dialogTheme: DialogThemeData(backgroundColor: surf),
+      snackBarTheme: SnackBarThemeData(backgroundColor: surfH, contentTextStyle: TextStyle(color: onSurf)),
     );
   }
 }

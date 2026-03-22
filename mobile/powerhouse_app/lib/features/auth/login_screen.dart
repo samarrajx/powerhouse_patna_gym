@@ -25,10 +25,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final bg = AppColors.background(context);
-    final surfHigh = AppColors.surfaceHigh(context);
-    final onSurf = AppColors.onSurface(context);
-    final sec = AppColors.secondary(context);
+    final bg = AppColors.bg(context);
+    final surfHigh = AppColors.surfH(context);
+    final onSurf = AppColors.onSurf(context);
+    final sec = AppColors.sec(context);
 
     return Scaffold(
       backgroundColor: bg,
@@ -43,16 +43,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 children: [
                   // Logo
                   Container(
-                    width: 90,
-                    height: 90,
+                    width: 120,
+                    height: 120,
                     decoration: BoxDecoration(
                       color: surfHigh,
-                      borderRadius: BorderRadius.circular(45),
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: AppColors.primary.withValues(alpha: 0.1), blurRadius: 20, spreadRadius: 5),
+                      ],
                     ),
-                    child: const Icon(Icons.fitness_center, color: AppColors.primary, size: 44),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/logo.jpg',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.fitness_center, color: AppColors.primary, size: 50),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
                   Text('POWER HOUSE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 28, color: AppColors.primary, letterSpacing: 2)),
                   const SizedBox(height: 4),
                   Text('GYM & FITNESS', style: TextStyle(letterSpacing: 4, color: sec, fontSize: 11)),

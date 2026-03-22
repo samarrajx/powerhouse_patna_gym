@@ -33,15 +33,15 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface(context),
-          border: Border(top: BorderSide(color: AppColors.surfaceHigh(context), width: 1)),
+          color: AppColors.surf(context),
+          border: Border(top: BorderSide(color: AppColors.surfH(context), width: 1)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (i) => setState(() => _currentIndex = i),
           backgroundColor: Colors.transparent,
           selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.secondary(context),
+          unselectedItemColor: AppColors.sec(context),
           elevation: 0,
           type: BottomNavigationBarType.fixed,
           selectedLabelStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5),

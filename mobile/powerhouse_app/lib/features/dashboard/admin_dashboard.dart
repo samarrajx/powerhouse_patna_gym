@@ -40,8 +40,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final bg = AppColors.background(context);
-    final sec = AppColors.secondary(context);
+    final bg = AppColors.bg(context);
+    final sec = AppColors.sec(context);
 
     return Scaffold(
       backgroundColor: bg,
@@ -85,10 +85,10 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   }
 
   Widget _buildStatsGrid(BuildContext context) {
-    final surf = AppColors.surface(context);
-    final surfH = AppColors.surfaceHigh(context);
-    final onSurf = AppColors.onSurface(context);
-    final sec = AppColors.secondary(context);
+    final surf = AppColors.surf(context);
+    final surfH = AppColors.surfH(context);
+    final onSurf = AppColors.onSurf(context);
+    final sec = AppColors.sec(context);
 
     final tiles = [
       {'label': 'TOTAL MEMBERS', 'value': stats?['total_users']?.toString() ?? '—', 'icon': Icons.people_outline, 'color': Colors.blue},
@@ -139,8 +139,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   }
 
   Widget _buildActionGrid(BuildContext context) {
-    final surfH = AppColors.surfaceHigh(context);
-    final sec = AppColors.secondary(context);
+    final surfH = AppColors.surfH(context);
+    final sec = AppColors.sec(context);
 
     final actions = [
       {'label': 'NEW MEMBER', 'icon': Icons.person_add_outlined, 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddUserScreen())).then((_) => _fetchAll())},
@@ -167,8 +167,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   }
 
   Widget _buildLiveMonitor(BuildContext context, Color sec) {
-    final surf = AppColors.surface(context);
-    final surfH = AppColors.surfaceHigh(context);
+    final surf = AppColors.surf(context);
+    final surfH = AppColors.surfH(context);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -222,9 +222,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   }
 
   Widget _buildFootfall(BuildContext context, List data) {
-    final surf = AppColors.surface(context);
-    final surfH = AppColors.surfaceHigh(context);
-    final sec = AppColors.secondary(context);
+    final surf = AppColors.surf(context);
+    final surfH = AppColors.surfH(context);
+    final sec = AppColors.sec(context);
 
     final maxScans = data.isEmpty ? 1 : data.map((d) => (d['scans'] as num?)?.toInt() ?? 0).reduce((a, b) => a > b ? a : b);
     return Container(
