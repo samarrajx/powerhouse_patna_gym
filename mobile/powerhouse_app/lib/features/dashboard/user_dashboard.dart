@@ -4,6 +4,8 @@ import '../../core/app_theme.dart';
 import '../../core/api_service.dart';
 import '../auth/auth_provider.dart';
 import '../qr/qr_scanner_screen.dart';
+import '../notifications/notifications_provider.dart';
+import '../notifications/notification_center.dart';
 
 class UserDashboard extends ConsumerStatefulWidget {
   const UserDashboard({super.key});
@@ -60,10 +62,39 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
             const Text('PH GYM'),
           ],
         ),
+        actions: [
+          Consumer(
+            builder: (context, ref, child) {
+              final count = ref.watch(notificationsProvider.notifier).unreadCount;
+              return Stack(
+                children: [
+                   IconButton(
+                    icon: const Icon(Icons.notifications_none_outlined),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationCenterScreen())),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 12,
+                      top: 12,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                        constraints: const BoxConstraints(minWidth: 10, minHeight: 10),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: _fetchStatus,
+          onRefresh: () async {
+            await _fetchStatus();
+            await ref.read(notificationsProvider.notifier).fetchNotifications();
+          },
           color: AppColors.primary,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),

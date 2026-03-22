@@ -4,6 +4,8 @@ import '../../core/app_theme.dart';
 import '../../core/api_service.dart';
 import '../admin/attendance_monitor_screen.dart';
 import '../admin/add_user_screen.dart';
+import '../notifications/notifications_provider.dart';
+import '../notifications/notification_center.dart';
 
 class AdminDashboard extends ConsumerStatefulWidget {
   const AdminDashboard({super.key});
@@ -53,10 +55,39 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
             const Text('PH GYM ADMIN'),
           ],
         ),
+        actions: [
+          Consumer(
+            builder: (context, ref, child) {
+              final count = ref.watch(notificationsProvider.notifier).unreadCount;
+              return Stack(
+                children: [
+                   IconButton(
+                    icon: const Icon(Icons.notifications_none_outlined),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationCenterScreen())),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 12,
+                      top: 12,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                        constraints: const BoxConstraints(minWidth: 10, minHeight: 10),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: _fetchAll,
+          onRefresh: () async {
+             await _fetchAll();
+             await ref.read(notificationsProvider.notifier).fetchNotifications();
+          },
           color: AppColors.primary,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),

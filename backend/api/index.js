@@ -8,6 +8,7 @@ const qrRoute       = require('../routes/qrRoute');
 const attendanceRoute = require('../routes/attendanceRoute');
 const adminRoute    = require('../routes/adminRoute');
 const scheduleRoute = require('../routes/scheduleRoute');
+const notificationRoute = require('../routes/notificationRoute');
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/api/qr', qrRoute);
 app.use('/api/attendance', attendanceRoute);
 app.use('/api/admin', adminRoute);
 app.use('/api/schedule', scheduleRoute);
+app.use('/api/notifications', notificationRoute);
 
 // GET /api/gym/status — check today holiday + weekly schedule
 app.get('/api/gym/status', async (req, res) => {
