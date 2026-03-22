@@ -105,6 +105,8 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                 const SizedBox(height: 24),
                 _buildHeader(user?['name'] ?? 'MEMBER'),
                 const SizedBox(height: 32),
+                _buildStreakCard(user),
+                const SizedBox(height: 24),
                 _buildStatusCard(isOpen, gymStatus?['schedule']),
                 const SizedBox(height: 24),
                 _buildMembershipCard(user),
@@ -193,6 +195,93 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
         ],
       ),
     );
+  }
+
+  Widget _buildStreakCard(Map<String, dynamic>? user) {
+    final streak = user?['current_streak'] ?? 0;
+    final tier = _getTierInfo(streak);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surf(context),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.surfHigh(context)),
+      ),
+      child: Row(
+        children: [
+          _buildStreakCircle(streak, tier['color']),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(tier['name'].toUpperCase(), style: TextStyle(color: tier['color'], fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 2)),
+                const SizedBox(height: 4),
+                Text('YOUR CURRENT STREAK', style: TextStyle(color: AppColors.text3(context), fontSize: 10, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                _buildProgressBar(streak, tier['nextGoal']),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStreakCircle(int streak, Color color) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 64,
+          height: 64,
+          child: CircularProgressIndicator(
+            value: 0.7, // Visual placeholder
+            strokeWidth: 6,
+            color: color,
+            backgroundColor: color.withOpacity(0.1),
+          ),
+        ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('$streak', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+            const Text('DAYS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 8)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProgressBar(int current, int next) {
+    final progress = (current % next) / next;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress.clamp(0.1, 1.0),
+            minHeight: 6,
+            backgroundColor: Colors.white.withOpacity(0.05),
+            color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text('${next - (current % next)} DAYS TO NEXT TIER', style: TextStyle(color: AppColors.text3(context), fontSize: 9, fontWeight: FontWeight.w900)),
+      ],
+    );
+  }
+
+  Map<String, dynamic> _getTierInfo(int streak) {
+    if (streak <= 3) return {'name': 'Iron', 'color': Colors.grey, 'nextGoal': 4};
+    if (streak <= 10) return {'name': 'Bronze', 'color': Colors.brown, 'nextGoal': 11};
+    if (streak <= 20) return {'name': 'Silver', 'color': Colors.blueGrey, 'nextGoal': 21};
+    if (streak <= 35) return {'name': 'Gold', 'color': Colors.amber, 'nextGoal': 36};
+    if (streak <= 50) return {'name': 'Platinum', 'color': Colors.cyan, 'nextGoal': 51};
+    if (streak <= 60) return {'name': 'Diamond', 'color': Colors.blue, 'nextGoal': 61};
+    return {'name': 'Legendary', 'color': Colors.redAccent, 'nextGoal': 100};
   }
 
   Widget _buildMembershipCard(Map<String, dynamic>? user) {

@@ -56,7 +56,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       if (mounted) Navigator.pop(context); // Remove loading
 
       if (res['success'] == true) {
-        _showResult(true, res['message'] ?? 'Attendance Marked!');
+        _showResult(true, res['message'] ?? 'Attendance Marked!', data: res['data']);
       } else {
         if (res['error_code'] == 'GYM_CLOSED') {
           _showGymClosed(res['message'] ?? 'Gym is currently closed.');
@@ -70,7 +70,13 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     }
   }
 
-  void _showResult(bool success, String message) {
+  void _showResult(bool success, String message, {Map<String, dynamic>? data}) {
+    // If it's a successful 'IN' scan with streak data, show celebration instead of standard result
+    if (success && data?['action'] == 'IN' && data?['streak'] != null) {
+      _showStreakPopup(data!['streak']);
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -111,19 +117,26 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               style: TextStyle(color: AppColors.text2(context), fontSize: 14, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await controller.start(); // Restart camera
-                setState(() => isScanning = true);
-              },
-              child: const Text('TRY AGAIN'),
-            ),
+            if (!success)
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await controller.start(); // Restart camera
+                  setState(() => isScanning = true);
+                },
+                child: const Text('TRY AGAIN'),
+              )
+            else
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('DISMISS'),
+              ),
             const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text('BACK TO DASHBOARD', style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1)),
-            ),
+            if (!success)
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('BACK TO DASHBOARD', style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1)),
+              ),
           ],
         ),
       ),
@@ -132,6 +145,63 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
          Navigator.pop(context);
       }
     });
+  }
+
+  void _showStreakPopup(Map<String, dynamic> streak) {
+    final count = streak['current'] ?? 0;
+    final isNewRecord = streak['isNewRecord'] ?? false;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            gradient: AppColors.primaryGradient,
+            borderRadius: BorderRadius.circular(32),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.auto_awesome, color: Colors.white, size: 64),
+              const SizedBox(height: 24),
+              Text(
+                isNewRecord ? 'NEW RECORD!' : 'STREAK CONTINUED!',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 2),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$count DAYS',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 48, letterSpacing: -1),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'KEEP GOING, CHAMP! 🏋️',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context, true); // Go back to dashboard
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                  ),
+                  child: const Text('AWESOME'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showGymClosed(String message) {

@@ -36,6 +36,30 @@ async function checkGymOpen() {
   return { isOpen: true };
 }
 
+// ─── Helper: Get Last Valid Gym Day ──────────────────────────────────────────
+async function getLastValidGymDay(beforeDateStr) {
+  let checkDate = new Date(beforeDateStr);
+  let safety = 0;
+  
+  while (safety < 30) { // Check up to last 30 days
+    safety++;
+    checkDate.setDate(checkDate.getDate() - 1);
+    const dateStr = checkDate.toISOString().split('T')[0];
+    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][checkDate.getDay()];
+    
+    // 1. Check if it was a holiday
+    const { data: holiday } = await supabase.from('holidays').select('*').eq('date', dateStr).single();
+    if (holiday && holiday.is_closed) continue;
+    
+    // 2. Check weekly schedule
+    const { data: schedule } = await supabase.from('weekly_schedule').select('*').eq('day_of_week', dayName).single();
+    if (schedule && !schedule.is_open) continue;
+    
+    return dateStr;
+  }
+  return null;
+}
+
 // ─── Generate Dynamic QR Token (Admin displays this) ─────────────────────────
 router.get('/generate', authMiddleware(['admin']), async (req, res) => {
   try {
@@ -110,17 +134,40 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
     return res.status(403).json({ success: false, message: `Your batch is not active on ${dayNameLower.toUpperCase()}.`, error_code: 'BATCH_RESTRICTED' });
   }
 
-  // 4. Attendance Logic
+  // 4. Attendance & Streak Logic
   const { data: existing } = await supabase.from('attendance')
     .select('*').eq('user_id', user_id).eq('date', today).single();
 
   let action = '';
   const nowIso = now.toISOString();
+  let streakData = null;
 
   if (!existing) {
-    const { error } = await supabase.from('attendance').insert([{ user_id, date: today, time_in: nowIso }]);
-    if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'ATTENDANCE_ERROR' });
+    // Check In & Streak Processing
+    const lastValidDay = await getLastValidGymDay(today);
+    let newStreak = 1;
+    
+    if (userRecord.streak_last_updated === lastValidDay) {
+      newStreak = (userRecord.current_streak || 0) + 1;
+    } else if (userRecord.streak_last_updated === today) {
+      newStreak = userRecord.current_streak; // Already updated today
+    }
+
+    const newBest = Math.max(userRecord.best_streak || 0, newStreak);
+    
+    const { error: attErr } = await supabase.from('attendance').insert([{ user_id, date: today, time_in: nowIso }]);
+    if (attErr) return res.status(400).json({ success: false, message: attErr.message, error_code: 'ATTENDANCE_ERROR' });
+    
+    const { error: userUpdateErr } = await supabase.from('users').update({ 
+      current_streak: newStreak, 
+      best_streak: newBest,
+      streak_last_updated: today 
+    }).eq('id', user_id);
+    
+    if (userUpdateErr) console.error('Streak update failed:', userUpdateErr);
+    
     action = 'IN';
+    streakData = { current: newStreak, best: newBest, isNewRecord: newBest > (userRecord.best_streak || 0) };
   } else if (!existing.time_out) {
     const { error } = await supabase.from('attendance').update({ time_out: nowIso }).eq('id', existing.id);
     if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'ATTENDANCE_ERROR' });
@@ -134,7 +181,7 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
     action: 'QR_SCAN', performed_by: user_id, target_user: user_id, details: { action, time: nowIso }
   }]);
 
-  res.json({ success: true, message: `Checked ${action} successfully`, data: { action, user: { name: userRecord.name, roll_no: userRecord.roll_no } }, error_code: null });
+  res.json({ success: true, message: `Checked ${action} successfully`, data: { action, streak: streakData, user: { name: userRecord.name, roll_no: userRecord.roll_no } }, error_code: null });
 });
 
 
