@@ -77,7 +77,7 @@ export default function TemplateManager() {
 
   return (
     <div className="main-area">
-      <Topbar title="Template Manager" subtitle="Manage messages and announcements" />
+      <Topbar title="Templates & Announcements" sub="Manage message templates and gym announcements" />
       <div className="page-body">
         
         {/* --- Message Templates Section --- */}

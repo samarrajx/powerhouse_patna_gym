@@ -13,7 +13,6 @@ import Schedule from './pages/Schedule';
 import InactiveUsers from './pages/InactiveUsers';
 import Reports from './pages/Reports';
 import TemplateManager from './pages/TemplateManager';
-import Notifications from './pages/Notifications';
 import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare, Menu, Bell } from 'lucide-react';
 import { SidebarProvider, useSidebar } from './SidebarContext';
 import Logo from './components/Logo';
@@ -44,9 +43,8 @@ function Sidebar() {
     { to:'/members',   icon: Users,            label:'Members' },
     { to:'/qr-station',icon: Scan,             label:'QR Station' },
     { to:'/attendance',icon: ClipboardList,    label:'Attendance' },
-    { to:'/templates', icon: MessageSquare,    label:'Templates' },
+    { to:'/templates', icon: MessageSquare,    label:'Templates & Announcements' },
     { to:'/reports',   icon: BarChart3,        label:'Reports' },
-    { to:'/notifications', icon: Bell,         label:'Notifications' },
 
 
     { section:'MANAGEMENT' },
@@ -121,7 +119,6 @@ function ProtectedLayout() {
           <Route path="/schedule"   element={<Schedule/>}/>
           <Route path="/inactive"   element={<InactiveUsers/>}/>
           <Route path="/reports"    element={<Reports/>}/>
-          <Route path="/notifications" element={<Notifications/>}/>
           <Route path="*"           element={<Navigate to="/dashboard" replace/>}/>
         </Routes>
         </main>
