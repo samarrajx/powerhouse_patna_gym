@@ -14,7 +14,7 @@ import InactiveUsers from './pages/InactiveUsers';
 import Reports from './pages/Reports';
 import TemplateManager from './pages/TemplateManager';
 import Notifications from './pages/Notifications';
-import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare, Menu } from 'lucide-react';
+import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare, Menu, Bell } from 'lucide-react';
 import Logo from './components/Logo';
 
 const SidebarContext = createContext();
