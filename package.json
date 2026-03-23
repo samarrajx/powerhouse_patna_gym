@@ -6,7 +6,7 @@
     "dev": "concurrently \"npm run backend\" \"npm run admin\"",
     "backend": "cd backend && npm start",
     "admin": "cd admin-web-panel && npm run dev",
-    "build": "npm run build-admin && npm run install-backend && cp -rv admin-web-panel/dist/* .",
+    "build": "npm run build-admin && npm run install-backend && mkdir -p public && cp -rv admin-web-panel/dist/* public/",
     "build-admin": "cd admin-web-panel && npm install && npm run build",
     "install-backend": "cd backend && npm install"
   },
