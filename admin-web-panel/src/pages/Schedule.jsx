@@ -101,7 +101,7 @@ export default function Schedule() {
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'18px' }}>
             <div>
               <h3 style={{ fontSize:'1rem', fontWeight:'600' }}>Weekly Operating Hours</h3>
-              <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>Changes save automatically</p>
+              <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>Set each day as open or closed</p>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={load}><RefreshCcw size={14}/></button>
           </div>
@@ -114,15 +114,8 @@ export default function Schedule() {
                     <input type="checkbox" checked={row.is_open} onChange={e => updateDay(row.day_of_week, 'is_open', e.target.checked)} />
                     <span className="toggle-slider" />
                   </label>
-                  <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                    <span style={{ fontSize:'0.72rem', color:'var(--text-3)' }}>Open</span>
-                    <input type="time" className="input-field" value={row.open_time?.slice(0,5)||'05:00'} style={{ width:'100px', padding:'5px 8px', opacity: row.is_open ? 1 : 0.3 }}
-                      onChange={e => updateDay(row.day_of_week, 'open_time', e.target.value)} disabled={!row.is_open} />
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                    <span style={{ fontSize:'0.72rem', color:'var(--text-3)' }}>Close</span>
-                    <input type="time" className="input-field" value={row.close_time?.slice(0,5)||'22:00'} style={{ width:'100px', padding:'5px 8px', opacity: row.is_open ? 1 : 0.3 }}
-                      onChange={e => updateDay(row.day_of_week, 'close_time', e.target.value)} disabled={!row.is_open} />
+                  <div style={{ fontSize:'0.78rem', color:'var(--text-2)' }}>
+                    {row.is_open ? 'Open day' : 'Closed day'}
                   </div>
                   <span className={`badge ${row.is_open ? 'badge-green' : 'badge-red'}`}>
                     <span className="badge-dot"/>{row.is_open ? 'Open' : 'Closed'}

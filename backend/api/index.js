@@ -3,18 +3,21 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { apiLimiter } = require('../middleware/rateLimit');
 
-const authRoute     = require('../routes/authRoute');
-const qrRoute       = require('../routes/qrRoute');
+const authRoute = require('../routes/authRoute');
+const qrRoute = require('../routes/qrRoute');
 const attendanceRoute = require('../routes/attendanceRoute');
-const adminRoute    = require('../routes/adminRoute');
+const adminRoute = require('../routes/adminRoute');
 const scheduleRoute = require('../routes/scheduleRoute');
 const notificationRoute = require('../routes/notificationRoute');
 const userRoute = require('../routes/userRoute');
+
 const IST_TZ = 'Asia/Kolkata';
 
 const getIstNow = () => {
   const now = new Date();
-  const day = now.toLocaleDateString('en-US', { weekday: 'long', timeZone: IST_TZ }).toLowerCase();
+  const day = now
+    .toLocaleDateString('en-US', { weekday: 'long', timeZone: IST_TZ })
+    .toLowerCase();
   const date = new Intl.DateTimeFormat('en-CA', { timeZone: IST_TZ }).format(now);
   const time = new Intl.DateTimeFormat('en-GB', {
     timeZone: IST_TZ,
@@ -23,13 +26,14 @@ const getIstNow = () => {
     minute: '2-digit',
     second: '2-digit',
   }).format(now);
+
   return { day, date, time };
 };
 
 const app = express();
 
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: '*', methods: ['GET','POST','PUT','DELETE','PATCH'] }));
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] }));
 app.use(express.json({ limit: '10mb' }));
 app.use(apiLimiter);
 
@@ -55,6 +59,7 @@ app.get('/api/gym/status', async (req, res) => {
 
   const is_holiday = holiday != null && holiday.is_closed;
   const day_schedule = schedule || { is_open: true, open_time: '05:00', close_time: '22:00' };
+
   const batchTimings = { morning: null, evening: null };
   (batches || []).forEach((batch) => {
     const name = (batch.name || '').toLowerCase();
@@ -64,10 +69,29 @@ app.get('/api/gym/status', async (req, res) => {
 
   const defaultMorning = { name: 'Morning Batch', start_time: '05:30:00', end_time: '09:30:00' };
   const defaultEvening = { name: 'Evening Batch', start_time: '16:00:00', end_time: '20:00:00' };
+
+  const morningSlot = {
+    name: batchTimings.morning?.name || defaultMorning.name,
+    start_time: batchTimings.morning?.start_time || defaultMorning.start_time,
+    end_time: batchTimings.morning?.end_time || defaultMorning.end_time,
+  };
+
+  const eveningSlot = {
+    name: batchTimings.evening?.name || defaultEvening.name,
+    start_time: batchTimings.evening?.start_time || defaultEvening.start_time,
+    end_time: batchTimings.evening?.end_time || defaultEvening.end_time,
+  };
+
+  const mergedDaySchedule = {
+    ...day_schedule,
+    open_time: morningSlot.start_time,
+    close_time: eveningSlot.end_time,
+  };
+
   const isOpenByDay = !is_holiday && day_schedule.is_open;
   const isInWindow = (start, end) => Boolean(start && end && nowTime >= start && nowTime <= end);
-  const inMorningSlot = isInWindow((batchTimings.morning?.start_time || defaultMorning.start_time).slice(0, 8), (batchTimings.morning?.end_time || defaultMorning.end_time).slice(0, 8));
-  const inEveningSlot = isInWindow((batchTimings.evening?.start_time || defaultEvening.start_time).slice(0, 8), (batchTimings.evening?.end_time || defaultEvening.end_time).slice(0, 8));
+  const inMorningSlot = isInWindow(morningSlot.start_time.slice(0, 8), morningSlot.end_time.slice(0, 8));
+  const inEveningSlot = isInWindow(eveningSlot.start_time.slice(0, 8), eveningSlot.end_time.slice(0, 8));
   const is_open = isOpenByDay && (inMorningSlot || inEveningSlot);
 
   res.json({
@@ -77,18 +101,10 @@ app.get('/api/gym/status', async (req, res) => {
       is_open,
       is_holiday,
       is_open_today: isOpenByDay,
-      schedule: day_schedule,
+      schedule: mergedDaySchedule,
       batches: {
-        morning: {
-          name: batchTimings.morning?.name || defaultMorning.name,
-          start_time: batchTimings.morning?.start_time || defaultMorning.start_time,
-          end_time: batchTimings.morning?.end_time || defaultMorning.end_time,
-        },
-        evening: {
-          name: batchTimings.evening?.name || defaultEvening.name,
-          start_time: batchTimings.evening?.start_time || defaultEvening.start_time,
-          end_time: batchTimings.evening?.end_time || defaultEvening.end_time,
-        },
+        morning: morningSlot,
+        evening: eveningSlot,
       },
       holiday_reason: holiday?.reason || null,
       timezone: IST_TZ,
@@ -99,13 +115,30 @@ app.get('/api/gym/status', async (req, res) => {
 });
 
 // Health check & Root
-app.get('/api/health', (req, res) => res.json({ success: true, message: 'Power House API running', timestamp: new Date().toISOString() }));
-app.get('/', (req, res) => res.json({ success: true, message: 'Power House Gym API is running! 🏋️', documentation: '/api/health' }));
+app.get('/api/health', (req, res) =>
+  res.json({
+    success: true,
+    message: 'Power House API running',
+    timestamp: new Date().toISOString(),
+  })
+);
+
+app.get('/', (req, res) =>
+  res.json({
+    success: true,
+    message: 'Power House Gym API is running! 🏋️',
+    documentation: '/api/health',
+  })
+);
 
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ success: false, message: 'Internal server error', error_code: 'INTERNAL_ERROR' });
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    error_code: 'INTERNAL_ERROR',
+  });
 });
 
 if (require.main === module) {
