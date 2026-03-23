@@ -15,11 +15,17 @@ export default function Reports() {
 
   const run = async (e) => {
     e?.preventDefault();
+    if (!from || !to) {
+      toast.error('Please select both dates');
+      return;
+    }
+    if (from > to) {
+      toast.error('From date cannot be after To date');
+      return;
+    }
     setLoading(true);
     try {
-      // Get attendance in range
-      const r = await api.get(`/admin/attendance/today`);
-      // For now fetch all and filter, real range query needs backend extension
+      const r = await api.get('/admin/reports/attendance', { params: { from, to } });
       setRows(r.data || []);
       toast.success(`Loaded ${r.data?.length || 0} records`);
     } catch(e) { toast.error(e.message||'Failed'); }

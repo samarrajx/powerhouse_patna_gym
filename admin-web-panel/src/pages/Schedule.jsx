@@ -9,6 +9,10 @@ const DAY_LABELS = { monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday', 
 
 export default function Schedule() {
   const [schedule, setSchedule] = useState([]);
+  const [batches, setBatches] = useState({
+    morning: { slot: 'morning', name: 'Morning Batch', start_time: '05:30:00', end_time: '09:30:00' },
+    evening: { slot: 'evening', name: 'Evening Batch', start_time: '16:00:00', end_time: '20:00:00' },
+  });
   const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showHolidayForm, setShowHolidayForm] = useState(false);
@@ -18,12 +22,20 @@ export default function Schedule() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, h] = await Promise.all([api.get('/schedule/weekly'), api.get('/schedule/holidays')]);
+      const [s, h, b] = await Promise.all([api.get('/schedule/weekly'), api.get('/schedule/holidays'), api.get('/schedule/batches')]);
       // Fill all 7 days even if some missing
       const map = {};
       (s.data||[]).forEach(d => { map[d.day_of_week] = d; });
       setSchedule(DAYS.map(day => map[day] || { day_of_week: day, is_open: true, open_time: '05:00', close_time: '22:00' }));
       setHolidays((h.data||[]).sort((a,b) => new Date(b.date) - new Date(a.date)));
+      const batchMap = {
+        morning: { slot: 'morning', name: 'Morning Batch', start_time: '05:30:00', end_time: '09:30:00' },
+        evening: { slot: 'evening', name: 'Evening Batch', start_time: '16:00:00', end_time: '20:00:00' },
+      };
+      (b.data || []).forEach((slotRow) => {
+        if (slotRow?.slot && batchMap[slotRow.slot]) batchMap[slotRow.slot] = slotRow;
+      });
+      setBatches(batchMap);
     } catch { toast.error('Failed to load schedule'); }
     finally { setLoading(false); }
   }, []);
@@ -40,6 +52,27 @@ export default function Schedule() {
       toast.success(`${DAY_LABELS[day]} updated`);
     } catch(e) { toast.error(e.message||'Save failed'); }
     finally { setSaving(''); }
+  };
+
+  const updateBatch = async (slot, field, value) => {
+    const next = { ...batches, [slot]: { ...batches[slot], [field]: value } };
+    setBatches(next);
+    setSaving(`batch-${slot}`);
+    try {
+      const row = next[slot];
+      const defaultStart = slot === 'morning' ? '05:30:00' : '16:00:00';
+      const defaultEnd = slot === 'morning' ? '09:30:00' : '20:00:00';
+      await api.put(`/schedule/batches/${slot}`, {
+        start_time: row.start_time?.slice(0, 8) || defaultStart,
+        end_time: row.end_time?.slice(0, 8) || defaultEnd,
+      });
+      toast.success(`${slot[0].toUpperCase()}${slot.slice(1)} batch updated`);
+    } catch (e) {
+      toast.error(e.message || 'Failed to update batch');
+      load();
+    } finally {
+      setSaving('');
+    }
   };
 
   const addHoliday = async (e) => {
@@ -68,7 +101,7 @@ export default function Schedule() {
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'18px' }}>
             <div>
               <h3 style={{ fontSize:'1rem', fontWeight:'600' }}>Weekly Operating Hours</h3>
-              <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>Changes save automatically</p>
+              <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>Set each day as open or closed</p>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={load}><RefreshCcw size={14}/></button>
           </div>
@@ -81,15 +114,8 @@ export default function Schedule() {
                     <input type="checkbox" checked={row.is_open} onChange={e => updateDay(row.day_of_week, 'is_open', e.target.checked)} />
                     <span className="toggle-slider" />
                   </label>
-                  <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                    <span style={{ fontSize:'0.72rem', color:'var(--text-3)' }}>Open</span>
-                    <input type="time" className="input-field" value={row.open_time?.slice(0,5)||'05:00'} style={{ width:'100px', padding:'5px 8px', opacity: row.is_open ? 1 : 0.3 }}
-                      onChange={e => updateDay(row.day_of_week, 'open_time', e.target.value)} disabled={!row.is_open} />
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                    <span style={{ fontSize:'0.72rem', color:'var(--text-3)' }}>Close</span>
-                    <input type="time" className="input-field" value={row.close_time?.slice(0,5)||'22:00'} style={{ width:'100px', padding:'5px 8px', opacity: row.is_open ? 1 : 0.3 }}
-                      onChange={e => updateDay(row.day_of_week, 'close_time', e.target.value)} disabled={!row.is_open} />
+                  <div style={{ fontSize:'0.78rem', color:'var(--text-2)' }}>
+                    {row.is_open ? 'Open day' : 'Closed day'}
                   </div>
                   <span className={`badge ${row.is_open ? 'badge-green' : 'badge-red'}`}>
                     <span className="badge-dot"/>{row.is_open ? 'Open' : 'Closed'}
@@ -100,8 +126,46 @@ export default function Schedule() {
           )}
         </div>
 
+        {/* Batch timings */}
+        <div className="card fade-up-2" style={{ marginBottom:'20px' }}>
+          <div style={{ marginBottom:'18px' }}>
+            <h3 style={{ fontSize:'1rem', fontWeight:'600' }}>Batch Timings</h3>
+            <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>Morning/evening session times used in app and dashboard status</p>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:'12px' }}>
+            {['morning', 'evening'].map((slot) => {
+              const row = batches[slot];
+              return (
+                <div key={slot} className="schedule-row" style={{ opacity: saving === `batch-${slot}` ? 0.6 : 1 }}>
+                  <span className="day-label">{row?.name || `${slot} batch`}</span>
+                  <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                    <span style={{ fontSize:'0.72rem', color:'var(--text-3)' }}>Start</span>
+                    <input
+                      type="time"
+                      className="input-field"
+                      value={(row?.start_time || '05:30:00').slice(0,5)}
+                      style={{ width:'105px', padding:'5px 8px' }}
+                      onChange={e => updateBatch(slot, 'start_time', e.target.value)}
+                    />
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                    <span style={{ fontSize:'0.72rem', color:'var(--text-3)' }}>End</span>
+                    <input
+                      type="time"
+                      className="input-field"
+                      value={(row?.end_time || '09:30:00').slice(0,5)}
+                      style={{ width:'105px', padding:'5px 8px' }}
+                      onChange={e => updateBatch(slot, 'end_time', e.target.value)}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Holidays */}
-        <div className="card table-card fade-up-2">
+        <div className="card table-card fade-up-3">
           <div className="table-header">
             <div>
               <h3>Holiday Calendar</h3>

@@ -238,6 +238,28 @@ router.get('/attendance/today', authMiddleware(['admin']), async (req, res) => {
   res.json({ success: true, message: "Today's attendance", data: data || [], error_code: null });
 });
 
+// ─── Attendance report by date range (admin) ────────────────────────────────
+router.get('/reports/attendance', authMiddleware(['admin']), async (req, res) => {
+  const { from, to } = req.query;
+  if (!from || !to) {
+    return res.status(400).json({ success: false, message: 'from and to query params are required', error_code: 'MISSING_FIELDS' });
+  }
+  if (from > to) {
+    return res.status(400).json({ success: false, message: 'from must be <= to', error_code: 'INVALID_RANGE' });
+  }
+
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('id,user_id,date,time_in,time_out,users(name,phone,roll_no)')
+    .gte('date', from)
+    .lte('date', to)
+    .order('date', { ascending: false })
+    .order('time_in', { ascending: false });
+
+  if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
+  res.json({ success: true, message: 'Attendance report', data: data || [], error_code: null });
+});
+
 // ─── Manual attendance (admin) ───────────────────────────────────────────────
 router.post('/attendance/manual', authMiddleware(['admin']), async (req, res) => {
   const { user_id, date, time_in, time_out } = req.body;

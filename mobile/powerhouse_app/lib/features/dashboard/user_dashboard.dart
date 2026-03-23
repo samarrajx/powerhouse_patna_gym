@@ -162,6 +162,9 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   }
 
   Widget _buildStatusCard(bool isOpen, Map<String, dynamic>? schedule) {
+    final batches = gymStatus?['batches'] as Map<String, dynamic>?;
+    final morning = batches?['morning'] as Map<String, dynamic>?;
+    final evening = batches?['evening'] as Map<String, dynamic>?;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -197,9 +200,19 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                 ),
                 const SizedBox(height: 2),
                 if (schedule != null)
-                  Text(
-                    'Today: ${schedule['open_time']} - ${schedule['close_time']}',
-                    style: TextStyle(color: AppColors.text3(context), fontSize: 13, fontWeight: FontWeight.w600),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Day Window: ${schedule['open_time']} - ${schedule['close_time']}',
+                        style: TextStyle(color: AppColors.text3(context), fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Morning ${morning?['start_time'] ?? '--:--'}-${morning?['end_time'] ?? '--:--'} · Evening ${evening?['start_time'] ?? '--:--'}-${evening?['end_time'] ?? '--:--'}',
+                        style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   )
                 else
                    Text('Consult staff for timings', style: TextStyle(color: AppColors.text3(context), fontSize: 13)),
