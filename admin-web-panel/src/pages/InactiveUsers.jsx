@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { RefreshCcw, UserCheck } from 'lucide-react';
-import { Topbar } from './Dashboard';
+import { Topbar } from '../components/Topbar';
 
 export default function InactiveUsers() {
   const [users, setUsers] = useState([]);

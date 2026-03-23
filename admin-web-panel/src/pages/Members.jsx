@@ -5,7 +5,7 @@ import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key, Shield, 
 import AttendanceModal from '../components/AttendanceModal';
 
 
-import { Topbar } from './Dashboard';
+import { Topbar } from '../components/Topbar';
 
 function MemberModal({ user, batches, onClose, onSave }) {
   const [f, setF] = useState(user ? {

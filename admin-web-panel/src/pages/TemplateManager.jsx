@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { MessageSquare, Megaphone, Save, Trash2, Plus, X } from 'lucide-react';
-import { Topbar } from './Dashboard';
+import { Topbar } from '../components/Topbar';
 
 export default function TemplateManager() {
   const [templates, setTemplates] = useState([]);

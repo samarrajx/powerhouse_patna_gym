@@ -7,39 +7,8 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { Users, TrendingUp, UserX, Timer, RefreshCcw, Menu } from 'lucide-react';
-import { useSidebar } from '../App';
-
-function Topbar({ title, sub }) {
-  const { theme, toggle } = useTheme();
-  const { isOpen, toggle: toggleSidebar } = useSidebar();
-  return (
-    <div className="topbar">
-      <div className="topbar-left" style={{ display:'flex', alignItems:'center', gap:'12px' }}>
-        <button className="mobile-menu-btn" onClick={toggleSidebar}>
-          <Menu size={20} />
-        </button>
-        <div>
-          <h1>{title}</h1>
-          {sub && <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>{sub}</p>}
-        </div>
-      </div>
-      <div className="topbar-right">
-        <div className="status-pill">
-          <span className="pulse-dot" />
-          System Live
-        </div>
-        <button
-          className="theme-toggle"
-          onClick={toggle}
-          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? '☀️' : '🌙'}
-        </button>
-      </div>
-    </div>
-  );
-}
+import { useSidebar } from '../SidebarContext';
+import { Topbar } from '../components/Topbar';
 
 // Removed MOCK_CHART as we now use real backend data
 
@@ -172,5 +141,4 @@ export default function Dashboard() {
   );
 }
 
-// Export Topbar for reuse
-export { Topbar };
+// Dashboard component is default exported

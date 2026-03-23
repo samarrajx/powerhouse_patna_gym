@@ -3,7 +3,7 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../AuthContext';
 import { ShieldCheck, Bell, Database, Zap } from 'lucide-react';
-import { Topbar } from './Dashboard';
+import { Topbar } from '../components/Topbar';
 
 export default function Settings() {
   const { user } = useAuth();

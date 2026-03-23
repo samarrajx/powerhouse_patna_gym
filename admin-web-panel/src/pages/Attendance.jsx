@@ -3,7 +3,7 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { RefreshCcw, Clock, Plus } from 'lucide-react';
 import AttendanceModal from '../components/AttendanceModal';
-import { Topbar } from './Dashboard';
+import { Topbar } from '../components/Topbar';
 
 export default function Attendance() {
   const [records, setRecords] = useState([]);

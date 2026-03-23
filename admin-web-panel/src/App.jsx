@@ -15,13 +15,8 @@ import Reports from './pages/Reports';
 import TemplateManager from './pages/TemplateManager';
 import Notifications from './pages/Notifications';
 import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare, Menu, Bell } from 'lucide-react';
+import { SidebarProvider, useSidebar } from './SidebarContext';
 import Logo from './components/Logo';
-
-const SidebarContext = createContext();
-export const useSidebar = () => useContext(SidebarContext);
-
-
-
 
 function ThemeToggle() {
   const { theme, toggle } = useTheme();
@@ -112,8 +107,7 @@ function ProtectedLayout() {
   );
   if (!user) return <Navigate to="/login" replace/>;
   return (
-    <SidebarContext.Provider value={{ isOpen, toggle }}>
-      <div className="admin-shell">
+    <div className="admin-shell">
         <Sidebar/>
         <main className="main-area">
         <Routes>
@@ -132,7 +126,6 @@ function ProtectedLayout() {
         </Routes>
         </main>
       </div>
-    </SidebarContext.Provider>
   );
 }
 
@@ -155,15 +148,17 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter basename="/">
-          <AppRoutes/>
+        <SidebarProvider>
+          <BrowserRouter basename="/">
+            <AppRoutes/>
 
-          <Toaster position="top-right" toastOptions={{
-            style: { background:'var(--bg2, #0D0D1A)', color:'var(--text-1, #fff)', border:'1px solid var(--glass-border-2)', borderRadius:'12px', fontSize:'0.875rem' },
-            success: { iconTheme: { primary:'var(--primary)', secondary:'#000' }},
-            error:   { iconTheme: { primary:'#FF6B6B', secondary:'#fff' }},
-          }}/>
-        </BrowserRouter>
+            <Toaster position="top-right" toastOptions={{
+              style: { background:'var(--bg2, #0D0D1A)', color:'var(--text-1, #fff)', border:'1px solid var(--glass-border-2)', borderRadius:'12px', fontSize:'0.875rem' },
+              success: { iconTheme: { primary:'var(--primary)', secondary:'#000' }},
+              error:   { iconTheme: { primary:'#FF6B6B', secondary:'#fff' }},
+            }}/>
+          </BrowserRouter>
+        </SidebarProvider>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { RefreshCcw, Plus, Trash2, Calendar } from 'lucide-react';
-import { Topbar } from './Dashboard';
+import { Topbar } from '../components/Topbar';
 
 const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 const DAY_LABELS = { monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday', thursday:'Thursday', friday:'Friday', saturday:'Saturday', sunday:'Sunday' };

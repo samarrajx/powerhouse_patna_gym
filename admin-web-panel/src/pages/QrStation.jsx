@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { Zap, ShieldCheck } from 'lucide-react';
-import { Topbar } from './Dashboard';
+import { Topbar } from '../components/Topbar';
 
 export default function QrStation() {
   const [qr, setQr] = useState(null);

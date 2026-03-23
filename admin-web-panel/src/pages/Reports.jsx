@@ -2,7 +2,7 @@ import { useState } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { Download, FileBarChart } from 'lucide-react';
-import { Topbar } from './Dashboard';
+import { Topbar } from '../components/Topbar';
 
 export default function Reports() {
   const [from, setFrom] = useState(() => {
