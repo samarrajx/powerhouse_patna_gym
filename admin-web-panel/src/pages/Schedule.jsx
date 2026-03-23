@@ -130,7 +130,7 @@ export default function Schedule() {
         <div className="card fade-up-2" style={{ marginBottom:'20px' }}>
           <div style={{ marginBottom:'18px' }}>
             <h3 style={{ fontSize:'1rem', fontWeight:'600' }}>Batch Timings</h3>
-            <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>Morning/evening session times used in app and dashboard status</p>
+            <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>Used in app and dashboard gym status</p>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:'12px' }}>
             {['morning', 'evening'].map((slot) => {
