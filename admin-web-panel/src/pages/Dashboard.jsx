@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [gymOpen, setGymOpen] = useState(true);
+  const [gymStatus, setGymStatus] = useState(null);
 
   const fetch = async () => {
     setLoading(true);
@@ -28,6 +29,7 @@ export default function Dashboard() {
       ]);
       setStats(s.data);
       setGymOpen(g.data?.is_open ?? true);
+      setGymStatus(g.data || null);
     } catch (e) {
       toast.error('Failed to load stats');
     } finally {
@@ -67,7 +69,12 @@ export default function Dashboard() {
           <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
             <div style={{ width:'10px', height:'10px', borderRadius:'50%', background: gymOpen ? 'var(--primary)' : 'var(--coral)', boxShadow:`0 0 8px ${gymOpen ? 'var(--primary-glow)' : 'rgba(255,107,107,0.5)'}` }} />
             <span style={{ fontWeight:'600', color: gymOpen ? 'var(--primary)' : 'var(--coral)' }}>
-              {gymOpen ? '🏋️  Facility is OPEN for today' : '🔒  Facility is CLOSED today'}
+              {gymOpen ? '🏋️  Gym is OPEN right now' : '🔒  Gym is CLOSED right now'}
+            </span>
+            <span style={{ fontSize:'0.78rem', color:'var(--text-2)' }}>
+              {gymStatus?.is_open_today ? 'Today open day' : 'Today closed day'} ·
+              {' '}Morning {gymStatus?.batches?.morning?.start_time?.slice(0,5) || '--:--'}-{gymStatus?.batches?.morning?.end_time?.slice(0,5) || '--:--'} ·
+              {' '}Evening {gymStatus?.batches?.evening?.start_time?.slice(0,5) || '--:--'}-{gymStatus?.batches?.evening?.end_time?.slice(0,5) || '--:--'}
             </span>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={fetch}>
