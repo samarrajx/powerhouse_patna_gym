@@ -7,6 +7,7 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const hasMissingColumn = (err, column) => (err?.message || '').toLowerCase().includes(column.toLowerCase());
 
 // ─── Dashboard stats ────────────────────────────────────────────────────────
 router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
@@ -84,11 +85,23 @@ router.get('/users', authMiddleware(['admin']), async (req, res) => {
     .order('created_at', { ascending: false });
 
   if (!all) q = q.range(from, to);
-
   if (status) q = q.eq('status', status);
   if (search) q = q.or(`name.ilike.%${search}%,phone.ilike.%${search}%,roll_no.ilike.%${search}%`);
 
-  const { data, error, count } = await q;
+  let { data, error, count } = await q;
+  if (error && (hasMissingColumn(error, 'fees_amount') || hasMissingColumn(error, 'is_frozen') || hasMissingColumn(error, 'freeze_start_date'))) {
+    let fallbackQ = supabase
+      .from('users')
+      .select('id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,must_change_password,created_at', { count: 'exact' })
+      .order('created_at', { ascending: false });
+
+    if (!all) fallbackQ = fallbackQ.range(from, to);
+    if (status) fallbackQ = fallbackQ.eq('status', status);
+    if (search) fallbackQ = fallbackQ.or(`name.ilike.%${search}%,phone.ilike.%${search}%,roll_no.ilike.%${search}%`);
+
+    ({ data, error, count } = await fallbackQ);
+    data = (data || []).map((u) => ({ ...u, is_frozen: false, freeze_start_date: null, fees_amount: 0 }));
+  }
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
   res.json({ success: true, message: 'Users fetched', data: data || [], total_count: count || 0, page, limit, error_code: null });
 });
