@@ -3,6 +3,8 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key, Shield, MessageCircle, CalendarCheck, Pause, Play } from 'lucide-react';
 import AttendanceModal from '../components/AttendanceModal';
+import ConfirmModal from '../components/ConfirmModal';
+import { useAuth } from '../AuthContext';
 
 
 import { Topbar } from '../components/Topbar';
@@ -15,12 +17,12 @@ function MemberModal({ user, batches, onClose, onSave }) {
     body_type: user.body_type||'normal', membership_plan: user.membership_plan||'Standard',
     batch_id: user.batch_id||(batches?.[0]?.id || ''),
     membership_expiry: user.membership_expiry ? String(user.membership_expiry).split('T')[0] : '',
-    fees_status: user.fees_status||'paid', notes: user.notes||''
+    fees_status: user.fees_status||'paid', fees_amount: user.fees_amount ?? '', notes: user.notes||''
   } : { 
     name:'', phone:'', phone_alt:'', roll_no:'', address:'', father_name:'',
     date_of_joining: new Date().toISOString().split('T')[0], body_type:'normal',
     batch_id: batches?.[0]?.id || '',
-    membership_plan:'Standard', membership_expiry:'', fees_status:'paid', notes:'' 
+    membership_plan:'Standard', membership_expiry:'', fees_status:'paid', fees_amount:'', notes:'' 
   });
   
   const [saving, setSaving] = useState(false);
@@ -74,7 +76,7 @@ function MemberModal({ user, batches, onClose, onSave }) {
               <label className="input-label">Batch</label>
               <select className="input-field" value={f.batch_id} onChange={e=>set('batch_id',e.target.value)}>
                 {batches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
-                {batches.length === 0 && <option value="">No Batches</option>}
+                {batches.length === 0 && <option value="" disabled>No batches — add in Schedule page</option>}
               </select>
             </div>
             <div className="input-wrap">
@@ -89,6 +91,7 @@ function MemberModal({ user, batches, onClose, onSave }) {
             <div className="input-wrap"><label className="input-label">Expiry</label><input type="date" className="input-field" value={f.membership_expiry} onChange={e=>set('membership_expiry',e.target.value)}/></div>
             <div className="input-wrap"><label className="input-label">Fees</label><select className="input-field" value={f.fees_status} onChange={e=>set('fees_status',e.target.value)}><option value="paid">Paid</option><option value="pending">Pending</option><option value="overdue">Overdue</option></select></div>
           </div>
+          <div className="input-wrap"><label className="input-label">Fees Amount (₹)</label><input type="number" min="0" className="input-field" value={f.fees_amount} onChange={e=>set('fees_amount', e.target.value)} placeholder="e.g. 1200"/></div>
           <div className="input-wrap"><label className="input-label">Notes</label><input className="input-field" placeholder="Optional notes" value={f.notes} onChange={e=>set('notes',e.target.value)}/></div>
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" style={{ flex:1, justifyContent:'center' }} onClick={onClose}>Cancel</button>
@@ -99,28 +102,8 @@ function MemberModal({ user, batches, onClose, onSave }) {
     </div>
   );
 }
-
-function ConfirmModal({ title, message, onConfirm, onClose, loading }) {
-  return (
-    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal-box glass-2" style={{ maxWidth:'400px' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
-          <h3 className="modal-title" style={{ fontSize:'1.1rem' }}>{title}</h3>
-          <button onClick={onClose} className="btn btn-ghost btn-sm" style={{ padding:'7px' }}><X size={15}/></button>
-        </div>
-        <p style={{ fontSize:'0.85rem', color:'var(--text-2)', marginBottom:'20px', lineHeight:'1.5' }}>{message}</p>
-        <div className="modal-footer" style={{ marginTop:'0' }}>
-          <button type="button" className="btn btn-ghost" style={{ flex:1, justifyContent:'center' }} onClick={onClose} disabled={loading}>Cancel</button>
-          <button type="button" className="btn btn-primary" style={{ flex:1, justifyContent:'center' }} onClick={onConfirm} disabled={loading}>
-            {loading ? <div className="spinner spinner-dark" style={{ width:'14px', height:'14px' }}/> : 'Confirm'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function Members() {
+  const { user: currentUser } = useAuth();
 
   const [users, setUsers] = useState([]);
   const [batches, setBatches] = useState([]);
@@ -134,6 +117,9 @@ export default function Members() {
   const [uploading, setUploading] = useState(false);
   const [acting, setActing] = useState(false);
   const [attendanceUser, setAttendanceUser] = useState(null);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(50);
+  const [totalCount, setTotalCount] = useState(0);
   const fileRef = useRef();
 
 
@@ -141,20 +127,19 @@ export default function Members() {
     setLoading(true);
     try { 
       const [uRes, tRes, bRes] = await Promise.all([
-        api.get('/admin/users').catch(e => ({ data: [] })),
+        api.get('/admin/users', { params: { page, limit, search, status: ['active', 'inactive', 'grace'].includes(filter) ? filter : undefined } }).catch(e => ({ data: [], total_count: 0 })),
         api.get('/admin/templates').catch(e => ({ data: [] })),
         api.get('/admin/batches').catch(e => ({ data: null }))
       ]);
-      setUsers(uRes.data || []); 
+      setUsers(uRes.data || []);
+      setTotalCount(uRes.total_count || 0);
       setTemplates(tRes.data || []);
       
       if (bRes.data && bRes.data.length > 0) {
         setBatches(bRes.data);
       } else {
-        setBatches([
-          { id: '0515f242-095a-4cae-8e5e-78d5780bbf99', name: 'Morning Batch' },
-          { id: '74115ffe-6b7b-4071-96cc-f6a5cb4937f9', name: 'Evening Batch' }
-        ]);
+        setBatches([]);
+        toast('No batches found. Please create batches in the Schedule page first.', { icon: '⚠️' });
       }
     }
     catch (e) { 
@@ -162,9 +147,13 @@ export default function Members() {
       console.error(e);
     }
     finally { setLoading(false); }
-  }, []);
+  }, [page, limit, search, filter]);
 
   useEffect(() => { 
+    setPage(1);
+  }, [search, filter]);
+
+  useEffect(() => {
     load(); 
   }, [load]);
   const downloadSample = () => {
@@ -356,7 +345,9 @@ export default function Members() {
                           <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>setModalUser(u)} title="Edit Member"><Edit2 size={13}/></button>
                           <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:'var(--blue)' }} onClick={() => setAttendanceUser(u)} title="Mark Attendance"><CalendarCheck size={13}/></button>
                           <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={()=>handleResetPassword(u.id)} title="Reset Password"><Key size={13}/></button>
-                          <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:u.role==='admin'?'var(--purple)':'inherit' }} onClick={()=>handleRoleChange(u)} title="Assign Role"><Shield size={13}/></button>
+                          {u.id !== currentUser?.id && (
+                            <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:u.role==='admin'?'var(--purple)':'inherit' }} onClick={()=>handleRoleChange(u)} title="Assign Role"><Shield size={13}/></button>
+                          )}
                           <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:u.is_frozen?'var(--success)':'var(--primary)' }} onClick={()=>handleFreezeToggle(u)} title={u.is_frozen?'Unfreeze Membership':'Freeze Membership'}>{u.is_frozen?<Play size={13}/>:<Pause size={13}/>}</button>
                           <button className="btn btn-ghost btn-sm" style={{ padding:'6px', color:'#25D366' }} onClick={()=>handleWhatsApp(u)} title="Send WhatsApp"><MessageCircle size={13}/></button>
                         </div>
@@ -367,6 +358,13 @@ export default function Members() {
               </table>
             </div>
           )}
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', borderTop:'1px solid var(--glass-border)' }}>
+            <span style={{ fontSize:'0.8rem', color:'var(--text-3)' }}>Showing page {page} of {Math.max(1, Math.ceil(totalCount / limit))} ({totalCount} total)</span>
+            <div style={{ display:'flex', gap:'8px' }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>Previous</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setPage((p) => (p * limit < totalCount ? p + 1 : p))} disabled={page * limit >= totalCount}>Next</button>
+            </div>
+          </div>
         </div>
       </div>
     </>

@@ -20,7 +20,7 @@ export default function Dashboard() {
   const [gymOpen, setGymOpen] = useState(true);
   const [gymStatus, setGymStatus] = useState(null);
 
-  const fetch = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
       const [s, g] = await Promise.all([
@@ -37,7 +37,7 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => { loadData(); }, []);
 
   const StatCard = ({ label, value, icon: Icon, sub, accent, delay }) => (
     <div className={`card stat-card fade-up-${delay}`}>
@@ -77,7 +77,7 @@ export default function Dashboard() {
               {' '}Evening {gymStatus?.batches?.evening?.start_time?.slice(0,5) || '--:--'}-{gymStatus?.batches?.evening?.end_time?.slice(0,5) || '--:--'}
             </span>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={fetch}>
+          <button className="btn btn-ghost btn-sm" onClick={loadData}>
             <RefreshCcw size={14} />
             Refresh
           </button>

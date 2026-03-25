@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { MessageSquare, Megaphone, Save, Trash2, Plus, X } from 'lucide-react';
+import { MessageSquare, Megaphone, Save, Trash2, Plus, X, Edit2 } from 'lucide-react';
 import { Topbar } from '../components/Topbar';
 
 export default function TemplateManager() {
@@ -10,6 +10,7 @@ export default function TemplateManager() {
   const [loading, setLoading] = useState(true);
   const [showAnnounceModal, setShowAnnounceModal] = useState(false);
   const [editingAnnounce, setEditingAnnounce] = useState(null);
+  const [messages, setMessages] = useState({});
 
   const load = async () => {
     try {
@@ -19,6 +20,9 @@ export default function TemplateManager() {
         api.get('/admin/announcements')
       ]);
       setTemplates(tRes.data);
+      const initialMessages = {};
+      (tRes.data || []).forEach((t) => { initialMessages[t.id] = t.message || ''; });
+      setMessages(initialMessages);
       setAnnouncements(aRes.data);
     } catch (e) {
       toast.error('Failed to load data');
@@ -76,7 +80,7 @@ export default function TemplateManager() {
   };
 
   return (
-    <div className="main-area">
+    <>
       <Topbar title="Templates & Announcements" sub="Manage message templates and gym announcements" />
       <div className="page-body">
         
@@ -102,13 +106,13 @@ export default function TemplateManager() {
                 <textarea 
                   className="input-field" 
                   rows={4} 
-                  defaultValue={t.message}
-                  id={`templ-${t.id}`}
+                  value={messages[t.id] ?? t.message}
+                  onChange={(e) => setMessages((m) => ({ ...m, [t.id]: e.target.value }))}
                   style={{ marginBottom: '12px', resize: 'none', fontSize: '0.82rem' }}
                 />
                 <button 
                   className="btn btn-primary btn-sm"
-                  onClick={() => handleUpdateTemplate(t.id, document.getElementById(`templ-${t.id}`).value)}
+                  onClick={() => handleUpdateTemplate(t.id, messages[t.id] ?? t.message)}
                   style={{ width: '100%', justifyContent: 'center' }}
                 >
                   <Save size={14}/> Save Template
@@ -153,7 +157,7 @@ export default function TemplateManager() {
                       <td style={{ fontSize: '0.8rem', color: 'var(--text-3)' }}>{new Date(a.created_at).toLocaleDateString()}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '5px' }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => { setEditingAnnounce(a); setShowAnnounceModal(true); }}><Plus size={12}/></button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => { setEditingAnnounce(a); setShowAnnounceModal(true); }}><Edit2 size={12}/></button>
                           <button className="btn btn-danger btn-sm" onClick={() => handleDeleteAnnounce(a.id)}><Trash2 size={12}/></button>
                         </div>
                       </td>
@@ -195,6 +199,6 @@ export default function TemplateManager() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
