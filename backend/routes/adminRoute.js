@@ -7,12 +7,6 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
-const isMissingFeesAmountColumn = (err) => (err?.message || '').toLowerCase().includes('fees_amount');
-const getUsersSelectColumns = (includeFeesAmount = true) => (
-  includeFeesAmount
-    ? 'id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,fees_amount,status,role,is_frozen,freeze_start_date,must_change_password,created_at'
-    : 'id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,is_frozen,freeze_start_date,must_change_password,created_at'
-);
 
 // ─── Dashboard stats ────────────────────────────────────────────────────────
 router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
@@ -84,23 +78,17 @@ router.get('/users', authMiddleware(['admin']), async (req, res) => {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
-  const runQuery = (includeFeesAmount = true) => {
-    let q = supabase
-      .from('users')
-      .select(getUsersSelectColumns(includeFeesAmount), { count: 'exact' })
-      .order('created_at', { ascending: false });
+  let q = supabase
+    .from('users')
+    .select('id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,fees_amount,status,role,is_frozen,freeze_start_date,must_change_password,created_at', { count: 'exact' })
+    .order('created_at', { ascending: false });
 
-    if (!all) q = q.range(from, to);
+  if (!all) q = q.range(from, to);
 
-    if (status) q = q.eq('status', status);
-    if (search) q = q.or(`name.ilike.%${search}%,phone.ilike.%${search}%,roll_no.ilike.%${search}%`);
-    return q;
-  };
+  if (status) q = q.eq('status', status);
+  if (search) q = q.or(`name.ilike.%${search}%,phone.ilike.%${search}%,roll_no.ilike.%${search}%`);
 
-  let { data, error, count } = await runQuery(true);
-  if (error && isMissingFeesAmountColumn(error)) {
-    ({ data, error, count } = await runQuery(false));
-  }
+  const { data, error, count } = await q;
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
   res.json({ success: true, message: 'Users fetched', data: data || [], total_count: count || 0, page, limit, error_code: null });
 });
@@ -116,17 +104,11 @@ router.post('/users/onboard', authMiddleware(['admin']), async (req, res) => {
   if (!name || !phone) return res.status(400).json({ success: false, message: 'Name and phone required', error_code: 'MISSING_FIELDS' });
 
   const password_hash = await bcrypt.hash(password, 10);
-  const payload = {
+  const { data, error } = await supabase.from('users').insert([{
     name, phone, phone_alt, password_hash, roll_no, address, father_name,
     date_of_joining, body_type, batch_id, membership_plan, membership_expiry,
     fees_status: fees_status || 'paid', fees_amount: fees_amount ? Number(fees_amount) : 0, notes, must_change_password: true,
-  };
-
-  let { data, error } = await supabase.from('users').insert([payload]).select().single();
-  if (error && isMissingFeesAmountColumn(error)) {
-    delete payload.fees_amount;
-    ({ data, error } = await supabase.from('users').insert([payload]).select().single());
-  }
+  }]).select().single();
 
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'CREATE_ERROR' });
 
@@ -153,11 +135,7 @@ router.put('/users/:id', authMiddleware(['admin']), async (req, res) => {
   };
   if (role) updateFields.role = role;
 
-  let { data, error } = await supabase.from('users').update(updateFields).eq('id', id).select().single();
-  if (error && isMissingFeesAmountColumn(error)) {
-    delete updateFields.fees_amount;
-    ({ data, error } = await supabase.from('users').update(updateFields).eq('id', id).select().single());
-  }
+  const { data, error } = await supabase.from('users').update(updateFields).eq('id', id).select().single();
 
 
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
@@ -211,11 +189,7 @@ router.post('/users/bulk', authMiddleware(['admin']), upload.single('file'), asy
   }));
 
   if (allRows.length) {
-    let { error } = await supabase.from('users').insert(allRows);
-    if (error && isMissingFeesAmountColumn(error)) {
-      const withoutFeesAmount = allRows.map(({ fees_amount, ...rest }) => rest);
-      ({ error } = await supabase.from('users').insert(withoutFeesAmount));
-    }
+    const { error } = await supabase.from('users').insert(allRows);
     if (error) {
       const duplicate = error.message?.toLowerCase().includes('duplicate') || error.code === '23505';
       if (duplicate) {
@@ -322,16 +296,10 @@ router.get('/reports/attendance', authMiddleware(['admin']), async (req, res) =>
 
 // ─── Revenue summary (admin) ────────────────────────────────────────────────
 router.get('/reports/revenue', authMiddleware(['admin']), async (req, res) => {
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from('users')
     .select('fees_status,fees_amount,role')
     .neq('role', 'admin');
-  if (error && isMissingFeesAmountColumn(error)) {
-    ({ data, error } = await supabase
-      .from('users')
-      .select('fees_status,role')
-      .neq('role', 'admin'));
-  }
 
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
 
