@@ -8,6 +8,11 @@ const authMiddleware = require('../middleware/auth');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 const isMissingFeesAmountColumn = (err) => (err?.message || '').toLowerCase().includes('fees_amount');
+const getUsersSelectColumns = (includeFeesAmount = true) => (
+  includeFeesAmount
+    ? 'id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,fees_amount,status,role,is_frozen,freeze_start_date,must_change_password,created_at'
+    : 'id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,is_frozen,freeze_start_date,must_change_password,created_at'
+);
 
 // ─── Dashboard stats ────────────────────────────────────────────────────────
 router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
@@ -80,13 +85,9 @@ router.get('/users', authMiddleware(['admin']), async (req, res) => {
   const to = from + limit - 1;
 
   const runQuery = (includeFeesAmount = true) => {
-    const selectCols = includeFeesAmount
-      ? 'id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,fees_amount,status,role,is_frozen,freeze_start_date,must_change_password,created_at'
-      : 'id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,is_frozen,freeze_start_date,must_change_password,created_at';
-
     let q = supabase
       .from('users')
-      .select(selectCols, { count: 'exact' })
+      .select(getUsersSelectColumns(includeFeesAmount), { count: 'exact' })
       .order('created_at', { ascending: false });
 
     if (!all) q = q.range(from, to);
