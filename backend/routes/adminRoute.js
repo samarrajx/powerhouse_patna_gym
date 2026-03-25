@@ -79,25 +79,27 @@ router.get('/users', authMiddleware(['admin']), async (req, res) => {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
-  // Merge-resolution note: keep fallback query path so Members loads even on partially-migrated schemas.
-  const runUsersQuery = async (selectCols) => {
-    let q = supabase
+  let q = supabase
+    .from('users')
+    .select('id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,fees_amount,status,role,is_frozen,freeze_start_date,must_change_password,created_at', { count: 'exact' })
+    .order('created_at', { ascending: false });
+
+  if (!all) q = q.range(from, to);
+  if (status) q = q.eq('status', status);
+  if (search) q = q.or(`name.ilike.%${search}%,phone.ilike.%${search}%,roll_no.ilike.%${search}%`);
+
+  let { data, error, count } = await q;
+  if (error && (hasMissingColumn(error, 'fees_amount') || hasMissingColumn(error, 'is_frozen') || hasMissingColumn(error, 'freeze_start_date'))) {
+    let fallbackQ = supabase
       .from('users')
-      .select(selectCols, { count: 'exact' })
+      .select('id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,must_change_password,created_at', { count: 'exact' })
       .order('created_at', { ascending: false });
 
-    if (!all) q = q.range(from, to);
-    if (status) q = q.eq('status', status);
-    if (search) q = q.or(`name.ilike.%${search}%,phone.ilike.%${search}%,roll_no.ilike.%${search}%`);
-    return q;
-  };
+    if (!all) fallbackQ = fallbackQ.range(from, to);
+    if (status) fallbackQ = fallbackQ.eq('status', status);
+    if (search) fallbackQ = fallbackQ.or(`name.ilike.%${search}%,phone.ilike.%${search}%,roll_no.ilike.%${search}%`);
 
-  const fullCols = 'id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,fees_amount,status,role,is_frozen,freeze_start_date,must_change_password,created_at';
-  const fallbackCols = 'id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,must_change_password,created_at';
-
-  let { data, error, count } = await runUsersQuery(fullCols);
-  if (error && (hasMissingColumn(error, 'fees_amount') || hasMissingColumn(error, 'is_frozen') || hasMissingColumn(error, 'freeze_start_date'))) {
-    ({ data, error, count } = await runUsersQuery(fallbackCols));
+    ({ data, error, count } = await fallbackQ);
     data = (data || []).map((u) => ({ ...u, is_frozen: false, freeze_start_date: null, fees_amount: 0 }));
   }
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
