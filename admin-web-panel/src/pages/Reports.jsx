@@ -15,6 +15,14 @@ export default function Reports() {
   const [revenue, setRevenue] = useState({ collected: 0, outstanding: 0 });
   const [loading, setLoading] = useState(false);
 
+  const getDurationLabel = (timeIn, timeOut) => {
+    const inT = timeIn ? new Date(timeIn) : null;
+    const outT = timeOut ? new Date(timeOut) : null;
+    const dur = inT && outT ? Math.round((outT - inT) / 60000) : null;
+    if (!dur && dur !== 0) return '—';
+    return dur >= 60 ? `${Math.floor(dur / 60)}h ${dur % 60}m` : `${dur}m`;
+  };
+
   const run = async (e) => {
     e?.preventDefault();
     if (!from || !to) {
@@ -38,18 +46,19 @@ export default function Reports() {
     finally { setLoading(false); }
   };
 
-  const exportCSV = () => {
+  const downloadAttendanceCSV = () => {
     if (!rows.length) { toast.error('No data to export'); return; }
-    const headers = ['Name','Phone','Date','Check In','Check Out'];
+    const headers = ['Name','Phone','Roll No','Date','Check In (IST)','Check Out (IST)','Duration'];
     const cols = rows.map(r => [
-      r.users?.name||'', r.users?.phone||'', r.date||'',
+      r.users?.name||'', r.users?.phone||'', r.users?.roll_no || '', r.date||'',
       fmtIST(r.time_in),
       fmtIST(r.time_out),
+      getDurationLabel(r.time_in, r.time_out),
     ]);
     const csv = [headers, ...cols].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' }));
-    a.download = `attendance_${from}_to_${to}.csv`;
+    a.download = `attendance_report_${from}_to_${to}.csv`;
     a.click();
   };
 
@@ -74,8 +83,8 @@ export default function Reports() {
               {loading ? 'Loading...' : 'Generate Report'}
             </button>
             {rows.length > 0 && (
-              <button type="button" className="btn btn-ghost" onClick={exportCSV} style={{ marginBottom:'1px' }}>
-                <Download size={14}/> Export CSV
+              <button type="button" className="btn btn-ghost" onClick={downloadAttendanceCSV} style={{ marginBottom:'1px' }}>
+                <Download size={14}/> Download Attendance Report
               </button>
             )}
           </form>
@@ -96,16 +105,14 @@ export default function Reports() {
           <div className="card table-card fade-up-2">
             <div className="table-header">
               <h3>Results — {rows.length} records</h3>
-              <button className="btn btn-primary btn-sm" onClick={exportCSV}><Download size={13}/> Download</button>
+              <button className="btn btn-primary btn-sm" onClick={downloadAttendanceCSV}><Download size={13}/> Download CSV</button>
             </div>
             <table>
               <thead><tr><th>Member</th><th>Phone</th><th>Date</th><th>Check In</th><th>Check Out</th><th>Duration</th></tr></thead>
               <tbody>
                 {rows.map((r,i) => {
-                  const inT = r.time_in ? new Date(r.time_in) : null;
                   const outT = r.time_out ? new Date(r.time_out) : null;
-                  const dur = inT && outT ? Math.round((outT-inT)/60000) : null;
-                  const durStr = dur ? (dur>=60 ? `${Math.floor(dur/60)}h ${dur%60}m` : `${dur}m`) : '—';
+                  const durStr = getDurationLabel(r.time_in, r.time_out);
                   return (
                     <tr key={r.id||i}>
                       <td>
