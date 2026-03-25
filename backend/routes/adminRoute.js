@@ -79,6 +79,7 @@ router.get('/users', authMiddleware(['admin']), async (req, res) => {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
+  // Merge-resolution note: keep fallback query path so Members loads even on partially-migrated schemas.
   const runUsersQuery = async (selectCols) => {
     let q = supabase
       .from('users')
