@@ -309,18 +309,10 @@ router.get('/reports/attendance', authMiddleware(['admin']), async (req, res) =>
 
 // ─── Revenue summary (admin) ────────────────────────────────────────────────
 router.get('/reports/revenue', authMiddleware(['admin']), async (req, res) => {
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from('users')
     .select('fees_status,fees_amount,role')
     .neq('role', 'admin');
-
-  if (error && hasMissingColumn(error, 'fees_amount')) {
-    ({ data, error } = await supabase
-      .from('users')
-      .select('fees_status,role')
-      .neq('role', 'admin'));
-    data = (data || []).map((u) => ({ ...u, fees_amount: 0 }));
-  }
 
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
 

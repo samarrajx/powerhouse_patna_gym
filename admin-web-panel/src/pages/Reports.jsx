@@ -35,8 +35,12 @@ export default function Reports() {
     }
     setLoading(true);
     try {
-      const r = await api.get('/admin/reports/attendance', { params: { from, to } });
+      const [r, revenueRes] = await Promise.all([
+        api.get('/admin/reports/attendance', { params: { from, to } }),
+        api.get('/admin/reports/revenue'),
+      ]);
       setRows(r.data || []);
+      setRevenue(revenueRes.data || { collected: 0, outstanding: 0 });
       toast.success(`Loaded ${r.data?.length || 0} records`);
       try {
         const revenueRes = await api.get('/admin/reports/revenue');
