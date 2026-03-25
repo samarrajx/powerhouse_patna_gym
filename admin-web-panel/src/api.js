@@ -21,7 +21,7 @@ api.interceptors.response.use(
       localStorage.removeItem('ph_user');
       window.location.href = '/login';
     }
-    return Promise.reject({ message: msg, data: err.response?.data });
+    return Promise.reject({ message: msg, data: err.response?.data, status: err.response?.status });
   }
 );
 

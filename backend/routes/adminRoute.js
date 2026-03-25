@@ -7,6 +7,7 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const isMissingFeesAmountColumn = (err) => (err?.message || '').toLowerCase().includes('fees_amount');
 
 // ─── Dashboard stats ────────────────────────────────────────────────────────
 router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
@@ -72,17 +73,35 @@ router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
 // ─── List all members ────────────────────────────────────────────────────────
 router.get('/users', authMiddleware(['admin']), async (req, res) => {
   const { status, search } = req.query;
-  let q = supabase.from('users').select('id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,must_change_password,created_at').order('created_at', { ascending: false });
+  const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit || '50', 10), 1), 200);
+  const all = req.query.all === 'true';
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
-  if (status) q = q.eq('status', status);
-  const { data, error } = await q;
-  if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
-  let result = data || [];
-  if (search) {
-    const s = search.toLowerCase();
-    result = result.filter(u => u.name?.toLowerCase().includes(s) || u.phone?.includes(s) || u.roll_no?.toLowerCase().includes(s));
+  const runQuery = (includeFeesAmount = true) => {
+    const selectCols = includeFeesAmount
+      ? 'id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,fees_amount,status,role,is_frozen,freeze_start_date,must_change_password,created_at'
+      : 'id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,is_frozen,freeze_start_date,must_change_password,created_at';
+
+    let q = supabase
+      .from('users')
+      .select(selectCols, { count: 'exact' })
+      .order('created_at', { ascending: false });
+
+    if (!all) q = q.range(from, to);
+
+    if (status) q = q.eq('status', status);
+    if (search) q = q.or(`name.ilike.%${search}%,phone.ilike.%${search}%,roll_no.ilike.%${search}%`);
+    return q;
+  };
+
+  let { data, error, count } = await runQuery(true);
+  if (error && isMissingFeesAmountColumn(error)) {
+    ({ data, error, count } = await runQuery(false));
   }
-  res.json({ success: true, message: 'Users fetched', data: result, error_code: null });
+  if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
+  res.json({ success: true, message: 'Users fetched', data: data || [], total_count: count || 0, page, limit, error_code: null });
 });
 
 // ─── Onboard single member ───────────────────────────────────────────────────
@@ -90,17 +109,23 @@ router.post('/users/onboard', authMiddleware(['admin']), async (req, res) => {
   const {
     name, phone, phone_alt, password = 'samgym',
     roll_no, address, father_name, date_of_joining, body_type,
-    batch_id, membership_plan, membership_expiry, fees_status, notes,
+    batch_id, membership_plan, membership_expiry, fees_status, fees_amount, notes,
   } = req.body;
 
   if (!name || !phone) return res.status(400).json({ success: false, message: 'Name and phone required', error_code: 'MISSING_FIELDS' });
 
   const password_hash = await bcrypt.hash(password, 10);
-  const { data, error } = await supabase.from('users').insert([{
+  const payload = {
     name, phone, phone_alt, password_hash, roll_no, address, father_name,
     date_of_joining, body_type, batch_id, membership_plan, membership_expiry,
-    fees_status: fees_status || 'paid', notes, must_change_password: true,
-  }]).select().single();
+    fees_status: fees_status || 'paid', fees_amount: fees_amount ? Number(fees_amount) : 0, notes, must_change_password: true,
+  };
+
+  let { data, error } = await supabase.from('users').insert([payload]).select().single();
+  if (error && isMissingFeesAmountColumn(error)) {
+    delete payload.fees_amount;
+    ({ data, error } = await supabase.from('users').insert([payload]).select().single());
+  }
 
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'CREATE_ERROR' });
 
@@ -113,17 +138,25 @@ router.put('/users/:id', authMiddleware(['admin']), async (req, res) => {
   const { id } = req.params;
   const {
     name, phone, phone_alt, roll_no, address, father_name, date_of_joining, body_type,
-    batch_id, membership_plan, membership_expiry, fees_status, notes, role
+    batch_id, membership_plan, membership_expiry, fees_status, fees_amount, notes, role
   } = req.body;
+
+  if (role && id === req.user.userId) {
+    return res.status(400).json({ success: false, message: 'You cannot change your own role.', error_code: 'SELF_ROLE_CHANGE' });
+  }
 
   const updateFields = {
     name, phone, phone_alt, roll_no, address, father_name,
     date_of_joining, body_type, batch_id, membership_plan, membership_expiry,
-    fees_status, notes
+    fees_status, fees_amount, notes
   };
   if (role) updateFields.role = role;
 
-  const { data, error } = await supabase.from('users').update(updateFields).eq('id', id).select().single();
+  let { data, error } = await supabase.from('users').update(updateFields).eq('id', id).select().single();
+  if (error && isMissingFeesAmountColumn(error)) {
+    delete updateFields.fees_amount;
+    ({ data, error } = await supabase.from('users').update(updateFields).eq('id', id).select().single());
+  }
 
 
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
@@ -158,20 +191,40 @@ router.post('/users/bulk', authMiddleware(['admin']), upload.single('file'), asy
   }
 
   const results = { created: 0, failed: [], total: records.length };
+  const validRecords = records.filter((r) => {
+    if (!r.name || !r.phone) {
+      results.failed.push({ phone: r.phone || '?', reason: 'Missing name or phone' });
+      return false;
+    }
+    return true;
+  });
 
-  for (const r of records) {
-    if (!r.name || !r.phone) { results.failed.push({ phone: r.phone || '?', reason: 'Missing name or phone' }); continue; }
-    const password_hash = await bcrypt.hash(r.password || 'samgym', 10);
-    const { error } = await supabase.from('users').insert([{
-      name: r.name, phone: r.phone, phone_alt: r.phone_alt || null,
-      password_hash, roll_no: r.roll_no || null, address: r.address || null,
-      father_name: r.father_name || null, date_of_joining: r.date_of_joining || null,
-      body_type: r.body_type || null, membership_plan: r.membership_plan || 'Standard',
-      membership_expiry: r.membership_expiry || null,
-      fees_status: r.fees_status || 'paid', must_change_password: true,
-    }]);
-    if (error) results.failed.push({ phone: r.phone, reason: error.message });
-    else results.created++;
+  const passwordHashes = await Promise.all(validRecords.map((r) => bcrypt.hash(r.password || 'samgym', 10)));
+  const allRows = validRecords.map((r, i) => ({
+    name: r.name, phone: r.phone, phone_alt: r.phone_alt || null,
+    password_hash: passwordHashes[i], roll_no: r.roll_no || null, address: r.address || null,
+    father_name: r.father_name || null, date_of_joining: r.date_of_joining || null,
+    body_type: r.body_type || null, membership_plan: r.membership_plan || 'Standard',
+    membership_expiry: r.membership_expiry || null,
+    fees_status: r.fees_status || 'paid', fees_amount: r.fees_amount ? Number(r.fees_amount) : 0, must_change_password: true,
+  }));
+
+  if (allRows.length) {
+    let { error } = await supabase.from('users').insert(allRows);
+    if (error && isMissingFeesAmountColumn(error)) {
+      const withoutFeesAmount = allRows.map(({ fees_amount, ...rest }) => rest);
+      ({ error } = await supabase.from('users').insert(withoutFeesAmount));
+    }
+    if (error) {
+      const duplicate = error.message?.toLowerCase().includes('duplicate') || error.code === '23505';
+      if (duplicate) {
+        results.failed.push({ phone: 'multiple', reason: 'One or more records have duplicate unique fields' });
+      } else {
+        results.failed.push({ phone: 'multiple', reason: error.message });
+      }
+    } else {
+      results.created += allRows.length;
+    }
   }
 
   await supabase.from('audit_logs').insert([{ action: 'BULK_UPLOAD', performed_by: req.user.userId, details: results }]);
@@ -188,6 +241,12 @@ router.get('/users/inactive', authMiddleware(['admin']), async (req, res) => {
 // ─── Restore user ───────────────────────────────────────────────────────────
 router.post('/users/:id/restore', authMiddleware(['admin']), async (req, res) => {
   const { id } = req.params;
+  const { data: existing, error: fetchErr } = await supabase.from('users').select('id,membership_expiry').eq('id', id).single();
+  if (fetchErr || !existing) return res.status(404).json({ success: false, message: 'User not found', error_code: 'NOT_FOUND' });
+  const today = new Date().toISOString().split('T')[0];
+  if (existing.membership_expiry && existing.membership_expiry < today) {
+    return res.status(400).json({ success: false, message: 'Cannot restore: membership has expired. Update expiry first.', error_code: 'EXPIRED_MEMBERSHIP' });
+  }
   const { data, error } = await supabase.from('users').update({ status: 'active' }).eq('id', id).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'RESTORE_ERROR' });
   await supabase.from('audit_logs').insert([{ action: 'RESTORE_USER', performed_by: req.user.userId, target_user: id, details: {} }]);
@@ -258,6 +317,31 @@ router.get('/reports/attendance', authMiddleware(['admin']), async (req, res) =>
 
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
   res.json({ success: true, message: 'Attendance report', data: data || [], error_code: null });
+});
+
+// ─── Revenue summary (admin) ────────────────────────────────────────────────
+router.get('/reports/revenue', authMiddleware(['admin']), async (req, res) => {
+  let { data, error } = await supabase
+    .from('users')
+    .select('fees_status,fees_amount,role')
+    .neq('role', 'admin');
+  if (error && isMissingFeesAmountColumn(error)) {
+    ({ data, error } = await supabase
+      .from('users')
+      .select('fees_status,role')
+      .neq('role', 'admin'));
+  }
+
+  if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
+
+  const summary = (data || []).reduce((acc, user) => {
+    const amount = Number(user.fees_amount || 0);
+    if (user.fees_status === 'paid') acc.collected += amount;
+    if (['pending', 'overdue'].includes(user.fees_status)) acc.outstanding += amount;
+    return acc;
+  }, { collected: 0, outstanding: 0 });
+
+  res.json({ success: true, message: 'Revenue summary', data: summary, error_code: null });
 });
 
 // ─── Manual attendance (admin) ───────────────────────────────────────────────

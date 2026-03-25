@@ -3,6 +3,7 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { Download, FileBarChart } from 'lucide-react';
 import { Topbar } from '../components/Topbar';
+import { fmtIST } from '../utils/time';
 
 export default function Reports() {
   const [from, setFrom] = useState(() => {
@@ -11,6 +12,7 @@ export default function Reports() {
   });
   const [to, setTo] = useState(new Date().toISOString().split('T')[0]);
   const [rows, setRows] = useState([]);
+  const [revenue, setRevenue] = useState({ collected: 0, outstanding: 0 });
   const [loading, setLoading] = useState(false);
 
   const run = async (e) => {
@@ -25,8 +27,12 @@ export default function Reports() {
     }
     setLoading(true);
     try {
-      const r = await api.get('/admin/reports/attendance', { params: { from, to } });
+      const [r, revenueRes] = await Promise.all([
+        api.get('/admin/reports/attendance', { params: { from, to } }),
+        api.get('/admin/reports/revenue'),
+      ]);
       setRows(r.data || []);
+      setRevenue(revenueRes.data || { collected: 0, outstanding: 0 });
       toast.success(`Loaded ${r.data?.length || 0} records`);
     } catch(e) { toast.error(e.message||'Failed'); }
     finally { setLoading(false); }
@@ -37,8 +43,8 @@ export default function Reports() {
     const headers = ['Name','Phone','Date','Check In','Check Out'];
     const cols = rows.map(r => [
       r.users?.name||'', r.users?.phone||'', r.date||'',
-      r.time_in ? new Date(r.time_in).toLocaleTimeString('en-IN') : '',
-      r.time_out ? new Date(r.time_out).toLocaleTimeString('en-IN') : '',
+      fmtIST(r.time_in),
+      fmtIST(r.time_out),
     ]);
     const csv = [headers, ...cols].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
     const a = document.createElement('a');
@@ -49,7 +55,7 @@ export default function Reports() {
 
   return (
     <>
-      <Topbar title="Reports" sub="Export and analyze attendance data" />
+      <Topbar title="Reports" sub="Export and analyze attendance data (IST)" />
       <div className="page-body">
         <div className="card fade-up-1" style={{ marginBottom:'20px' }}>
           <h3 style={{ fontSize:'0.95rem', fontWeight:'600', marginBottom:'16px', display:'flex', alignItems:'center', gap:'8px' }}>
@@ -73,6 +79,17 @@ export default function Reports() {
               </button>
             )}
           </form>
+        </div>
+
+        <div className="grid-2" style={{ marginBottom:'20px' }}>
+          <div className="card">
+            <div className="card-title">Total Collected</div>
+            <div className="card-value" style={{ color:'var(--primary)' }}>₹{revenue.collected || 0}</div>
+          </div>
+          <div className="card">
+            <div className="card-title">Outstanding</div>
+            <div className="card-value" style={{ color:'var(--coral)' }}>₹{revenue.outstanding || 0}</div>
+          </div>
         </div>
 
         {rows.length > 0 && (
@@ -100,10 +117,10 @@ export default function Reports() {
                       <td style={{ fontFamily:'monospace', fontSize:'0.82rem', color:'var(--text-2)' }}>{r.users?.phone||'—'}</td>
                       <td style={{ fontSize:'0.82rem' }}>{r.date||'—'}</td>
                       <td style={{ fontFamily:'monospace', color:'var(--primary)', fontWeight:'600' }}>
-                        {inT ? `${String(inT.getHours()).padStart(2,'0')}:${String(inT.getMinutes()).padStart(2,'0')}` : '—'}
+                        {fmtIST(r.time_in)}
                       </td>
                       <td style={{ fontFamily:'monospace', color: outT ? 'var(--text-2)' : 'var(--coral)', fontWeight:'600' }}>
-                        {outT ? `${String(outT.getHours()).padStart(2,'0')}:${String(outT.getMinutes()).padStart(2,'0')}` : '—'}
+                        {fmtIST(r.time_out)}
                       </td>
                       <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{durStr}</td>
                     </tr>

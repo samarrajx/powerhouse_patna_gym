@@ -25,7 +25,7 @@ export default function Schedule() {
       const [s, h, b] = await Promise.all([api.get('/schedule/weekly'), api.get('/schedule/holidays'), api.get('/schedule/batches')]);
       // Fill all 7 days even if some missing
       const map = {};
-      (s.data||[]).forEach(d => { map[d.day_of_week] = d; });
+      (s.data||[]).forEach(d => { map[(d.day_of_week || '').toLowerCase()] = { ...d, day_of_week: (d.day_of_week || '').toLowerCase() }; });
       setSchedule(DAYS.map(day => map[day] || { day_of_week: day, is_open: true, open_time: '05:00', close_time: '22:00' }));
       setHolidays((h.data||[]).sort((a,b) => new Date(b.date) - new Date(a.date)));
       const batchMap = {
@@ -48,7 +48,7 @@ export default function Schedule() {
     const row = updated.find(d => d.day_of_week === day);
     setSaving(day);
     try {
-      await api.put(`/schedule/weekly/${day}`, { is_open: row.is_open, open_time: row.open_time, close_time: row.close_time });
+      await api.put(`/schedule/weekly/${DAY_LABELS[day]}`, { is_open: row.is_open, open_time: row.open_time, close_time: row.close_time });
       toast.success(`${DAY_LABELS[day]} updated`);
     } catch(e) { toast.error(e.message||'Save failed'); }
     finally { setSaving(''); }

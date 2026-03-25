@@ -25,11 +25,12 @@ router.get('/weekly', async (req, res) => {
 // PUT /schedule/weekly/:day — admin update a day
 router.put('/weekly/:day', authMiddleware(['admin']), async (req, res) => {
   const { day } = req.params;
+  const normalizedDay = `${day.slice(0, 1).toUpperCase()}${day.slice(1).toLowerCase()}`;
   const { is_open, open_time, close_time } = req.body;
-  const { data, error } = await supabase.from('weekly_schedule').update({ is_open, open_time, close_time, updated_at: new Date().toISOString() }).eq('day_of_week', day).select().single();
+  const { data, error } = await supabase.from('weekly_schedule').update({ is_open, open_time, close_time, updated_at: new Date().toISOString() }).ilike('day_of_week', normalizedDay).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
-  await supabase.from('audit_logs').insert([{ action: 'UPDATE_SCHEDULE', performed_by: req.user.userId, details: { day, is_open, open_time, close_time } }]);
-  res.json({ success: true, message: `${day} schedule updated`, data, error_code: null });
+  await supabase.from('audit_logs').insert([{ action: 'UPDATE_SCHEDULE', performed_by: req.user.userId, details: { day: normalizedDay, is_open, open_time, close_time } }]);
+  res.json({ success: true, message: `${normalizedDay} schedule updated`, data, error_code: null });
 });
 
 // GET /schedule/holidays
