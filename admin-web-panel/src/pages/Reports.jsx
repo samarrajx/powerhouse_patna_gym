@@ -3,6 +3,7 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { Download, FileBarChart } from 'lucide-react';
 import { Topbar } from '../components/Topbar';
+import { fmtIST } from '../utils/time';
 
 export default function Reports() {
   const [from, setFrom] = useState(() => {
@@ -11,7 +12,16 @@ export default function Reports() {
   });
   const [to, setTo] = useState(new Date().toISOString().split('T')[0]);
   const [rows, setRows] = useState([]);
+  const [revenue, setRevenue] = useState({ collected: 0, outstanding: 0 });
   const [loading, setLoading] = useState(false);
+
+  const getDurationLabel = (timeIn, timeOut) => {
+    const inT = timeIn ? new Date(timeIn) : null;
+    const outT = timeOut ? new Date(timeOut) : null;
+    const dur = inT && outT ? Math.round((outT - inT) / 60000) : null;
+    if (!dur && dur !== 0) return '—';
+    return dur >= 60 ? `${Math.floor(dur / 60)}h ${dur % 60}m` : `${dur}m`;
+  };
 
   const run = async (e) => {
     e?.preventDefault();
@@ -28,28 +38,36 @@ export default function Reports() {
       const r = await api.get('/admin/reports/attendance', { params: { from, to } });
       setRows(r.data || []);
       toast.success(`Loaded ${r.data?.length || 0} records`);
+      try {
+        const revenueRes = await api.get('/admin/reports/revenue');
+        setRevenue(revenueRes.data || { collected: 0, outstanding: 0 });
+      } catch (revErr) {
+        console.warn('Revenue summary unavailable:', revErr);
+        setRevenue({ collected: 0, outstanding: 0 });
+      }
     } catch(e) { toast.error(e.message||'Failed'); }
     finally { setLoading(false); }
   };
 
-  const exportCSV = () => {
+  const downloadAttendanceCSV = () => {
     if (!rows.length) { toast.error('No data to export'); return; }
-    const headers = ['Name','Phone','Date','Check In','Check Out'];
+    const headers = ['Name','Phone','Roll No','Date','Check In (IST)','Check Out (IST)','Duration'];
     const cols = rows.map(r => [
-      r.users?.name||'', r.users?.phone||'', r.date||'',
-      r.time_in ? new Date(r.time_in).toLocaleTimeString('en-IN') : '',
-      r.time_out ? new Date(r.time_out).toLocaleTimeString('en-IN') : '',
+      r.users?.name||'', r.users?.phone||'', r.users?.roll_no || '', r.date||'',
+      fmtIST(r.time_in),
+      fmtIST(r.time_out),
+      getDurationLabel(r.time_in, r.time_out),
     ]);
     const csv = [headers, ...cols].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' }));
-    a.download = `attendance_${from}_to_${to}.csv`;
+    a.download = `attendance_report_${from}_to_${to}.csv`;
     a.click();
   };
 
   return (
     <>
-      <Topbar title="Reports" sub="Export and analyze attendance data" />
+      <Topbar title="Reports" sub="Export and analyze attendance data (IST)" />
       <div className="page-body">
         <div className="card fade-up-1" style={{ marginBottom:'20px' }}>
           <h3 style={{ fontSize:'0.95rem', fontWeight:'600', marginBottom:'16px', display:'flex', alignItems:'center', gap:'8px' }}>
@@ -68,27 +86,36 @@ export default function Reports() {
               {loading ? 'Loading...' : 'Generate Report'}
             </button>
             {rows.length > 0 && (
-              <button type="button" className="btn btn-ghost" onClick={exportCSV} style={{ marginBottom:'1px' }}>
-                <Download size={14}/> Export CSV
+              <button type="button" className="btn btn-ghost" onClick={downloadAttendanceCSV} style={{ marginBottom:'1px' }}>
+                <Download size={14}/> Download Attendance Report
               </button>
             )}
           </form>
+        </div>
+
+        <div className="grid-2" style={{ marginBottom:'20px' }}>
+          <div className="card">
+            <div className="card-title">Total Collected</div>
+            <div className="card-value" style={{ color:'var(--primary)' }}>₹{revenue.collected || 0}</div>
+          </div>
+          <div className="card">
+            <div className="card-title">Outstanding</div>
+            <div className="card-value" style={{ color:'var(--coral)' }}>₹{revenue.outstanding || 0}</div>
+          </div>
         </div>
 
         {rows.length > 0 && (
           <div className="card table-card fade-up-2">
             <div className="table-header">
               <h3>Results — {rows.length} records</h3>
-              <button className="btn btn-primary btn-sm" onClick={exportCSV}><Download size={13}/> Download</button>
+              <button className="btn btn-primary btn-sm" onClick={downloadAttendanceCSV}><Download size={13}/> Download CSV</button>
             </div>
             <table>
               <thead><tr><th>Member</th><th>Phone</th><th>Date</th><th>Check In</th><th>Check Out</th><th>Duration</th></tr></thead>
               <tbody>
                 {rows.map((r,i) => {
-                  const inT = r.time_in ? new Date(r.time_in) : null;
                   const outT = r.time_out ? new Date(r.time_out) : null;
-                  const dur = inT && outT ? Math.round((outT-inT)/60000) : null;
-                  const durStr = dur ? (dur>=60 ? `${Math.floor(dur/60)}h ${dur%60}m` : `${dur}m`) : '—';
+                  const durStr = getDurationLabel(r.time_in, r.time_out);
                   return (
                     <tr key={r.id||i}>
                       <td>
@@ -100,10 +127,10 @@ export default function Reports() {
                       <td style={{ fontFamily:'monospace', fontSize:'0.82rem', color:'var(--text-2)' }}>{r.users?.phone||'—'}</td>
                       <td style={{ fontSize:'0.82rem' }}>{r.date||'—'}</td>
                       <td style={{ fontFamily:'monospace', color:'var(--primary)', fontWeight:'600' }}>
-                        {inT ? `${String(inT.getHours()).padStart(2,'0')}:${String(inT.getMinutes()).padStart(2,'0')}` : '—'}
+                        {fmtIST(r.time_in)}
                       </td>
                       <td style={{ fontFamily:'monospace', color: outT ? 'var(--text-2)' : 'var(--coral)', fontWeight:'600' }}>
-                        {outT ? `${String(outT.getHours()).padStart(2,'0')}:${String(outT.getMinutes()).padStart(2,'0')}` : '—'}
+                        {fmtIST(r.time_out)}
                       </td>
                       <td style={{ fontSize:'0.82rem', color:'var(--text-2)' }}>{durStr}</td>
                     </tr>
