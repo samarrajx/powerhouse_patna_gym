@@ -22,11 +22,11 @@ export default function QrStation() {
       const expiry = res.data?.expires_in || 30;
       setTimeLeft(expiry);
     } catch(e) {
-      if (e.response?.data?.error_code === 'GYM_CLOSED') {
+      if (e.data?.error_code === 'GYM_CLOSED' || e.message?.toLowerCase().includes('closed')) {
         setIsClosed(true);
-        setClosedMessage(e.response?.data?.message || 'Gym is currently closed.');
+        setClosedMessage(e.data?.message || e.message || 'Gym is currently closed.');
       } else {
-        toast.error(e.response?.data?.message || e.message || 'Failed to generate QR');
+        toast.error(e.data?.message || e.message || 'Failed to generate QR');
       }
       setQr(null);
       setTimeLeft(0);
@@ -111,8 +111,8 @@ export default function QrStation() {
           {/* Info panel */}
           <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
             {[
-              { emoji:'🔒', title:'Single-Use Security', body:'Each QR token can only be scanned once and is invalidated immediately after use.' },
-              { emoji:'⏱️', title:'60-Second Expiry', body:'Tokens auto-expire after 60 seconds to prevent screenshot-based replay attacks.' },
+              { emoji:'🔒', title:'Security', body:'Tokens expire every 30 seconds. For additional security, consider implementing a token blacklist.' },
+              { emoji:'⏱️', title:'30-Second Expiry', body:'Tokens auto-expire after 30 seconds.' },
               { emoji:'📱', title:'Mobile Scanner', body:'Members scan using the Power House mobile app (Android). The app validates in real-time via the backend API.' },
               { emoji:'📊', title:'Audit Logged', body:'Every scan — successful or failed — is logged in the audit trail for security review.' },
             ].map(({ emoji, title, body }) => (
