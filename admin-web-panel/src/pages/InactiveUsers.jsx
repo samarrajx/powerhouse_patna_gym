@@ -3,11 +3,13 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { RefreshCcw, UserCheck } from 'lucide-react';
 import { Topbar } from '../components/Topbar';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function InactiveUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [restoring, setRestoring] = useState(null);
+  const [confirmData, setConfirmData] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -21,18 +23,25 @@ export default function InactiveUsers() {
   useEffect(() => { load(); }, [load]);
 
   const restore = async (id, name) => {
-    if (!confirm(`Restore ${name} to active status?`)) return;
-    setRestoring(id);
-    try {
-      await api.post(`/admin/users/${id}/restore`);
-      toast.success(`${name} restored to active`);
-      load();
-    } catch(e) { toast.error(e.message||'Restore failed'); }
-    finally { setRestoring(null); }
+    setConfirmData({
+      title: 'Restore Member',
+      message: `Restore ${name} to active status?`,
+      onConfirm: async () => {
+        setRestoring(id);
+        try {
+          await api.post(`/admin/users/${id}/restore`);
+          toast.success(`${name} restored to active`);
+          setConfirmData(null);
+          load();
+        } catch(e) { toast.error(e.message||'Restore failed'); }
+        finally { setRestoring(null); }
+      },
+    });
   };
 
   return (
     <>
+      {confirmData && <ConfirmModal {...confirmData} onClose={() => setConfirmData(null)} loading={Boolean(restoring)} />}
       <Topbar title="Inactive Members" sub={`${users.length} members need attention`} />
       <div className="page-body">
 
