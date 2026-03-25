@@ -42,6 +42,13 @@ export default function Reports() {
       setRows(r.data || []);
       setRevenue(revenueRes.data || { collected: 0, outstanding: 0 });
       toast.success(`Loaded ${r.data?.length || 0} records`);
+      try {
+        const revenueRes = await api.get('/admin/reports/revenue');
+        setRevenue(revenueRes.data || { collected: 0, outstanding: 0 });
+      } catch (revErr) {
+        console.warn('Revenue summary unavailable:', revErr);
+        setRevenue({ collected: 0, outstanding: 0 });
+      }
     } catch(e) { toast.error(e.message||'Failed'); }
     finally { setLoading(false); }
   };
