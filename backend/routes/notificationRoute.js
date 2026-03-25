@@ -9,7 +9,7 @@ router.get('/', authMiddleware(['user', 'admin']), async (req, res) => {
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
-      .or(`user_id.eq.${req.user.id},user_id.is.null`)
+      .or(`user_id.eq.${req.user.userId},user_id.is.null`)
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -47,7 +47,7 @@ router.put('/:id/read', authMiddleware(['user', 'admin']), async (req, res) => {
       .from('notifications')
       .update({ is_read: true })
       .eq('id', req.params.id)
-      .eq('user_id', req.user.id);
+      .eq('user_id', req.user.userId);
 
     if (error) throw error;
     res.json({ success: true });
