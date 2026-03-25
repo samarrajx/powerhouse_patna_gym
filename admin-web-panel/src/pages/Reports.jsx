@@ -12,6 +12,7 @@ export default function Reports() {
   });
   const [to, setTo] = useState(new Date().toISOString().split('T')[0]);
   const [rows, setRows] = useState([]);
+  const [revenue, setRevenue] = useState({ collected: 0, outstanding: 0 });
   const [loading, setLoading] = useState(false);
 
   const getDurationLabel = (timeIn, timeOut) => {
@@ -34,9 +35,20 @@ export default function Reports() {
     }
     setLoading(true);
     try {
-      const r = await api.get('/admin/reports/attendance', { params: { from, to } });
+      const [r, revenueRes] = await Promise.all([
+        api.get('/admin/reports/attendance', { params: { from, to } }),
+        api.get('/admin/reports/revenue'),
+      ]);
       setRows(r.data || []);
+      setRevenue(revenueRes.data || { collected: 0, outstanding: 0 });
       toast.success(`Loaded ${r.data?.length || 0} records`);
+      try {
+        const revenueRes = await api.get('/admin/reports/revenue');
+        setRevenue(revenueRes.data || { collected: 0, outstanding: 0 });
+      } catch (revErr) {
+        console.warn('Revenue summary unavailable:', revErr);
+        setRevenue({ collected: 0, outstanding: 0 });
+      }
     } catch(e) { toast.error(e.message||'Failed'); }
     finally { setLoading(false); }
   };
@@ -83,6 +95,17 @@ export default function Reports() {
               </button>
             )}
           </form>
+        </div>
+
+        <div className="grid-2" style={{ marginBottom:'20px' }}>
+          <div className="card">
+            <div className="card-title">Total Collected</div>
+            <div className="card-value" style={{ color:'var(--primary)' }}>₹{revenue.collected || 0}</div>
+          </div>
+          <div className="card">
+            <div className="card-title">Outstanding</div>
+            <div className="card-value" style={{ color:'var(--coral)' }}>₹{revenue.outstanding || 0}</div>
+          </div>
         </div>
 
         {rows.length > 0 && (
