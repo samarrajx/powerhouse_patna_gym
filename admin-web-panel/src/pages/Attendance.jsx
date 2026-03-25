@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { RefreshCcw, Clock, Plus } from 'lucide-react';
 import AttendanceModal from '../components/AttendanceModal';
 import { Topbar } from '../components/Topbar';
+import { fmtIST } from '../utils/time';
 
 export default function Attendance() {
   const [records, setRecords] = useState([]);
@@ -21,15 +22,9 @@ export default function Attendance() {
 
   useEffect(() => { load(); }, [load]);
 
-  const fmt = (iso) => {
-    if (!iso) return '—';
-    try { const d = new Date(iso); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
-    catch { return '—'; }
-  };
-
   return (
     <>
-      <Topbar title="Attendance" sub={`Today — ${new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long' })}`} />
+      <Topbar title="Attendance" sub={`Today — ${new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long' })} (IST)`} />
       <div className="page-body">
         {showModal && (
           <AttendanceModal 
@@ -108,8 +103,8 @@ export default function Attendance() {
                         </div>
                       </td>
                       <td style={{ color:'var(--text-2)', fontFamily:'monospace', fontSize:'0.82rem' }}>{r.users?.phone || '—'}</td>
-                      <td style={{ fontFamily:'monospace', color:'var(--primary)', fontWeight:'600' }}>{fmt(r.time_in)}</td>
-                      <td style={{ fontFamily:'monospace', color: outTime ? 'var(--text-2)' : 'var(--coral)', fontWeight:'600' }}>{fmt(r.time_out)}</td>
+                      <td style={{ fontFamily:'monospace', color:'var(--primary)', fontWeight:'600' }}>{fmtIST(r.time_in)}</td>
+                      <td style={{ fontFamily:'monospace', color: outTime ? 'var(--text-2)' : 'var(--coral)', fontWeight:'600' }}>{fmtIST(r.time_out)}</td>
                       <td style={{ color:'var(--text-2)', fontSize:'0.82rem' }}>{duration}</td>
                       <td>
                         {r.time_out

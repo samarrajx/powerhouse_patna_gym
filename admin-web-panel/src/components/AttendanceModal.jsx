@@ -24,7 +24,7 @@ export default function AttendanceModal({ userId, userName, onClose, onSave }) {
 
   const loadUsers = async () => {
     try {
-      const r = await api.get('/admin/users');
+      const r = await api.get('/admin/users', { params: { all: true, limit: 200 } });
       setUsers(r.data || []);
     } catch (err) {
       toast.error('Failed to load users');

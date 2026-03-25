@@ -17,7 +17,7 @@ export default function Settings() {
     if (newPass.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setSaving(true);
     try {
-      await api.post('/auth/change-password', { old_password: oldPass, new_password: newPass });
+      await api.post('/auth/change-password', { oldPassword: oldPass, newPassword: newPass });
       toast.success('Password updated successfully');
       setOldPass(''); setNewPass('');
     } catch(err) {

@@ -4,13 +4,30 @@ const supabase = require('../db/supabase');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
+const IST_TZ = 'Asia/Kolkata';
+
+const getIstNow = () => {
+  const now = new Date();
+  const day = now.toLocaleDateString('en-US', { weekday: 'long', timeZone: IST_TZ });
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: IST_TZ }).format(now);
+  const time = new Intl.DateTimeFormat('en-GB', {
+    timeZone: IST_TZ,
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(now);
+  return { now, day, date, time };
+};
+
+const dateFromIst = (dateStr) => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+};
 
 // ─── Helper: Check if Gym is Open ────────────────────────────────────────────
 async function checkGymOpen() {
-  const now = new Date();
-  const todayDateStr = now.toISOString().split('T')[0];
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayName = days[now.getDay()];
+  const { date: todayDateStr, day: dayName, time: currentTime } = getIstNow();
 
   // 1. Check if today is a holiday
   const { data: holiday } = await supabase.from('holidays').select('*').eq('date', todayDateStr).single();
@@ -25,7 +42,6 @@ async function checkGymOpen() {
 
   // 3. Check time logic (Warning: time zones can be tricky, keeping it simple using server time)
   // Assuming open_time and close_time are 'HH:MM:SS' strings
-  const currentTime = now.toTimeString().split(' ')[0]; // 'HH:MM:SS'
   if (schedule.open_time && currentTime < schedule.open_time) {
     return { isOpen: false, reason: `Gym opens at ${schedule.open_time}` };
   }
@@ -38,13 +54,13 @@ async function checkGymOpen() {
 
 // ─── Helper: Get Last Valid Gym Day ──────────────────────────────────────────
 async function getLastValidGymDay(beforeDateStr) {
-  let checkDate = new Date(beforeDateStr);
+  let checkDate = dateFromIst(beforeDateStr);
   let safety = 0;
   
   while (safety < 30) { // Check up to last 30 days
     safety++;
     checkDate.setDate(checkDate.getDate() - 1);
-    const dateStr = checkDate.toISOString().split('T')[0];
+    const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: IST_TZ }).format(checkDate);
     const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][checkDate.getDay()];
     
     // 1. Check if it was a holiday
@@ -101,9 +117,8 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
 
   const user_id = req.user.userId;
   const user_role = req.user.role;
-  const now = new Date();
-  const today = now.toISOString().split('T')[0];
-  const dayNameLower = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
+  const { now, date: today, day } = getIstNow();
+  const dayNameLower = day.toLowerCase();
 
   // 3. User Membership & Batch Check
   const { data: userRecord, error: userErr } = await supabase.from('users')

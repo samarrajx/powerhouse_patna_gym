@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -31,10 +31,14 @@ function Sidebar() {
   const { isOpen, toggle } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
+  const prevPath = useRef(location.pathname);
 
   // Close sidebar on navigation on mobile
   useEffect(() => {
-    if (isOpen && window.innerWidth <= 1024) toggle();
+    if (isOpen && window.innerWidth <= 1024 && prevPath.current !== location.pathname) {
+      toggle();
+    }
+    prevPath.current = location.pathname;
   }, [location.pathname]);
 
   const navItems = [
