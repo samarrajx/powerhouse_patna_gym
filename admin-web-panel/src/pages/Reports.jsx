@@ -12,7 +12,6 @@ export default function Reports() {
   });
   const [to, setTo] = useState(new Date().toISOString().split('T')[0]);
   const [rows, setRows] = useState([]);
-  const [revenue, setRevenue] = useState({ collected: 0, outstanding: 0 });
   const [loading, setLoading] = useState(false);
 
   const getDurationLabel = (timeIn, timeOut) => {
@@ -35,28 +34,28 @@ export default function Reports() {
     }
     setLoading(true);
     try {
-      const [r, revenueRes] = await Promise.all([
-        api.get('/admin/reports/attendance', { params: { from, to } }),
-        api.get('/admin/reports/revenue'),
-      ]);
+      const r = await api.get('/admin/reports/attendance', { params: { from, to } });
       setRows(r.data || []);
-      setRevenue(revenueRes.data || { collected: 0, outstanding: 0 });
       toast.success(`Loaded ${r.data?.length || 0} records`);
-      try {
-        const revenueRes = await api.get('/admin/reports/revenue');
-        setRevenue(revenueRes.data || { collected: 0, outstanding: 0 });
-      } catch (revErr) {
-        console.warn('Revenue summary unavailable:', revErr);
-        setRevenue({ collected: 0, outstanding: 0 });
-      }
     } catch(e) { toast.error(e.message||'Failed'); }
     finally { setLoading(false); }
   };
 
-  const downloadAttendanceCSV = () => {
-    if (!rows.length) { toast.error('No data to export'); return; }
+  const downloadAttendanceCSV = async () => {
+    let dataToExport = rows;
+    if (!dataToExport.length) {
+      if (!from || !to) { toast.error('Please select both dates'); return; }
+      setLoading(true);
+      try {
+        const r = await api.get('/admin/reports/attendance', { params: { from, to } });
+        dataToExport = r.data || [];
+        if (!dataToExport.length) { toast.error('No data found for this range'); return; }
+      } catch (e) { toast.error('Failed to fetch data'); return; }
+      finally { setLoading(false); }
+    }
+
     const headers = ['Name','Phone','Roll No','Date','Check In (IST)','Check Out (IST)','Duration'];
-    const cols = rows.map(r => [
+    const cols = dataToExport.map(r => [
       r.users?.name||'', r.users?.phone||'', r.users?.roll_no || '', r.date||'',
       fmtIST(r.time_in),
       fmtIST(r.time_out),
@@ -98,13 +97,20 @@ export default function Reports() {
         </div>
 
         <div className="grid-2" style={{ marginBottom:'20px' }}>
-          <div className="card">
-            <div className="card-title">Total Collected</div>
-            <div className="card-value" style={{ color:'var(--primary)' }}>₹{revenue.collected || 0}</div>
+          <div className="card fade-up-2">
+            <h3 style={{ fontSize:'0.95rem', fontWeight:'600', marginBottom:'16px', display:'flex', alignItems:'center', gap:'8px' }}>
+              <Download size={16} style={{ color:'var(--primary)' }}/> Export Attendance
+            </h3>
+            <p style={{ fontSize:'0.82rem', color:'var(--text-2)', marginBottom:'16px' }}>
+              Download a detailed CSV report of all member check-ins and durations for the selected period.
+            </p>
+            <button className="btn btn-ghost" onClick={downloadAttendanceCSV} disabled={loading} style={{ width:'100%', justifyContent:'center' }}>
+              <Download size={16}/> {loading ? 'Processing...' : 'Download Attendance (CSV)'}
+            </button>
           </div>
-          <div className="card">
-            <div className="card-title">Outstanding</div>
-            <div className="card-value" style={{ color:'var(--coral)' }}>₹{revenue.outstanding || 0}</div>
+          <div className="card fade-up-2" style={{ display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', textAlign:'center', border:'1px dashed var(--border)' }}>
+             <FileBarChart size={32} style={{ color:'var(--text-3)', marginBottom:'12px', opacity:0.5 }}/>
+             <div style={{ fontSize:'0.82rem', color:'var(--text-3)' }}>More reports coming soon</div>
           </div>
         </div>
 
