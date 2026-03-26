@@ -88,11 +88,6 @@ export default function Reports() {
             <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginBottom:'1px' }}>
               {loading ? 'Loading...' : 'Generate Report'}
             </button>
-            {rows.length > 0 && (
-              <button type="button" className="btn btn-ghost" onClick={downloadAttendanceCSV} style={{ marginBottom:'1px' }}>
-                <Download size={14}/> Download Attendance Report
-              </button>
-            )}
           </form>
         </div>
 
@@ -118,7 +113,6 @@ export default function Reports() {
           <div className="card table-card fade-up-2">
             <div className="table-header">
               <h3>Results — {rows.length} records</h3>
-              <button className="btn btn-primary btn-sm" onClick={downloadAttendanceCSV}><Download size={13}/> Download CSV</button>
             </div>
             <table>
               <thead><tr><th>Member</th><th>Phone</th><th>Date</th><th>Check In</th><th>Check Out</th><th>Duration</th></tr></thead>
