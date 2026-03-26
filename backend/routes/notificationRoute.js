@@ -6,16 +6,43 @@ const authMiddleware = require('../middleware/auth');
 // GET /api/notifications -> Get user notifications + global announcements
 router.get('/', authMiddleware(['user', 'admin']), async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .or(`user_id.eq.${req.user.userId},user_id.is.null`)
-      .order('created_at', { ascending: false })
-      .limit(50);
+    const [notifRes, announceRes] = await Promise.all([
+      supabase
+        .from('notifications')
+        .select('*')
+        .or(`user_id.eq.${req.user.userId},user_id.is.null`)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('announcements')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(20)
+    ]);
 
-    if (error) throw error;
-    res.json({ success: true, data });
+    if (notifRes.error) throw notifRes.error;
+    if (announceRes.error) throw announceRes.error;
+
+    // Merge and format
+    const notifications = (notifRes.data || []);
+    const announcements = (announceRes.data || []).map(a => ({
+      id: `ann_${a.id}`,
+      user_id: null,
+      type: 'announcement',
+      title: a.title,
+      message: a.content,
+      is_read: false, // Announcements are global and persistent
+      created_at: a.created_at
+    }));
+
+    const merged = [...notifications, ...announcements].sort((a, b) => 
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+
+    res.json({ success: true, data: merged });
   } catch (err) {
+    console.error('Notification fetch error:', err);
     res.status(500).json({ success: false, message: 'Failed to fetch notifications' });
   }
 });

@@ -29,7 +29,17 @@ router.put('/weekly/:day', authMiddleware(['admin']), async (req, res) => {
   const { is_open, open_time, close_time } = req.body;
   const { data, error } = await supabase.from('weekly_schedule').update({ is_open, open_time, close_time, updated_at: new Date().toISOString() }).ilike('day_of_week', normalizedDay).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
+  
   await supabase.from('audit_logs').insert([{ action: 'UPDATE_SCHEDULE', performed_by: req.user.userId, details: { day: normalizedDay, is_open, open_time, close_time } }]);
+  
+  // Trigger notification
+  await supabase.from('notifications').insert([{
+    title: 'SCHEDULE UPDATE',
+    message: `${normalizedDay} schedule has been updated. The gym is now ${is_open ? 'OPEN' : 'CLOSED'} during the specified hours.`,
+    type: 'schedule',
+    user_id: null
+  }]);
+
   res.json({ success: true, message: `${normalizedDay} schedule updated`, data, error_code: null });
 });
 
@@ -46,7 +56,17 @@ router.post('/holidays', authMiddleware(['admin']), async (req, res) => {
   if (!date || !reason) return res.status(400).json({ success: false, message: 'date and reason required', error_code: 'MISSING_FIELDS' });
   const { data, error } = await supabase.from('holidays').insert([{ date, reason, is_closed }]).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'INSERT_ERROR' });
+  
   await supabase.from('audit_logs').insert([{ action: 'ADD_HOLIDAY', performed_by: req.user.userId, details: { date, reason } }]);
+  
+  // Trigger notification
+  await supabase.from('notifications').insert([{
+    title: 'NEW HOLIDAY / CLOSURE',
+    message: `The gym will be ${is_closed ? 'CLOSED' : 'OPEN'} on ${new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. Reason: ${reason}`,
+    type: 'holiday',
+    user_id: null
+  }]);
+
   res.json({ success: true, message: 'Holiday added', data, error_code: null });
 });
 
@@ -114,6 +134,14 @@ router.put('/batches/:slot', authMiddleware(['admin']), async (req, res) => {
     action: 'UPDATE_BATCH_TIMING',
     performed_by: req.user.userId,
     details: { slot, start_time, end_time, batch_id: updated.id },
+  }]);
+
+  // Trigger notification
+  await supabase.from('notifications').insert([{
+    title: 'TIMING UPDATE',
+    message: `The ${slot.toUpperCase()} batch timings have been updated to ${start_time.slice(0, 5)} - ${end_time.slice(0, 5)}.`,
+    type: 'timing',
+    user_id: null
   }]);
 
   res.json({
