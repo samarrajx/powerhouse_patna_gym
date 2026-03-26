@@ -32,7 +32,6 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   Map<String, dynamic>? gymStatus;
   bool isLoading = true;
 
-  List<dynamic> _recentActivity = [];
   List<DailyActivity> _weeklyStats = [];
 
   @override
@@ -47,7 +46,6 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     if (mounted && res['success'] == true) {
       final history = res['data'] as List;
       setState(() {
-        _recentActivity = history.take(3).toList();
         _weeklyStats = _processWeeklyStats(history);
       });
     }
@@ -179,24 +177,6 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                 _buildStatusCard(isOpen, gymStatus?['schedule']),
                 AppSpacing.s24,
                 _buildActivityGraph(),
-                AppSpacing.s24,
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('RECENT ACTIVITY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11, color: AppColors.text3(context))),
-                    TextButton.icon(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen())),
-                      icon: const Icon(Icons.leaderboard_outlined, size: 14),
-                      label: const Text('RANKINGS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                      ),
-                    ),
-                  ],
-                ),
-                AppSpacing.s12,
-                _buildActivityList(),
                 const SizedBox(height: 120), // Bottom padding
               ],
             ),
@@ -292,13 +272,16 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
 
   Widget _buildHeader(String name) {
     return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('WELCOME BACK,', style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-          const SizedBox(height: 4),
-          Text(name.toUpperCase(), style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 24, letterSpacing: -0.5, fontWeight: FontWeight.w900)),
-        ],
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          children: [
+            Text('WELCOME BACK,', style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            const SizedBox(height: 4),
+            Text(name.toUpperCase(), textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 24, letterSpacing: -0.5, fontWeight: FontWeight.w900)),
+          ],
+        ),
       ),
     );
   }
@@ -577,71 +560,6 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildActivityList() {
-    if (_recentActivity.isEmpty) {
-      return Container(
-        height: 120,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.surf(context),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.surfHigh(context)),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.history, color: AppColors.text3(context), size: 32),
-              const SizedBox(height: 8),
-              Text('No sessions yet today', style: TextStyle(color: AppColors.text3(context), fontSize: 13, fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ),
-      );
-    }
-    return Column(
-      children: _recentActivity.asMap().entries.map((entry) {
-        final r = entry.value;
-        final date = r['date'] as String? ?? '';
-        final timeIn = r['time_in'] as String?;
-        String label = 'Session Logged';
-        if (timeIn != null) {
-          try {
-            final dt = DateTime.parse(timeIn).toLocal();
-            label = 'Checked in at ${dt.hour.toString().padLeft(2,"0")}:${dt.minute.toString().padLeft(2,"0")}';
-          } catch (_) {}
-        }
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: AppColors.surf(context), 
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.surfHigh(context)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: AppColors.primaryDim, borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.flash_on, color: AppColors.primary, size: 20),
-              ),
-              const SizedBox(width: 16),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                  Text(date, style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w600)),
-                ],
-              )),
-              const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-            ],
-          ),
-        );
-      }).toList(),
     );
   }
 
