@@ -214,10 +214,17 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
             AppColors.primary,
           ),
           _buildVerticalDivider(),
-          _buildStatusItem(
-            'RANK $rank',
-            Icons.military_tech_outlined,
-            RankTheme.getRankColor(rank),
+          InkWell(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen())),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: _buildStatusItem(
+                'RANK $rank',
+                Icons.military_tech_outlined,
+                RankTheme.getRankColor(rank),
+              ),
+            ),
           ),
         ],
       ),
