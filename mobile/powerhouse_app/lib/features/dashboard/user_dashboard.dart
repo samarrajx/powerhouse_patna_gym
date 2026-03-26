@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../../core/app_theme.dart';
 import '../../core/api_service.dart';
 import '../../core/ui/design_system.dart';
@@ -10,6 +12,14 @@ import '../qr/qr_scanner_screen.dart';
 import '../notifications/notifications_provider.dart';
 import '../notifications/notification_center.dart';
 import 'leaderboard_screen.dart';
+
+class DailyActivity {
+  final String day;
+  final double durationHours;
+  final DateTime date;
+
+  DailyActivity({required this.day, required this.durationHours, required this.date});
+}
 
 class UserDashboard extends ConsumerStatefulWidget {
   const UserDashboard({super.key});
@@ -23,6 +33,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   bool isLoading = true;
 
   List<dynamic> _recentActivity = [];
+  List<DailyActivity> _weeklyStats = [];
 
   @override
   void initState() {
@@ -34,8 +45,45 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   Future<void> _fetchActivity() async {
     final res = await ApiService.get('/attendance/history');
     if (mounted && res['success'] == true) {
-      setState(() => _recentActivity = (res['data'] as List).take(3).toList());
+      final history = res['data'] as List;
+      setState(() {
+        _recentActivity = history.take(3).toList();
+        _weeklyStats = _processWeeklyStats(history);
+      });
     }
+  }
+
+  List<DailyActivity> _processWeeklyStats(List<dynamic> history) {
+    final List<DailyActivity> stats = [];
+    final now = DateTime.now();
+    
+    // Generate last 7 days including today
+    for (int i = 6; i >= 0; i--) {
+      final date = now.subtract(Duration(days: i));
+      final dateStr = DateFormat('yyyy-MM-dd').format(date);
+      
+      // Find history for this date
+      final record = history.firstWhere(
+        (entry) => (entry['date'] as String).startsWith(dateStr), 
+        orElse: () => null
+      );
+      
+      double duration = 0;
+      if (record != null && record['time_in'] != null && record['time_out'] != null) {
+        try {
+          final tIn = DateTime.parse(record['time_in']);
+          final tOut = DateTime.parse(record['time_out']);
+          duration = tOut.difference(tIn).inMinutes / 60.0;
+        } catch (_) {}
+      }
+      
+      stats.add(DailyActivity(
+        day: DateFormat('E').format(date).toUpperCase(),
+        durationHours: duration.clamp(0, 5), // Max 5 hours for visual scale
+        date: date,
+      ));
+    }
+    return stats;
   }
 
   Future<void> _fetchStatus() async {
@@ -107,6 +155,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
         child: RefreshIndicator(
           onRefresh: () async {
             await _fetchStatus();
+            await _fetchActivity();
             await ref.read(notificationsProvider.notifier).fetchNotifications();
           },
           color: AppColors.primary,
@@ -129,7 +178,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                 AppSpacing.s24,
                 _buildStatusCard(isOpen, gymStatus?['schedule']),
                 AppSpacing.s24,
-                _buildMembershipCard(user),
+                _buildActivityGraph(),
                 AppSpacing.s24,
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -358,7 +407,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
           width: 64,
           height: 64,
           child: CircularProgressIndicator(
-            value: 0.7, // Visual placeholder
+            value: (streak % 10) / 10,
             strokeWidth: 6,
             color: color,
             backgroundColor: color.withOpacity(0.1),
@@ -449,60 +498,85 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     );
   }
 
-  Widget _buildMembershipCard(Map<String, dynamic>? user) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: AppColors.primaryGlow.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
-        ],
-      ),
-      child: Stack(
+  Widget _buildActivityGraph() {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Positioned(
-            right: -20,
-            bottom: -20,
-            child: Icon(Icons.fitness_center, size: 140, color: Colors.white.withOpacity(0.1)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('WEEKLY ACTIVITY', style: TextStyle(color: AppColors.text3(context), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  const SizedBox(height: 4),
+                  const Text('DURATIONS (HRS)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                child: const Text('7ndays', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 10)),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('MEMBERSHIP PLAN', style: TextStyle(color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 2)),
-                const SizedBox(height: 4),
-                Text(
-                  (user?['membership_plan'] ?? 'STANDARD').toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 160,
+            child: _weeklyStats.isEmpty 
+              ? const Center(child: CircularProgressIndicator()) 
+              : BarChart(
+                  BarChartData(
+                    alignment: BarChartAlignment.spaceAround,
+                    maxY: 5,
+                    barTouchData: BarTouchData(enabled: true),
+                    titlesData: FlTitlesData(
+                      show: true,
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            int index = value.toInt();
+                            if (index >= 0 && index < _weeklyStats.length) {
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: Text(_weeklyStats[index].day, style: TextStyle(color: AppColors.text3(context), fontSize: 9, fontWeight: FontWeight.w900)),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ),
+                      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    ),
+                    gridData: const FlGridData(show: false),
+                    borderData: FlBorderData(show: false),
+                    barGroups: _weeklyStats.asMap().entries.map((entry) {
+                      return BarChartGroupData(
+                        x: entry.key,
+                        barRods: [
+                          BarChartRodData(
+                            toY: entry.value.durationHours,
+                            gradient: AppColors.primaryGradient,
+                            width: 14,
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                            backDrawRodData: BackgroundBarChartRodData(
+                              show: true,
+                              toY: 5,
+                              color: Colors.white.withOpacity(0.05),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
                 ),
-                const SizedBox(height: 28),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildMetric('EXPIRY DATE', user?['membership_expiry'] != null ? 
-                      DateTime.parse(user!['membership_expiry']).toLocaleDateString() : 'N/A'),
-                    _buildMetric('BATCH', user?['batch_id']?.toString() ?? 'DEFAULT'),
-                    _buildMetric('FEE STATUS', (user?['fees_status'] ?? 'PAID').toUpperCase()),
-                  ],
-                ),
-              ],
-            ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildMetric(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
-        const SizedBox(height: 2),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
-      ],
     );
   }
 
@@ -530,7 +604,6 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     }
     return Column(
       children: _recentActivity.asMap().entries.map((entry) {
-        final index = entry.key;
         final r = entry.value;
         final date = r['date'] as String? ?? '';
         final timeIn = r['time_in'] as String?;
