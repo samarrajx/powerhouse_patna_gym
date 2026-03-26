@@ -16,7 +16,7 @@ class RankTheme {
       case 'S':
         return const Color(0xFFFF6A00);
       default:
-        return Colors.white;
+        return const Color(0xFF9CA3AF); // Neutral Grey
     }
   }
 }

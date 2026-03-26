@@ -192,11 +192,11 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: AppColors.surf(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.surfHigh(context)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Row(
@@ -239,7 +239,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   }
 
   Widget _buildVerticalDivider() {
-    return Container(height: 16, width: 1, color: Colors.white.withOpacity(0.1));
+    return Container(height: 16, width: 1, color: AppColors.surfHigh(context));
   }
 
   Widget _buildHolidayBanner(String? reason) {
@@ -549,7 +549,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                             backDrawRodData: BackgroundBarChartRodData(
                               show: true,
                               toY: 5,
-                              color: Colors.white.withOpacity(0.05),
+                              color: AppColors.surfHigh(context),
                             ),
                           ),
                         ],
