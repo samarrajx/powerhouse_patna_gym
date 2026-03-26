@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { RefreshCcw, Plus, Trash2, Calendar } from 'lucide-react';
+import { RefreshCcw, Plus, Trash2, Calendar, Timer } from 'lucide-react';
 import { Topbar } from '../components/Topbar';
 
 const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
