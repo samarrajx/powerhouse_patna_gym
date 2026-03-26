@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api_service.dart';
 
 class NotificationModel {
@@ -20,30 +21,50 @@ class NotificationModel {
     required this.createdAt,
   });
 
-  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+  NotificationModel copyWith({bool? isRead}) {
+    return NotificationModel(
+      id: id,
+      userId: userId,
+      type: type,
+      title: title,
+      message: message,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt,
+    );
+  }
+
+  factory NotificationModel.fromJson(Map<String, dynamic> json, {bool localIsRead = false}) {
     return NotificationModel(
       id: json['id'],
       userId: json['user_id'],
       type: json['type'],
       title: json['title'],
       message: json['message'] ?? '',
-      isRead: json['is_read'] ?? false,
+      isRead: localIsRead || (json['is_read'] ?? false),
       createdAt: DateTime.parse(json['created_at']),
     );
   }
 }
 
 class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
+  static const String _readKey = 'read_notification_ids';
+
   @override
   Future<List<NotificationModel>> build() async {
     return _fetch();
   }
 
   Future<List<NotificationModel>> _fetch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final readIds = prefs.getStringList(_readKey) ?? [];
+    
     final res = await ApiService.get('/notifications');
     if (res['success'] == true) {
       final List<dynamic> data = res['data'];
-      return data.map((e) => NotificationModel.fromJson(e)).toList();
+      return data.map((e) {
+        final id = e['id'] as String;
+        return NotificationModel.fromJson(e, localIsRead: readIds.contains(id));
+      }).toList();
     }
     throw Exception(res['message'] ?? 'Failed to load');
   }
@@ -55,28 +76,28 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
 
   Future<void> markAsRead(String id) async {
     try {
-      final res = await ApiService.put('/notifications/$id/read', {});
-      if (res['success'] == true) {
-        state = state.whenData((list) {
-          return list.map((n) => n.id == id ? NotificationModel(
-            id: n.id,
-            userId: n.userId,
-            type: n.type,
-            title: n.title,
-            message: n.message,
-            isRead: true,
-            createdAt: n.createdAt,
-          ) : n).toList();
-        });
+      final prefs = await SharedPreferences.getInstance();
+      final readIds = prefs.getStringList(_readKey) ?? [];
+      
+      if (!readIds.contains(id)) {
+        readIds.add(id);
+        await prefs.setStringList(_readKey, readIds);
       }
-    } catch (_) {}
-  }
-  
-  int get unreadCount {
-    return state.maybeWhen(
-      data: (list) => list.where((n) => !n.isRead).length,
-      orElse: () => 0,
-    );
+
+      // If it's a real notification (UUID), try to sync with backend
+      if (!id.startsWith('ann_')) {
+        await ApiService.put('/notifications/$id/read', {});
+      }
+
+      state = state.whenData((list) {
+        return list.map((n) => n.id == id ? n.copyWith(isRead: true) : n).toList();
+      });
+    } catch (e) {
+      // Local fallback still works even if API fails
+      state = state.whenData((list) {
+        return list.map((n) => n.id == id ? n.copyWith(isRead: true) : n).toList();
+      });
+    }
   }
 }
 
