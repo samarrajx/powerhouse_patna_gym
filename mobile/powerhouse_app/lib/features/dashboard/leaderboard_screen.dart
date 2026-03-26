@@ -118,7 +118,7 @@ class LeaderboardScreen extends ConsumerWidget {
     return ListView.separated(
       shrinkWrap: true, // Added shrinkWrap to allow ListView inside CustomScrollView
       physics: const NeverScrollableScrollPhysics(), // Added NeverScrollableScrollPhysics to prevent nested scrolling
-      padding: const EdgeInsets.all(AppPadding.p20),
+      padding: const EdgeInsets.all(AppPadding.p16),
       itemCount: players.length,
       separatorBuilder: (_, __) => AppSpacing.s12,
       itemBuilder: (context, index) {
