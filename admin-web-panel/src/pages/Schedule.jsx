@@ -127,36 +127,46 @@ export default function Schedule() {
         </div>
 
         {/* Batch timings */}
-        <div className="card fade-up-2" style={{ marginBottom:'20px' }}>
+        <div className="card fade-up-2" style={{ marginBottom:'24px' }}>
           <div style={{ marginBottom:'18px' }}>
-            <h3 style={{ fontSize:'1rem', fontWeight:'600' }}>Batch Timings</h3>
-            <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>Used in app and dashboard gym status</p>
+            <h3 style={{ fontSize:'1rem', fontWeight:'900', letterSpacing: '0.5px' }}>GYM BATCH CONFIGURATION</h3>
+            <p style={{ fontSize:'0.78rem', color:'var(--text-3)', marginTop:'2px', fontWeight: '600' }}>Synchronized with mobile dashboard status indicators</p>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:'12px' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(350px,1fr))', gap:'20px' }}>
             {['morning', 'evening'].map((slot) => {
               const row = batches[slot];
               return (
-                <div key={slot} className="schedule-row" style={{ opacity: saving === `batch-${slot}` ? 0.6 : 1 }}>
-                  <span className="day-label">{row?.name || `${slot} batch`}</span>
-                  <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                    <span style={{ fontSize:'0.72rem', color:'var(--text-3)' }}>Start</span>
-                    <input
-                      type="time"
-                      className="input-field"
-                      value={(row?.start_time || '05:30:00').slice(0,5)}
-                      style={{ width:'105px', padding:'5px 8px' }}
-                      onChange={e => updateBatch(slot, 'start_time', e.target.value)}
-                    />
+                <div key={slot} className="card" style={{ 
+                  background: 'rgba(255,255,255,0.02)', 
+                  border: '1px solid var(--glass-border)',
+                  opacity: saving === `batch-${slot}` ? 0.6 : 1,
+                  padding: '20px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ padding: '8px', borderRadius: '8px', background: 'var(--primary-dim)' }}>
+                      <Timer size={18} color="var(--primary)" />
+                    </div>
+                    <span style={{ fontWeight: '900', fontSize: '0.9rem', letterSpacing: '0.5px' }}>{row?.name?.toUpperCase() || `${slot.toUpperCase()} BATCH`}</span>
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                    <span style={{ fontSize:'0.72rem', color:'var(--text-3)' }}>End</span>
-                    <input
-                      type="time"
-                      className="input-field"
-                      value={(row?.end_time || '09:30:00').slice(0,5)}
-                      style={{ width:'105px', padding:'5px 8px' }}
-                      onChange={e => updateBatch(slot, 'end_time', e.target.value)}
-                    />
+                  <div style={{ display:'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="input-wrap" style={{ marginBottom: 0 }}>
+                      <label className="input-label" style={{ fontSize: '10px' }}>START TIME</label>
+                      <input
+                        type="time"
+                        className="input-field"
+                        value={(row?.start_time || '05:30:00').slice(0,5)}
+                        onChange={e => updateBatch(slot, 'start_time', e.target.value)}
+                      />
+                    </div>
+                    <div className="input-wrap" style={{ marginBottom: 0 }}>
+                      <label className="input-label" style={{ fontSize: '10px' }}>END TIME</label>
+                      <input
+                        type="time"
+                        className="input-field"
+                        value={(row?.end_time || '09:30:00').slice(0,5)}
+                        onChange={e => updateBatch(slot, 'end_time', e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
               );

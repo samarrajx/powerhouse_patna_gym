@@ -116,7 +116,13 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                AppSpacing.s16,
+                _buildStatusBar(isOpen, user?['current_streak'] ?? 0, _getUpdatedTierInfo(user?['current_streak'] ?? 0)['rank']),
                 AppSpacing.s24,
+                if (gymStatus?['is_holiday'] == true) ...[
+                  _buildHolidayBanner(gymStatus?['holiday_reason']),
+                  AppSpacing.s24,
+                ],
                 _buildHeader(user?['name'] ?? 'MEMBER'),
                 AppSpacing.s24,
                 _buildStreakCard(user),
@@ -153,14 +159,98 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     );
   }
 
-  Widget _buildHeader(String name) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildStatusBar(bool isOpen, int streak, String rank) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatusItem(
+            isOpen ? 'OPEN' : 'CLOSED',
+            isOpen ? Icons.check_circle_outline : Icons.lock_outline,
+            isOpen ? AppColors.success : AppColors.error,
+          ),
+          _buildVerticalDivider(),
+          _buildStatusItem(
+            '$streak DAYS',
+            Icons.local_fire_department_outlined,
+            AppColors.primary,
+          ),
+          _buildVerticalDivider(),
+          _buildStatusItem(
+            'RANK $rank',
+            Icons.military_tech_outlined,
+            RankTheme.getRankColor(rank),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusItem(String text, IconData icon, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text('WELCOME BACK,', style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-        const SizedBox(height: 4),
-        Text(name.toUpperCase(), style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 28, letterSpacing: -0.5)),
+        Icon(icon, color: color, size: 16),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+        ),
       ],
+    );
+  }
+
+  Widget _buildVerticalDivider() {
+    return Container(height: 16, width: 1, color: Colors.white.withOpacity(0.1));
+  }
+
+  Widget _buildHolidayBanner(String? reason) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.error.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.event_busy, color: AppColors.error, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('GYM CLOSED TODAY', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w900, fontSize: 12)),
+                if (reason != null && reason.isNotEmpty)
+                  Text(reason.toUpperCase(), style: TextStyle(color: AppColors.error.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(String name) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('WELCOME BACK,', style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+          const SizedBox(height: 4),
+          Text(name.toUpperCase(), style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 24, letterSpacing: -0.5, fontWeight: FontWeight.w900)),
+        ],
+      ),
     );
   }
 
@@ -239,10 +329,10 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                     Text('RANK ${tier['rank']}', style: TextStyle(color: color.withOpacity(0.8), fontWeight: FontWeight.w900, fontSize: 11)),
                   ],
                 ),
-                AppSpacing.s4,
-                Text('YOUR CURRENT STREAK', style: TextStyle(color: AppColors.text3(context), fontSize: 10, fontWeight: FontWeight.bold)),
                 AppSpacing.s12,
                 _buildProgressBar(streak, tier['nextGoal'], color),
+                AppSpacing.s8,
+                Text('$streak DAYS IN A ROW', style: TextStyle(color: color.withOpacity(0.8), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
               ],
             ),
           ),

@@ -96,11 +96,11 @@ export default function TemplateManager() {
 
           <div className="grid-2">
             {templates.map(t => (
-              <div key={t.id} className="card" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <span className="badge badge-purple" style={{ textTransform: 'capitalize' }}>{t.category}</span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-3)' }}>
-                    Last updated: {new Date(t.updated_at).toLocaleDateString()}
+              <div key={t.id} className="card" style={{ padding: '24px', background: '#1A1A1A' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <span className="badge badge-purple" style={{ textTransform: 'uppercase', fontSize: '10px', padding: '4px 10px', letterSpacing: '0.5px' }}>{t.category}</span>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-3)', fontWeight: '700' }}>
+                    UPDATED: {new Date(t.updated_at).toLocaleDateString('en-IN')}
                   </span>
                 </div>
                 <textarea 
@@ -124,13 +124,13 @@ export default function TemplateManager() {
 
         {/* --- Announcements Section --- */}
         <div className="fade-up-1">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div className="brand-icon" style={{ width:'32px', height:'32px', fontSize:'14px', background: 'var(--blue)', boxShadow: '0 4px 16px rgba(96,165,250,0.3)' }}><Megaphone size={16}/></div>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Gym Announcements</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div className="brand-icon" style={{ width:'40px', height:'40px', background: 'var(--blue)', boxShadow: '0 4px 16px rgba(96,165,250,0.3)' }}><Megaphone size={18}/></div>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 900, letterSpacing: '0.5px' }}>GYM ANNOUNCEMENTS</h2>
             </div>
-            <button className="btn btn-primary btn-sm" onClick={() => { setEditingAnnounce(null); setShowAnnounceModal(true); }}>
-              <Plus size={16}/> New Announcement
+            <button className="btn btn-primary btn-sm" onClick={() => { setEditingAnnounce(null); setShowAnnounceModal(true); }} style={{ padding: '10px 20px' }}>
+              <Plus size={16}/> <span style={{ marginLeft: '4px' }}>NEW ANNOUNCEMENT</span>
             </button>
           </div>
 

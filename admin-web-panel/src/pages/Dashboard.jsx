@@ -58,40 +58,44 @@ export default function Dashboard() {
       <Topbar title="Command Center" sub={`Today — ${new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long' })}`} />
       <div className="page-body">
 
-        {/* Gym status banner */}
+        {/* Gym status banner (Control Center) */}
         <div className={`card fade-up-1`} style={{
           marginBottom:'24px',
           borderColor: gymOpen ? 'rgba(76, 175, 80, 0.2)' : 'rgba(238, 125, 119, 0.2)',
           background: '#1A1A1A',
           display:'flex', alignItems:'center', justifyContent:'space-between',
-          padding:'16px 24px',
+          padding:'18px 24px',
           borderRadius:'12px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
         }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'16px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'20px' }}>
             <div style={{ 
-              padding: '10px', 
-              borderRadius: '10px', 
+              width: '48px', height: '48px',
+              borderRadius: '12px', 
               background: gymOpen ? 'rgba(76, 175, 80, 0.1)' : 'rgba(238, 125, 119, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
-              <div style={{ width:'8px', height:'8px', borderRadius:'50%', background: gymOpen ? '#4CAF50' : '#EE7D77', boxShadow:`0 0 10px ${gymOpen ? '#4CAF50' : '#EE7D77'}` }} />
+              {gymOpen ? <Timer size={24} color="#4CAF50" /> : <Timer size={24} color="#EE7D77" />}
             </div>
             <div>
-              <div style={{ fontWeight:'800', fontSize: '0.9rem', color: gymOpen ? '#4CAF50' : '#EE7D77', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                {gymOpen ? 'Gym is Open' : 'Gym is Closed'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ fontWeight:'900', fontSize: '1rem', color: gymOpen ? '#4CAF50' : '#EE7D77', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                  {gymOpen ? 'Gym is Operational' : 'Gym is Closed'}
+                </div>
+                {gymStatus?.is_holiday && (
+                  <span className="badge badge-red" style={{ fontSize: '10px', padding: '2px 8px' }}>Holiday</span>
+                )}
               </div>
-              <div style={{ fontSize:'0.75rem', color:'var(--text-3)', marginTop: '2px' }}>
-                {gymStatus?.is_open_today ? 'Today is an operational day' : 'Today is a scheduled holiday'} ·
-                {' '}Morn: {gymStatus?.batches?.morning?.start_time?.slice(0,5) || '--:--'}-{gymStatus?.batches?.morning?.end_time?.slice(0,5) || '--:--'} ·
-                {' '}Eve: {gymStatus?.batches?.evening?.start_time?.slice(0,5) || '--:--'}-{gymStatus?.batches?.evening?.end_time?.slice(0,5) || '--:--'}
+              <div style={{ fontSize:'0.75rem', color:'var(--text-3)', marginTop: '4px', fontWeight: '600' }}>
+                {gymStatus?.is_holiday ? `Closed for: ${gymStatus.holiday_reason || 'Holiday'}` : (gymStatus?.is_open_today ? 'Today is an operational day' : 'Gym is scheduled to be closed today')}
+                <span style={{ margin: '0 8px', opacity: 0.3 }}>|</span>
+                Slot: {gymStatus?.batches?.morning?.start_time?.slice(0,5)}-{gymStatus?.batches?.morning?.end_time?.slice(0,5)} & {gymStatus?.batches?.evening?.start_time?.slice(0,5)}-{gymStatus?.batches?.evening?.end_time?.slice(0,5)}
               </div>
             </div>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={loadData} style={{ borderRadius: '8px' }}>
+          <button className="btn btn-ghost btn-sm" onClick={loadData} style={{ borderRadius: '8px', padding: '8px 16px' }}>
             <RefreshCcw size={14} />
-            <span style={{ marginLeft: '4px' }}>Sync State</span>
+            <span style={{ marginLeft: '6px', fontWeight: '800', fontSize: '11px', letterSpacing: '0.5px' }}>REFRESH STATUS</span>
           </button>
         </div>
 

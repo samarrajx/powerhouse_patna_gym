@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/app_theme.dart';
+import '../../core/ui/design_system.dart';
+import '../../core/ui/app_card.dart';
 import 'notifications_provider.dart';
 
 class NotificationCenterScreen extends ConsumerWidget {
@@ -50,83 +52,96 @@ class NotificationCenterScreen extends ConsumerWidget {
   }
 
   Widget _buildNotificationTile(BuildContext context, WidgetRef ref, NotificationModel n) {
-    IconData icon;
-    Color color;
+    IconData icon = Icons.notifications_outlined;
+    Color color = AppColors.primary;
 
-    switch (n.type) {
-      case 'holiday':
-        icon = Icons.calendar_today_outlined;
-        color = Colors.blue;
-        break;
-      case 'urgent':
-        icon = Icons.error_outline;
-        color = Colors.orange;
-        break;
-      case 'offer':
-        icon = Icons.local_offer_outlined;
-        color = Colors.green;
-        break;
-      default:
-        icon = Icons.notifications_outlined;
-        color = AppColors.primary;
+    final titleLower = n.title.toLowerCase();
+    final msgLower = n.message.toLowerCase();
+
+    if (titleLower.contains('holiday') || titleLower.contains('closed') || titleLower.contains('schedule') ||
+        msgLower.contains('holiday') || msgLower.contains('closed') || msgLower.contains('schedule')) {
+      icon = Icons.calendar_today_outlined;
+      color = Colors.blue;
+    } else if (titleLower.contains('timing') || titleLower.contains('batch') || titleLower.contains('reschedule') ||
+               msgLower.contains('timing') || msgLower.contains('batch') || msgLower.contains('reschedule')) {
+      icon = Icons.access_time_outlined;
+      color = Colors.orange;
+    } else if (n.type == 'offer') {
+      icon = Icons.local_offer_outlined;
+      color = Colors.green;
+    } else if (n.type == 'urgent') {
+      icon = Icons.error_outline;
+      color = AppColors.error;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: n.isRead ? AppColors.surf(context).withOpacity(0.5) : AppColors.surf(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: n.isRead ? Colors.transparent : AppColors.primary.withOpacity(0.2)),
-        boxShadow: n.isRead ? [] : [
-              BoxShadow(color: AppColors.primary.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-            ],
-      ),
-      child: ListTile(
-        onTap: () {
-          if (!n.isRead) ref.read(notificationsProvider.notifier).markAsRead(n.id);
-          _showDetails(context, n);
-        },
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        child: InkWell(
+          onTap: () {
+            if (!n.isRead) ref.read(notificationsProvider.notifier).markAsRead(n.id);
+            _showDetails(context, n);
+          },
+          borderRadius: BorderRadius.circular(AppRadius.r12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                AppSpacing.s16,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              n.title.toUpperCase(),
+                              style: TextStyle(
+                                color: AppColors.text1(context),
+                                fontSize: 13,
+                                fontWeight: n.isRead ? FontWeight.w600 : FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          if (!n.isRead)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        n.message,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: AppColors.text2(context), fontSize: 13, height: 1.4),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        DateFormat('dd MMM | HH:mm').format(n.createdAt),
+                        style: TextStyle(color: AppColors.text3(context).withOpacity(0.6), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        title: Text(
-          n.title.toUpperCase(),
-          style: TextStyle(
-            color: AppColors.text1(context),
-            fontSize: 13,
-            fontWeight: n.isRead ? FontWeight.w600 : FontWeight.w900,
-            letterSpacing: 0.5,
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                n.message,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: AppColors.text2(context), fontSize: 13),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                DateFormat('dd MMM | HH:mm').format(n.createdAt),
-                style: TextStyle(color: AppColors.text3(context), fontSize: 10, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-        trailing: n.isRead ? null : Container(
-          width: 8,
-          height: 8,
-          decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
         ),
       ),
     );
