@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_theme.dart';
 import '../../core/api_service.dart';
+import '../../core/ui/design_system.dart';
+import '../../core/ui/app_card.dart';
+import '../../core/theme/rank_theme.dart';
 import '../auth/auth_provider.dart';
 import '../qr/qr_scanner_screen.dart';
 import '../notifications/notifications_provider.dart';
@@ -113,15 +116,15 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 24),
+                AppSpacing.s24,
                 _buildHeader(user?['name'] ?? 'MEMBER'),
-                const SizedBox(height: 32),
+                AppSpacing.s24,
                 _buildStreakCard(user),
-                const SizedBox(height: 24),
+                AppSpacing.s24,
                 _buildStatusCard(isOpen, gymStatus?['schedule']),
-                const SizedBox(height: 24),
+                AppSpacing.s24,
                 _buildMembershipCard(user),
-                const SizedBox(height: 32),
+                AppSpacing.s24,
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -137,7 +140,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                AppSpacing.s12,
                 _buildActivityList(),
                 const SizedBox(height: 120), // Bottom padding
               ],
@@ -165,23 +168,14 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     final batches = gymStatus?['batches'] as Map<String, dynamic>?;
     final morning = batches?['morning'] as Map<String, dynamic>?;
     final evening = batches?['evening'] as Map<String, dynamic>?;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surf(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfHigh(context)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
+    return AppCard(
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppPadding.p12),
             decoration: BoxDecoration(
               color: (isOpen ? AppColors.success : AppColors.error).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.r12),
             ),
             child: Icon(
               isOpen ? Icons.door_front_door : Icons.door_back_door,
@@ -189,7 +183,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
               size: 28,
             ),
           ),
-          const SizedBox(width: 16),
+          AppSpacing.s16,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,34 +220,44 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
 
   Widget _buildStreakCard(Map<String, dynamic>? user) {
     final streak = user?['current_streak'] ?? 0;
-    final tier = _getTierInfo(streak);
+    final tier = _getUpdatedTierInfo(streak);
+    final color = RankTheme.getRankColor(tier['rank']);
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surf(context),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.surfHigh(context)),
-      ),
+    return AppCard(
       child: Row(
         children: [
-          _buildStreakCircle(streak, tier['color']),
-          const SizedBox(width: 20),
+          _buildStreakCircle(streak, color),
+          AppSpacing.s16,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(tier['name'].toUpperCase(), style: TextStyle(color: tier['color'], fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 2)),
-                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(tier['name'].toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 2)),
+                    Text('RANK ${tier['rank']}', style: TextStyle(color: color.withOpacity(0.8), fontWeight: FontWeight.w900, fontSize: 11)),
+                  ],
+                ),
+                AppSpacing.s4,
                 Text('YOUR CURRENT STREAK', style: TextStyle(color: AppColors.text3(context), fontSize: 10, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                _buildProgressBar(streak, tier['nextGoal']),
+                AppSpacing.s12,
+                _buildProgressBar(streak, tier['nextGoal'], color),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Map<String, dynamic> _getUpdatedTierInfo(int streak) {
+    if (streak <= 3) return {'name': 'Iron', 'rank': 'E', 'nextGoal': 4};
+    if (streak <= 10) return {'name': 'Bronze', 'rank': 'D', 'nextGoal': 11};
+    if (streak <= 20) return {'name': 'Silver', 'rank': 'C', 'nextGoal': 21};
+    if (streak <= 35) return {'name': 'Gold', 'rank': 'B', 'nextGoal': 36};
+    if (streak <= 50) return {'name': 'Platinum', 'rank': 'A', 'nextGoal': 51};
+    return {'name': 'Legendary', 'rank': 'S', 'nextGoal': 100};
   }
 
   Widget _buildStreakCircle(int streak, Color color) {
@@ -281,34 +285,24 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     );
   }
 
-  Widget _buildProgressBar(int current, int next) {
+  Widget _buildProgressBar(int current, int next, Color color) {
     final progress = (current % next) / next;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(AppRadius.r8),
           child: LinearProgressIndicator(
             value: progress.clamp(0.1, 1.0),
             minHeight: 6,
             backgroundColor: Colors.white.withOpacity(0.05),
-            color: AppColors.primary,
+            color: color,
           ),
         ),
-        const SizedBox(height: 6),
+        AppSpacing.s8,
         Text('${next - (current % next)} DAYS TO NEXT TIER', style: TextStyle(color: AppColors.text3(context), fontSize: 9, fontWeight: FontWeight.w900)),
       ],
     );
-  }
-
-  Map<String, dynamic> _getTierInfo(int streak) {
-    if (streak <= 3) return {'name': 'Iron', 'color': Colors.grey, 'nextGoal': 4};
-    if (streak <= 10) return {'name': 'Bronze', 'color': Colors.brown, 'nextGoal': 11};
-    if (streak <= 20) return {'name': 'Silver', 'color': Colors.blueGrey, 'nextGoal': 21};
-    if (streak <= 35) return {'name': 'Gold', 'color': Colors.amber, 'nextGoal': 36};
-    if (streak <= 50) return {'name': 'Platinum', 'color': Colors.cyan, 'nextGoal': 51};
-    if (streak <= 60) return {'name': 'Diamond', 'color': Colors.blue, 'nextGoal': 61};
-    return {'name': 'Legendary', 'color': Colors.redAccent, 'nextGoal': 100};
   }
 
   void _showComebackPopup(WidgetRef ref) {

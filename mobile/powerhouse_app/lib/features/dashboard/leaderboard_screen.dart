@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_theme.dart';
+import '../../core/ui/design_system.dart';
+import '../../core/ui/app_card.dart';
+import '../../core/theme/rank_theme.dart';
+import '../auth/auth_provider.dart';
 import 'leaderboard_provider.dart';
 
 class LeaderboardScreen extends ConsumerWidget {
@@ -31,18 +35,9 @@ class LeaderboardScreen extends ConsumerWidget {
             // Ranking List
             if (state.isLoading)
               const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: AppColors.primary)))
-            else if (state.players.length > 3)
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final player = state.players[index + 3];
-                      return _buildRankItem(context, index + 4, player);
-                    },
-                    childCount: state.players.length - 3,
-                  ),
-                ),
+            else if (state.players.length > 0) // Changed from > 3 to > 0 to include all players in the list
+              SliverToBoxAdapter(
+                child: _buildList(state.players, state.userStats, ref),
               )
             else if (state.players.isEmpty && !state.isLoading)
               const SliverFillRemaining(child: Center(child: Text('No streaks yet! 🏋️', style: TextStyle(color: Colors.white70)))),
@@ -98,7 +93,7 @@ class LeaderboardScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              child: Text('$rank', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+              child: Text('$rank', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 12)),
             ),
           ],
         ),
@@ -117,41 +112,103 @@ class LeaderboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRankItem(BuildContext context, int rank, dynamic player) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surf(context),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.surfHigh(context)),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 30,
-            child: Text('#$rank', style: TextStyle(color: AppColors.text3(context), fontWeight: FontWeight.w900, fontSize: 14)),
+  Widget _buildList(List<dynamic> players, Map<String, dynamic>? userStats, WidgetRef ref) {
+    final currentUserId = ref.watch(authProvider).user?['id'];
+
+    return ListView.separated(
+      shrinkWrap: true, // Added shrinkWrap to allow ListView inside CustomScrollView
+      physics: const NeverScrollableScrollPhysics(), // Added NeverScrollableScrollPhysics to prevent nested scrolling
+      padding: const EdgeInsets.all(AppPadding.p20),
+      itemCount: players.length,
+      separatorBuilder: (_, __) => AppSpacing.s12,
+      itemBuilder: (context, index) {
+        final player = players[index];
+        final isMe = player['id'] == currentUserId;
+        final rankNum = index + 1;
+        final streak = player['current_streak'] ?? 0;
+        
+        // Determine rank tier for color coding
+        String rankTier = 'E';
+        if (streak > 50) rankTier = 'S';
+        else if (streak > 35) rankTier = 'A';
+        else if (streak > 20) rankTier = 'B';
+        else if (streak > 10) rankTier = 'C';
+        else if (streak > 3) rankTier = 'D';
+        
+        final rankColor = RankTheme.getRankColor(rankTier);
+
+        return AppCard(
+          backgroundColor: isMe ? AppColors.primary.withOpacity(0.05) : null,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 32,
+                child: Text(
+                  rankNum <= 3 ? ['🥇', '🥈', '🥉'][rankNum - 1] : rankNum.toString(),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: rankNum <= 3 ? 20 : 14,
+                    color: rankNum <= 3 ? null : AppColors.text3(context),
+                  ),
+                ),
+              ),
+              AppSpacing.s12,
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: isMe ? AppColors.primary : AppColors.surfHigh(context),
+                child: Text(
+                  (player['name'] ?? 'U')[0].toUpperCase(),
+                  style: TextStyle(color: isMe ? Colors.white : AppColors.text1(context), fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ),
+              AppSpacing.s16,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          player['name'] ?? 'MEMBER',
+                          style: TextStyle(
+                            fontWeight: isMe ? FontWeight.w900 : FontWeight.w700,
+                            fontSize: 14,
+                            color: isMe ? AppColors.primary : AppColors.text1(context),
+                          ),
+                        ),
+                        if (isMe) ...[
+                          AppSpacing.s8,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('YOU', style: TextStyle(color: AppColors.primary, fontSize: 8, fontWeight: FontWeight.w900)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$streak DAYS',
+                    style: TextStyle(fontWeight: FontWeight.w900, color: rankColor, fontSize: 13),
+                  ),
+                  Text(
+                    'RANK $rankTier',
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: rankColor.withOpacity(0.7), letterSpacing: 0.5),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          const CircleAvatar(
-            radius: 18,
-            backgroundImage: AssetImage('assets/images/logo.jpg'),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              player['name'],
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            ),
-          ),
-          Text(
-            '${player['current_streak']}',
-            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 18),
-          ),
-          const SizedBox(width: 4),
-          const Text('🔥', style: TextStyle(fontSize: 14)),
-        ],
-      ),
+        );
+      },
     );
   }
 

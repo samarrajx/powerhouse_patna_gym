@@ -60,26 +60,38 @@ export default function Dashboard() {
 
         {/* Gym status banner */}
         <div className={`card fade-up-1`} style={{
-          marginBottom:'20px',
-          borderColor: gymOpen ? 'rgba(200,250,0,0.2)' : 'rgba(255,107,107,0.2)',
-          background: gymOpen ? 'rgba(200,250,0,0.04)' : 'rgba(255,107,107,0.04)',
+          marginBottom:'24px',
+          borderColor: gymOpen ? 'rgba(76, 175, 80, 0.2)' : 'rgba(238, 125, 119, 0.2)',
+          background: '#1A1A1A',
           display:'flex', alignItems:'center', justifyContent:'space-between',
           padding:'16px 24px',
+          borderRadius:'12px',
         }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-            <div style={{ width:'10px', height:'10px', borderRadius:'50%', background: gymOpen ? 'var(--primary)' : 'var(--coral)', boxShadow:`0 0 8px ${gymOpen ? 'var(--primary-glow)' : 'rgba(255,107,107,0.5)'}` }} />
-            <span style={{ fontWeight:'600', color: gymOpen ? 'var(--primary)' : 'var(--coral)' }}>
-              {gymOpen ? '🏋️  Gym is OPEN right now' : '🔒  Gym is CLOSED right now'}
-            </span>
-            <span style={{ fontSize:'0.78rem', color:'var(--text-2)' }}>
-              {gymStatus?.is_open_today ? 'Today open day' : 'Today closed day'} ·
-              {' '}Morning {gymStatus?.batches?.morning?.start_time?.slice(0,5) || '--:--'}-{gymStatus?.batches?.morning?.end_time?.slice(0,5) || '--:--'} ·
-              {' '}Evening {gymStatus?.batches?.evening?.start_time?.slice(0,5) || '--:--'}-{gymStatus?.batches?.evening?.end_time?.slice(0,5) || '--:--'}
-            </span>
+          <div style={{ display:'flex', alignItems:'center', gap:'16px' }}>
+            <div style={{ 
+              padding: '10px', 
+              borderRadius: '10px', 
+              background: gymOpen ? 'rgba(76, 175, 80, 0.1)' : 'rgba(238, 125, 119, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <div style={{ width:'8px', height:'8px', borderRadius:'50%', background: gymOpen ? '#4CAF50' : '#EE7D77', boxShadow:`0 0 10px ${gymOpen ? '#4CAF50' : '#EE7D77'}` }} />
+            </div>
+            <div>
+              <div style={{ fontWeight:'800', fontSize: '0.9rem', color: gymOpen ? '#4CAF50' : '#EE7D77', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                {gymOpen ? 'Gym is Open' : 'Gym is Closed'}
+              </div>
+              <div style={{ fontSize:'0.75rem', color:'var(--text-3)', marginTop: '2px' }}>
+                {gymStatus?.is_open_today ? 'Today is an operational day' : 'Today is a scheduled holiday'} ·
+                {' '}Morn: {gymStatus?.batches?.morning?.start_time?.slice(0,5) || '--:--'}-{gymStatus?.batches?.morning?.end_time?.slice(0,5) || '--:--'} ·
+                {' '}Eve: {gymStatus?.batches?.evening?.start_time?.slice(0,5) || '--:--'}-{gymStatus?.batches?.evening?.end_time?.slice(0,5) || '--:--'}
+              </div>
+            </div>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={loadData}>
+          <button className="btn btn-ghost btn-sm" onClick={loadData} style={{ borderRadius: '8px' }}>
             <RefreshCcw size={14} />
-            Refresh
+            <span style={{ marginLeft: '4px' }}>Sync State</span>
           </button>
         </div>
 

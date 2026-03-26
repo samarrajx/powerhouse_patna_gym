@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/app_theme.dart';
 import '../../core/api_service.dart';
+import '../../core/ui/design_system.dart';
+import '../../core/ui/app_card.dart';
+import '../../core/ui/streak_popup.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -73,7 +76,11 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   void _showResult(bool success, String message, {Map<String, dynamic>? data}) {
     // If it's a successful 'IN' scan with streak data, show celebration instead of standard result
     if (success && data?['action'] == 'IN' && data?['streak'] != null) {
-      _showStreakPopup(data!['streak']);
+      final streak = data!['streak'];
+      StreakPopup.show(context, streak['current'] ?? 0, streak['isNewRecord'] ?? false).then((_) {
+        // After popup closes, return to dashboard
+        if (mounted) Navigator.pop(context, true);
+      });
       return;
     }
 
@@ -147,62 +154,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     });
   }
 
-  void _showStreakPopup(Map<String, dynamic> streak) {
-    final count = streak['current'] ?? 0;
-    final isNewRecord = streak['isNewRecord'] ?? false;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.circular(32),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.auto_awesome, color: Colors.white, size: 64),
-              const SizedBox(height: 24),
-              Text(
-                isNewRecord ? 'NEW RECORD!' : 'STREAK CONTINUED!',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 2),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$count DAYS',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 48, letterSpacing: -1),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'KEEP GOING, CHAMP! 🏋️',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Close dialog
-                    Navigator.pop(context, true); // Go back to dashboard
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primary,
-                  ),
-                  child: const Text('AWESOME'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // Removed old _showStreakPopup as it's replaced by StreakPopup.show
 
   void _showGymClosed(String message) {
     showModalBottomSheet(

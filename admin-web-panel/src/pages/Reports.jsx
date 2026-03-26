@@ -41,18 +41,28 @@ export default function Reports() {
     finally { setLoading(false); }
   };
 
-  const downloadAttendanceCSV = async () => {
-    let dataToExport = rows;
-    if (!dataToExport.length) {
-      if (!from || !to) { toast.error('Please select both dates'); return; }
-      setLoading(true);
-      try {
-        const r = await api.get('/admin/reports/attendance', { params: { from, to } });
-        dataToExport = r.data || [];
-        if (!dataToExport.length) { toast.error('No data found for this range'); return; }
-      } catch (e) { toast.error('Failed to fetch data'); return; }
-      finally { setLoading(false); }
+  const downloadAttendanceCSV = async (preset) => {
+    let queryFrom = from;
+    let queryTo = to;
+
+    if (preset === 'today') {
+      const d = new Date().toISOString().split('T')[0];
+      queryFrom = d;
+      queryTo = d;
+    } else if (preset === 'month') {
+      const d = new Date();
+      queryFrom = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+      queryTo = d.toISOString().split('T')[0];
     }
+
+    setLoading(true);
+    let dataToExport = [];
+    try {
+      const r = await api.get('/admin/reports/attendance', { params: { from: queryFrom, to: queryTo } });
+      dataToExport = r.data || [];
+      if (!dataToExport.length) { toast.error('No data found for this range'); return; }
+    } catch (e) { toast.error('Failed to fetch data'); return; }
+    finally { setLoading(false); }
 
     const headers = ['Name','Phone','Roll No','Date','Check In (IST)','Check Out (IST)','Duration'];
     const cols = dataToExport.map(r => [
@@ -64,7 +74,7 @@ export default function Reports() {
     const csv = [headers, ...cols].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' }));
-    a.download = `attendance_report_${from}_to_${to}.csv`;
+    a.download = `attendance_${preset || 'custom'}_${queryFrom}_to_${queryTo}.csv`;
     a.click();
   };
 
@@ -94,18 +104,36 @@ export default function Reports() {
         <div className="grid-2" style={{ marginBottom:'20px' }}>
           <div className="card fade-up-2">
             <h3 style={{ fontSize:'0.95rem', fontWeight:'600', marginBottom:'16px', display:'flex', alignItems:'center', gap:'8px' }}>
-              <Download size={16} style={{ color:'var(--primary)' }}/> Export Attendance
+              <Download size={16} style={{ color:'var(--primary)' }}/> Attendance Downloads
             </h3>
-            <p style={{ fontSize:'0.82rem', color:'var(--text-2)', marginBottom:'16px' }}>
-              Download a detailed CSV report of all member check-ins and durations for the selected period.
+            <p style={{ fontSize:'0.82rem', color:'var(--text-2)', marginBottom:'18px' }}>
+              Select a quick preset or use the custom range above to export detailed check-in logs.
             </p>
-            <button className="btn btn-ghost" onClick={downloadAttendanceCSV} disabled={loading} style={{ width:'100%', justifyContent:'center' }}>
-              <Download size={16}/> {loading ? 'Processing...' : 'Download Attendance (CSV)'}
-            </button>
+            <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+              <button className="btn btn-ghost" onClick={() => downloadAttendanceCSV('today')} disabled={loading} style={{ justifyContent:'center' }}>
+                <Download size={15}/> Download Today's Report
+              </button>
+              <button className="btn btn-ghost" onClick={() => downloadAttendanceCSV('month')} disabled={loading} style={{ justifyContent:'center' }}>
+                <Download size={15}/> Download This Month
+              </button>
+              <button className="btn btn-primary" onClick={() => downloadAttendanceCSV()} disabled={loading} style={{ justifyContent:'center' }}>
+                <Download size={15}/> Export Custom Range
+              </button>
+            </div>
           </div>
-          <div className="card fade-up-2" style={{ display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', textAlign:'center', border:'1px dashed var(--border)' }}>
-             <FileBarChart size={32} style={{ color:'var(--text-3)', marginBottom:'12px', opacity:0.5 }}/>
-             <div style={{ fontSize:'0.82rem', color:'var(--text-3)' }}>More reports coming soon</div>
+          <div className="card fade-up-2" style={{ display:'flex', flexDirection:'column', justifyContent:'center', border:'1px solid var(--glass-border)' }}>
+             <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'16px' }}>
+               <div style={{ padding:'10px', borderRadius:'10px', background:'var(--primary-dim)' }}>
+                 <FileBarChart size={20} style={{ color:'var(--primary)' }}/>
+               </div>
+               <div>
+                 <h4 style={{ fontSize:'0.9rem', fontWeight:'700' }}>System Health</h4>
+                 <p style={{ fontSize:'0.75rem', color:'var(--text-3)' }}>Real-time reporting status</p>
+               </div>
+             </div>
+             <p style={{ fontSize:'0.82rem', color:'var(--text-2)', lineHeight:'1.5' }}>
+               All reports are generated using India Standard Time (IST). Ensure your local system clock is correctly synchronized for accurate check-in timestamps.
+             </p>
           </div>
         </div>
 
