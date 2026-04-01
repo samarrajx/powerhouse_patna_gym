@@ -385,7 +385,11 @@ router.post('/announcements', authMiddleware(['admin']), async (req, res) => {
 
   // Trigger Push Notification if active
   if (is_active) {
-    sendGlobalPush(title || 'New Announcement', content || 'Check the app for details', { type: 'announcement', id: data.id.toString() });
+    console.log('📢 adminRoute: Triggering Global Push for Announcement:', title);
+    await sendGlobalPush(title || 'New Announcement', content || 'Check the app for details', { type: 'announcement', id: data.id.toString() })
+      .catch(err => console.error('❌ adminRoute: Push failed:', err));
+  } else {
+    console.log('📢 adminRoute: Announcement created but not active, skipping push.');
   }
 
   res.json({ success: true, message: 'Announcement created', data, error_code: null });
