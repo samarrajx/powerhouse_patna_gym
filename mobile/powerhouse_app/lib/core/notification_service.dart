@@ -41,26 +41,35 @@ class NotificationService {
   }
 
   static Future<void> showNotification(RemoteMessage message) async {
+    print("🔔 NotificationService: Attempting to show notification: ${message.notification?.title}");
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
 
     if (notification != null && android != null) {
-      await _notificationsPlugin.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            channel.id,
-            channel.name,
-            channelDescription: channel.description,
-            importance: Importance.max,
-            priority: Priority.high,
-            icon: android.smallIcon ?? '@mipmap/ic_launcher',
+      try {
+        await _notificationsPlugin.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              channel.id,
+              channel.name,
+              channelDescription: channel.description,
+              importance: Importance.max,
+              priority: Priority.high,
+              icon: android.smallIcon ?? '@mipmap/ic_launcher',
+              styleInformation: BigTextStyleInformation(notification.body ?? ''),
+            ),
           ),
-        ),
-        payload: message.data.toString(),
-      );
+          payload: message.data.toString(),
+        );
+        print("✅ NotificationService: Notification displayed successfully");
+      } catch (e) {
+        print("❌ NotificationService: Error showing local notification: $e");
+      }
+    } else {
+      print("⚠️ NotificationService: Notification or Android details were null. Not showing.");
     }
   }
 }

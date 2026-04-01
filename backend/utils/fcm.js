@@ -26,19 +26,45 @@ try {
  * Send push notification to all users (Global)
  */
 async function sendGlobalPush(title, body, data = {}) {
-  if (!fcmInitialized) return;
+  if (!fcmInitialized) {
+    console.warn('⚠️ FCM not initialized, skipping global push.');
+    return;
+  }
 
   const message = {
     notification: { title, body },
-    topic: 'all_users', // Frontend should subscribe to 'all_users'
-    data: { ...data, click_action: 'FLUTTER_NOTIFICATION_CLICK' }
+    topic: 'all_users',
+    data: { 
+      ...data, 
+      click_action: 'FLUTTER_NOTIFICATION_CLICK' 
+    },
+    android: {
+      priority: 'high',
+      notification: {
+        channelId: 'high_importance_channel',
+        priority: 'high',
+        defaultSound: true,
+        defaultVibrateTimings: true,
+      }
+    },
+    apns: {
+      payload: {
+        aps: {
+          contentAvailable: true,
+          sound: 'default',
+          badge: 1,
+        }
+      }
+    }
   };
 
   try {
     const response = await admin.messaging().send(message);
     console.log('Successfully sent global message:', response);
+    return response;
   } catch (error) {
     console.error('Error sending global message:', error);
+    throw error;
   }
 }
 
@@ -46,19 +72,45 @@ async function sendGlobalPush(title, body, data = {}) {
  * Send push notification to specific device tokens
  */
 async function sendToDevices(tokens, title, body, data = {}) {
-  if (!fcmInitialized || !tokens.length) return;
+  if (!fcmInitialized || !tokens.length) {
+    console.warn('⚠️ FCM not initialized or no tokens, skipping device push.');
+    return;
+  }
 
   const message = {
     notification: { title, body },
     tokens: tokens,
-    data: { ...data, click_action: 'FLUTTER_NOTIFICATION_CLICK' }
+    data: { 
+      ...data, 
+      click_action: 'FLUTTER_NOTIFICATION_CLICK' 
+    },
+    android: {
+      priority: 'high',
+      notification: {
+        channelId: 'high_importance_channel',
+        priority: 'high',
+        defaultSound: true,
+        defaultVibrateTimings: true,
+      }
+    },
+    apns: {
+      payload: {
+        aps: {
+          contentAvailable: true,
+          sound: 'default',
+          badge: 1,
+        }
+      }
+    }
   };
 
   try {
     const response = await admin.messaging().sendEachForMulticast(message);
     console.log(`${response.successCount} messages were sent successfully`);
+    return response;
   } catch (error) {
     console.error('Error sending multicast message:', error);
+    throw error;
   }
 }
 

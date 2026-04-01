@@ -114,6 +114,7 @@ class _NotificationHandlerState extends ConsumerState<_NotificationHandler> {
     
     // Listen for foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print("📩 main: Received FCM message in foreground: ${message.notification?.title}");
       if (message.notification != null && mounted) {
         // Show system-level local notification even in foreground
         NotificationService.showNotification(message);
