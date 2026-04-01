@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Home, Scan, History, User, LogOut, Bell } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import Logo from './Logo';
+import api from '../api';
 
 export default function UserLayout() {
   const { user, logout } = useAuth();
