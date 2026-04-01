@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Bell, MessageSquare, CheckDouble, Clock, ArrowLeft } from 'lucide-react';
+import { Bell, MessageSquare, CheckCheck, Clock, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function UserNotifications() {
