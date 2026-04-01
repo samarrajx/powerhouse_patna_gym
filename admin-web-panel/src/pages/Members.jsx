@@ -17,12 +17,12 @@ function MemberModal({ user, batches, onClose, onSave }) {
     body_type: user.body_type||'normal', membership_plan: user.membership_plan||'Standard',
     batch_id: user.batch_id||(batches?.[0]?.id || ''),
     membership_expiry: user.membership_expiry ? String(user.membership_expiry).split('T')[0] : '',
-    fees_status: user.fees_status||'paid', fees_amount: user.fees_amount ?? '', notes: user.notes||''
+    fees_status: user.fees_status||'paid', notes: user.notes||''
   } : { 
     name:'', phone:'', phone_alt:'', roll_no:'', address:'', father_name:'',
     date_of_joining: new Date().toISOString().split('T')[0], body_type:'normal',
     batch_id: batches?.[0]?.id || '',
-    membership_plan:'Standard', membership_expiry:'', fees_status:'paid', fees_amount:'', notes:'' 
+    membership_plan:'Standard', membership_expiry:'', fees_status:'paid', notes:'' 
   });
   
   const [saving, setSaving] = useState(false);
@@ -91,7 +91,7 @@ function MemberModal({ user, batches, onClose, onSave }) {
             <div className="input-wrap"><label className="input-label">Expiry</label><input type="date" className="input-field" value={f.membership_expiry} onChange={e=>set('membership_expiry',e.target.value)}/></div>
             <div className="input-wrap"><label className="input-label">Fees</label><select className="input-field" value={f.fees_status} onChange={e=>set('fees_status',e.target.value)}><option value="paid">Paid</option><option value="pending">Pending</option><option value="overdue">Overdue</option></select></div>
           </div>
-          <div className="input-wrap"><label className="input-label">Fees Amount (₹)</label><input type="number" min="0" className="input-field" value={f.fees_amount} onChange={e=>set('fees_amount', e.target.value)} placeholder="e.g. 1200"/></div>
+          
           <div className="input-wrap"><label className="input-label">Notes</label><input className="input-field" placeholder="Optional notes" value={f.notes} onChange={e=>set('notes',e.target.value)}/></div>
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" style={{ flex:1, justifyContent:'center' }} onClick={onClose}>Cancel</button>

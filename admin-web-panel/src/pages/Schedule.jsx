@@ -107,7 +107,12 @@ export default function Schedule() {
           </div>
           {loading ? <div style={{ height:'200px', display:'flex', alignItems:'center', justifyContent:'center' }}><div className="spinner spinner-light" style={{ width:'28px', height:'28px' }}/></div> : (
             <div className="schedule-grid">
-              {schedule.map(row => (
+              {schedule.map(row => {
+                const status = row.is_open ? 'Open' : 'Closed';
+                const color = row.is_open ? 'var(--badge-green-text)' : 'var(--badge-red-text)';
+                const bg = row.is_open ? 'var(--badge-green)' : 'var(--badge-red)';
+                const border = row.is_open ? 'var(--badge-green-border)' : 'var(--badge-red-border)';
+                return (
                 <div key={row.day_of_week} className="schedule-row" style={{ opacity: saving === row.day_of_week ? 0.6 : 1 }}>
                   <span className="day-label">{DAY_LABELS[row.day_of_week]}</span>
                   <label className="toggle-switch">
@@ -117,11 +122,11 @@ export default function Schedule() {
                   <div style={{ fontSize:'0.78rem', color:'var(--text-2)' }}>
                     {row.is_open ? 'Open day' : 'Closed day'}
                   </div>
-                  <span className={`badge ${row.is_open ? 'badge-green' : 'badge-red'}`}>
-                    <span className="badge-dot"/>{row.is_open ? 'Open' : 'Closed'}
+                  <span className="badge" style={{ background: bg, color, border: `1px solid ${border}` }}>
+                    <span className="badge-dot" style={{ background: color }} />{status}
                   </span>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>
@@ -137,8 +142,6 @@ export default function Schedule() {
               const row = batches[slot];
               return (
                 <div key={slot} className="card" style={{ 
-                  background: 'rgba(255,255,255,0.02)', 
-                  border: '1px solid var(--glass-border)',
                   opacity: saving === `batch-${slot}` ? 0.6 : 1,
                   padding: '20px'
                 }}>

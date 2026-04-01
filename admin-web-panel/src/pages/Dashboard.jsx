@@ -61,12 +61,9 @@ export default function Dashboard() {
         {/* Gym status banner (Control Center) */}
         <div className={`card fade-up-1`} style={{
           marginBottom:'24px',
-          borderColor: gymOpen ? 'rgba(76, 175, 80, 0.2)' : 'rgba(238, 125, 119, 0.2)',
-          background: '#1A1A1A',
+          borderColor: gymOpen ? 'var(--badge-green-border, rgba(76, 175, 80, 0.2))' : 'var(--badge-red-border, rgba(238, 125, 119, 0.2))',
           display:'flex', alignItems:'center', justifyContent:'space-between',
           padding:'18px 24px',
-          borderRadius:'12px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
         }}>
           <div style={{ display:'flex', alignItems:'center', gap:'20px' }}>
             <div style={{ 
@@ -129,7 +126,15 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis dataKey="day" tick={{ fill:'var(--text-3)', fontSize:11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill:'var(--text-3)', fontSize:11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background:'rgba(10,10,20,0.9)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'10px', color:'#fff' }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    background:'var(--bg2)', 
+                    border:'1px solid var(--glass-border-2)', 
+                    borderRadius:'10px', 
+                    color:'var(--text-1)' 
+                  }} 
+                  itemStyle={{ color: 'var(--text-1)' }}
+                />
                 <Area type="monotone" dataKey="scans" stroke="var(--primary)" strokeWidth={3} fill="url(#primaryGrad)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -144,9 +149,9 @@ export default function Dashboard() {
             ].map(({ label, sub, color, path, emoji }) => (
               <div key={path} className="card fade-up-4"
                 onClick={() => nav(path)}
-                style={{ cursor:'pointer', borderLeft:`3px solid ${color}`, transition:'transform 0.2s, box-shadow 0.2s' }}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateX(4px)'; e.currentTarget.style.boxShadow='var(--shadow)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform='translateX(0)'; e.currentTarget.style.boxShadow='none'; }}
+                style={{ cursor:'pointer', borderLeft:`3px solid ${color}` }}
+                onMouseEnter={e => { e.currentTarget.style.transform='translateX(4px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform='translateX(0)'; }}
               >
                 <div style={{ display:'flex', alignItems:'center', gap:'14px' }}>
                   <div style={{ fontSize:'24px' }}>{emoji}</div>

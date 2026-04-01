@@ -93,13 +93,17 @@ export default function Settings() {
               { label:'Security', value:'RLS Policies Active', status:'Enforced', color:'var(--primary)' },
               { label:'Daily CRON', value:'Inactivity cleanup at 02:00 IST', status:'Scheduled', color:'var(--blue)' },
             ].map(({ label, value, status, color }) => (
-              <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+              <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0', borderBottom:'1px solid var(--border-color)' }}>
                 <div>
                   <div style={{ fontWeight:'500', fontSize:'0.875rem' }}>{label}</div>
                   <div style={{ fontSize:'0.75rem', color:'var(--text-3)', marginTop:'2px' }}>{value}</div>
                 </div>
-                <span className="badge" style={{ background: color === 'var(--primary)' ? 'rgba(229, 57, 53, 0.1)' : 'rgba(96,165,250,0.1)', color, border:`1px solid ${color}33` }}>
-                  <span className="badge-dot" />{status}
+                <span className="badge" style={{ 
+                  background: color === 'var(--primary)' ? 'var(--badge-red)' : 'rgba(96,165,250,0.1)', 
+                  color: color === 'var(--primary)' ? 'var(--badge-red-text)' : color, 
+                  border:`1px solid ${color === 'var(--primary)' ? 'var(--badge-red-border)' : 'rgba(96,165,250,0.2)'}` 
+                }}>
+                  <span className="badge-dot" style={{ background: color === 'var(--primary)' ? 'var(--badge-red-text)' : color }} />{status}
                 </span>
               </div>
             ))}

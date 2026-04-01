@@ -121,7 +121,7 @@ export default function Reports() {
               </button>
             </div>
           </div>
-          <div className="card fade-up-2" style={{ display:'flex', flexDirection:'column', justifyContent:'center', border:'1px solid var(--glass-border)' }}>
+          <div className="card fade-up-2" style={{ display:'flex', flexDirection:'column', justifyContent:'center' }}>
              <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'16px' }}>
                <div style={{ padding:'10px', borderRadius:'10px', background:'var(--primary-dim)' }}>
                  <FileBarChart size={20} style={{ color:'var(--primary)' }}/>

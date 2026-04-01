@@ -17,7 +17,13 @@ export default function Login() {
     e.preventDefault();
     setError('');
     const res = await login(phone, pass);
-    if (res.ok) nav('/dashboard', { replace: true });
+    if (res.ok) {
+        // We can't use 'res.data.user' here because 'login' returns {ok:true}
+        // But the 'user' state in AuthContext is updated. 
+        // We'll trust the App.jsx ProtectedLayout to handle redirection, 
+        // but for immediate benefit we reload or nav to root.
+        nav('/', { replace: true });
+    }
     else setError(res.message || 'Invalid credentials');
   };
 

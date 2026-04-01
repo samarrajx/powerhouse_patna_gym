@@ -283,6 +283,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text('WELCOME BACK,', style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
             const SizedBox(height: 4),

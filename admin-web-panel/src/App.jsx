@@ -13,6 +13,10 @@ import Schedule from './pages/Schedule';
 import InactiveUsers from './pages/InactiveUsers';
 import Reports from './pages/Reports';
 import TemplateManager from './pages/TemplateManager';
+import UserHome from './pages/UserHome';
+import UserScanner from './pages/UserScanner';
+import UserHistory from './pages/UserHistory';
+import UserLayout from './components/UserLayout';
 import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare, Menu, Bell } from 'lucide-react';
 import { SidebarProvider, useSidebar } from './SidebarContext';
 import Logo from './components/Logo';
@@ -108,6 +112,21 @@ function ProtectedLayout() {
     </div>
   );
   if (!user) return <Navigate to="/login" replace/>;
+
+  if (user.role === 'user') {
+    return (
+      <Routes>
+        <Route element={<UserLayout />}>
+          <Route path="/user/home" element={<UserHome />} />
+          <Route path="/user/scan" element={<UserScanner />} />
+          <Route path="/user/history" element={<UserHistory />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/user/home" replace />} />
+        </Route>
+      </Routes>
+    );
+  }
+
   return (
     <div className="admin-shell">
         <Sidebar/>
@@ -139,7 +158,7 @@ function AppRoutes() {
   if (loading) return null;
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/dashboard" replace/> : <Login/>}/>
+      <Route path="/login" element={user ? (user.role === 'user' ? <Navigate to="/user/home" replace/> : <Navigate to="/dashboard" replace/> )  : <Login/>}/>
       <Route path="/*"     element={<ProtectedLayout/>}/>
     </Routes>
   );

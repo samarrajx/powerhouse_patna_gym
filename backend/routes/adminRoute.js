@@ -81,7 +81,7 @@ router.get('/users', authMiddleware(['admin']), async (req, res) => {
 
   let q = supabase
     .from('users')
-    .select('id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,fees_amount,status,role,is_frozen,freeze_start_date,must_change_password,created_at', { count: 'exact' })
+    .select('id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,is_frozen,freeze_start_date,must_change_password,created_at', { count: 'exact' })
     .order('created_at', { ascending: false });
 
   if (!all) q = q.range(from, to);
@@ -89,7 +89,7 @@ router.get('/users', authMiddleware(['admin']), async (req, res) => {
   if (search) q = q.or(`name.ilike.%${search}%,phone.ilike.%${search}%,roll_no.ilike.%${search}%`);
 
   let { data, error, count } = await q;
-  if (error && (hasMissingColumn(error, 'fees_amount') || hasMissingColumn(error, 'is_frozen') || hasMissingColumn(error, 'freeze_start_date'))) {
+  if (error && (hasMissingColumn(error, 'is_frozen') || hasMissingColumn(error, 'freeze_start_date'))) {
     let fallbackQ = supabase
       .from('users')
       .select('id,name,phone,phone_alt,roll_no,address,father_name,date_of_joining,body_type,batch_id,membership_plan,membership_expiry,fees_status,status,role,must_change_password,created_at', { count: 'exact' })
@@ -100,7 +100,7 @@ router.get('/users', authMiddleware(['admin']), async (req, res) => {
     if (search) fallbackQ = fallbackQ.or(`name.ilike.%${search}%,phone.ilike.%${search}%,roll_no.ilike.%${search}%`);
 
     ({ data, error, count } = await fallbackQ);
-    data = (data || []).map((u) => ({ ...u, is_frozen: false, freeze_start_date: null, fees_amount: 0 }));
+    data = (data || []).map((u) => ({ ...u, is_frozen: false, freeze_start_date: null }));
   }
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
   res.json({ success: true, message: 'Users fetched', data: data || [], total_count: count || 0, page, limit, error_code: null });
@@ -111,7 +111,7 @@ router.post('/users/onboard', authMiddleware(['admin']), async (req, res) => {
   const {
     name, phone, phone_alt, password = 'samgym',
     roll_no, address, father_name, date_of_joining, body_type,
-    batch_id, membership_plan, membership_expiry, fees_status, fees_amount, notes,
+    batch_id, membership_plan, membership_expiry, fees_status, notes,
   } = req.body;
 
   if (!name || !phone) return res.status(400).json({ success: false, message: 'Name and phone required', error_code: 'MISSING_FIELDS' });
@@ -120,7 +120,7 @@ router.post('/users/onboard', authMiddleware(['admin']), async (req, res) => {
   const { data, error } = await supabase.from('users').insert([{
     name, phone, phone_alt, password_hash, roll_no, address, father_name,
     date_of_joining, body_type, batch_id, membership_plan, membership_expiry,
-    fees_status: fees_status || 'paid', fees_amount: fees_amount ? Number(fees_amount) : 0, notes, must_change_password: true,
+    fees_status: fees_status || 'paid', notes, must_change_password: true,
   }]).select().single();
 
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'CREATE_ERROR' });
@@ -134,7 +134,7 @@ router.put('/users/:id', authMiddleware(['admin']), async (req, res) => {
   const { id } = req.params;
   const {
     name, phone, phone_alt, roll_no, address, father_name, date_of_joining, body_type,
-    batch_id, membership_plan, membership_expiry, fees_status, fees_amount, notes, role
+    batch_id, membership_plan, membership_expiry, fees_status, notes, role
   } = req.body;
 
   if (role && id === req.user.userId) {
@@ -144,7 +144,7 @@ router.put('/users/:id', authMiddleware(['admin']), async (req, res) => {
   const updateFields = {
     name, phone, phone_alt, roll_no, address, father_name,
     date_of_joining, body_type, batch_id, membership_plan, membership_expiry,
-    fees_status, fees_amount, notes
+    fees_status, notes
   };
   if (role) updateFields.role = role;
 
@@ -198,7 +198,7 @@ router.post('/users/bulk', authMiddleware(['admin']), upload.single('file'), asy
     father_name: r.father_name || null, date_of_joining: r.date_of_joining || null,
     body_type: r.body_type || null, membership_plan: r.membership_plan || 'Standard',
     membership_expiry: r.membership_expiry || null,
-    fees_status: r.fees_status || 'paid', fees_amount: r.fees_amount ? Number(r.fees_amount) : 0, must_change_password: true,
+    fees_status: r.fees_status || 'paid', must_change_password: true,
   }));
 
   if (allRows.length) {
@@ -311,13 +311,13 @@ router.get('/reports/attendance', authMiddleware(['admin']), async (req, res) =>
 router.get('/reports/revenue', authMiddleware(['admin']), async (req, res) => {
   const { data, error } = await supabase
     .from('users')
-    .select('fees_status,fees_amount,role')
+    .select('fees_status,role')
     .neq('role', 'admin');
 
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
 
   const summary = (data || []).reduce((acc, user) => {
-    const amount = Number(user.fees_amount || 0);
+    const amount = 0; // fees_amount missing in DB
     if (user.fees_status === 'paid') acc.collected += amount;
     if (['pending', 'overdue'].includes(user.fees_status)) acc.outstanding += amount;
     return acc;

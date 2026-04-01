@@ -23,7 +23,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
   DateTime _dateOfJoining = DateTime.now();
   DateTime _membershipExpiry = DateTime.now().add(const Duration(days: 30));
   
-  String _membershipPlan = 'Monthly';
+  String _membershipPlan = 'Standard';
   String _bodyType = 'normal';
   String? _selectedBatchId;
   String _feesStatus = 'paid';
@@ -99,6 +99,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
         'membership_expiry': DateFormat('yyyy-MM-dd').format(_membershipExpiry),
         'fees_status': _feesStatus,
         'notes': _notesController.text.isEmpty ? null : _notesController.text,
+        'password': 'samgym',
       });
 
       if (mounted) {
@@ -167,9 +168,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildDropdown('PLAN', _membershipPlan, ['Monthly', 'Quarterly', 'Semi-Annual', 'Annual'], (v) => setState(() => _membershipPlan = v!))),
+                   Expanded(child: _buildDropdown('PLAN', _membershipPlan, ['Standard', 'Monthly', 'Quarterly', 'Semi-Annual', 'Annual'], (v) => setState(() => _membershipPlan = v!))),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildDropdown('FEES STATUS', _feesStatus, ['paid', 'pending'], (v) => setState(() => _feesStatus = v!))),
+                   Expanded(child: _buildDropdown('FEES STATUS', _feesStatus, ['paid', 'pending', 'overdue'], (v) => setState(() => _feesStatus = v!))),
                 ],
               ),
               

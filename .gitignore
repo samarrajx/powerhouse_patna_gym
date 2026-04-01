@@ -16,3 +16,8 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Firebase Credentials
+backend/config/*.json
+mobile/powerhouse_app/android/app/google-services.json
+mobile/powerhouse_app/ios/Runner/GoogleService-Info.plist

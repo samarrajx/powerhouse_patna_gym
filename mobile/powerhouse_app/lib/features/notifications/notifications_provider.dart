@@ -1,5 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../features/auth/auth_provider.dart';
 import '../../core/api_service.dart';
 
 class NotificationModel {
@@ -56,7 +58,12 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
 
   Future<List<NotificationModel>> _fetch() async {
     final prefs = await SharedPreferences.getInstance();
-    final readIds = prefs.getStringList(_readKey) ?? [];
+    // Get current user id from authProvider
+    final authState = ref.read(authProvider);
+    final userId = authState.user?['id'] ?? 'global';
+    final userReadKey = '${_readKey}_$userId';
+    
+    final readIds = prefs.getStringList(userReadKey) ?? [];
     
     final res = await ApiService.get('/notifications');
     if (res['success'] == true) {
@@ -77,11 +84,15 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
   Future<void> markAsRead(String id) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final readIds = prefs.getStringList(_readKey) ?? [];
+      final authState = ref.read(authProvider);
+      final userId = authState.user?['id'] ?? 'global';
+      final userReadKey = '${_readKey}_$userId';
+      
+      final readIds = prefs.getStringList(userReadKey) ?? [];
       
       if (!readIds.contains(id)) {
         readIds.add(id);
-        await prefs.setStringList(_readKey, readIds);
+        await prefs.setStringList(userReadKey, readIds);
       }
 
       // If it's a real notification (UUID), try to sync with backend

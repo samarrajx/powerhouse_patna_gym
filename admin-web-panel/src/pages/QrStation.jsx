@@ -72,7 +72,7 @@ export default function QrStation() {
             </div>
 
             {/* QR frame */}
-            <div className={`qr-frame ${qr ? 'active' : ''}`} style={{ minHeight:'280px', background:'white', padding:'30px', display:'flex', justifyContent:'center', alignItems:'center', borderRadius:'16px' }}>
+            <div className={`qr-frame ${qr ? 'active' : ''}`} style={{ minHeight:'280px', background:'var(--text-1)', padding:'30px', display:'flex', justifyContent:'center', alignItems:'center', borderRadius:'16px', boxShadow:'inset 0 0 40px rgba(0,0,0,0.2)' }}>
               {isClosed ? (
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'12px', color:'#999' }}>
                    <Zap size={40} style={{ opacity:0.3 }} />

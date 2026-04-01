@@ -1,6 +1,7 @@
 const express = require('express');
 const supabase = require('../db/supabase');
 const authMiddleware = require('../middleware/auth');
+const { sendGlobalPush } = require('../utils/fcm');
 
 const router = express.Router();
 const SLOT_FALLBACKS = {
@@ -40,6 +41,9 @@ router.put('/weekly/:day', authMiddleware(['admin']), async (req, res) => {
     user_id: null
   }]);
 
+  // Push notification
+  await sendGlobalPush('SCHEDULE UPDATE', `${normalizedDay} schedule updated. The gym is now ${is_open ? 'OPEN' : 'CLOSED'}.`);
+
   res.json({ success: true, message: `${normalizedDay} schedule updated`, data, error_code: null });
 });
 
@@ -66,6 +70,9 @@ router.post('/holidays', authMiddleware(['admin']), async (req, res) => {
     type: 'holiday',
     user_id: null
   }]);
+
+  // Push notification
+  await sendGlobalPush('HOLIDAY ALERT', `Gym will be ${is_closed ? 'CLOSED' : 'OPEN'} on ${new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. Reason: ${reason}`);
 
   res.json({ success: true, message: 'Holiday added', data, error_code: null });
 });
@@ -143,6 +150,9 @@ router.put('/batches/:slot', authMiddleware(['admin']), async (req, res) => {
     type: 'timing',
     user_id: null
   }]);
+
+  // Push notification
+  await sendGlobalPush('TIMING UPDATE', `The ${slot.toUpperCase()} batch timings updated to ${start_time.slice(0, 5)} - ${end_time.slice(0, 5)}.`);
 
   res.json({
     success: true,

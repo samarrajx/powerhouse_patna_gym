@@ -15,11 +15,9 @@ class LeaderboardScreen extends ConsumerWidget {
     final state = ref.watch(leaderboardProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.bg(context),
       appBar: AppBar(
         title: const Text('LEADERBOARD'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: RefreshIndicator(
         onRefresh: () => ref.read(leaderboardProvider.notifier).refresh(),
@@ -29,18 +27,18 @@ class LeaderboardScreen extends ConsumerWidget {
           slivers: [
             // Top 3 Podium
             SliverToBoxAdapter(
-              child: _buildPodium(state.players.take(3).toList()),
+              child: _buildPodium(context, state.players.take(3).toList()),
             ),
 
             // Ranking List
             if (state.isLoading)
               const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: AppColors.primary)))
-            else if (state.players.length > 0) // Changed from > 3 to > 0 to include all players in the list
+            else if (state.players.isNotEmpty)
               SliverToBoxAdapter(
-                child: _buildList(state.players, state.userStats, ref),
+                child: _buildList(context, state.players, state.userStats, ref),
               )
             else if (state.players.isEmpty && !state.isLoading)
-              const SliverFillRemaining(child: Center(child: Text('No streaks yet! 🏋️', style: TextStyle(color: Colors.white70)))),
+              SliverFillRemaining(child: Center(child: Text('No streaks yet! 🏋️', style: TextStyle(color: AppColors.text3(context))))),
             
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
@@ -50,7 +48,7 @@ class LeaderboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPodium(List<dynamic> top3) {
+  Widget _buildPodium(BuildContext context, List<dynamic> top3) {
     if (top3.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -59,17 +57,17 @@ class LeaderboardScreen extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (top3.length > 1) _buildPodiumItem(top3[1], 2, 70),
+          if (top3.length > 1) _buildPodiumItem(context, top3[1], 2, 70),
           const SizedBox(width: 15),
-          if (top3.isNotEmpty) _buildPodiumItem(top3[0], 1, 90),
+          if (top3.isNotEmpty) _buildPodiumItem(context, top3[0], 1, 90),
           const SizedBox(width: 15),
-          if (top3.length > 2) _buildPodiumItem(top3[2], 3, 60),
+          if (top3.length > 2) _buildPodiumItem(context, top3[2], 3, 60),
         ],
       ),
     );
   }
 
-  Widget _buildPodiumItem(dynamic player, int rank, double height) {
+  Widget _buildPodiumItem(BuildContext context, dynamic player, int rank, double height) {
     final colors = [Colors.amber, Colors.grey, Colors.brown];
     final color = rank <= 3 ? colors[rank - 1] : Colors.blueAccent;
 
@@ -99,8 +97,8 @@ class LeaderboardScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          player['name'].toString().split(' ')[0],
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+          player['name'].toString().split(' ')[0].toUpperCase(),
+          style: TextStyle(color: AppColors.text1(context), fontWeight: FontWeight.w900, fontSize: 13),
         ),
         Container(
           margin: const EdgeInsets.only(top: 4),
@@ -112,12 +110,12 @@ class LeaderboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildList(List<dynamic> players, Map<String, dynamic>? userStats, WidgetRef ref) {
+  Widget _buildList(BuildContext context, List<dynamic> players, Map<String, dynamic>? userStats, WidgetRef ref) {
     final currentUserId = ref.watch(authProvider).user?['id'];
 
     return ListView.separated(
-      shrinkWrap: true, // Added shrinkWrap to allow ListView inside CustomScrollView
-      physics: const NeverScrollableScrollPhysics(), // Added NeverScrollableScrollPhysics to prevent nested scrolling
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppPadding.p16),
       itemCount: players.length,
       separatorBuilder: (_, __) => AppSpacing.s12,
@@ -127,7 +125,6 @@ class LeaderboardScreen extends ConsumerWidget {
         final rankNum = index + 1;
         final streak = player['current_streak'] ?? 0;
         
-        // Determine rank tier for color coding
         String rankTier = 'E';
         if (streak > 50) rankTier = 'S';
         else if (streak > 35) rankTier = 'A';
@@ -169,7 +166,7 @@ class LeaderboardScreen extends ConsumerWidget {
                     Row(
                       children: [
                         Text(
-                          player['name'] ?? 'MEMBER',
+                          (player['name'] ?? 'MEMBER').toString().toUpperCase(),
                           style: TextStyle(
                             fontWeight: isMe ? FontWeight.w900 : FontWeight.w700,
                             fontSize: 14,
@@ -228,9 +225,9 @@ class LeaderboardScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('YOUR RANKING', style: TextStyle(color: AppColors.text3(context), fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.5)),
+                Text('YOUR LOCAL RANK', style: TextStyle(color: AppColors.text3(context), fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.5)),
                 const SizedBox(height: 4),
-                Text('#${stats['rank']} WORLDWIDE', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                Text('#${stats['rank']} IN POWER HOUSE', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
               ],
             ),
             const Spacer(),

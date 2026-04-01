@@ -120,4 +120,26 @@ router.post('/change-password', authMiddleware(), async (req, res) => {
   res.json({ success: true, message: 'Password updated successfully', data: {}, error_code: null });
 });
 
+// POST /auth/device-token
+router.post('/device-token', authMiddleware(), async (req, res) => {
+  const { token, platform } = req.body;
+  if (!token) return res.status(400).json({ success: false, message: 'Token required' });
+
+  try {
+    const { error } = await supabase
+      .from('device_tokens')
+      .upsert({ 
+        user_id: req.user.userId, 
+        token, 
+        platform, 
+        updated_at: new Date() 
+      }, { onConflict: 'user_id, token' });
+
+    if (error) throw error;
+    res.json({ success: true, message: 'Token registered' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to register token' });
+  }
+});
+
 module.exports = router;
