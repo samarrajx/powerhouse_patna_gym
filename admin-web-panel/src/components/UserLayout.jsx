@@ -14,7 +14,9 @@ export default function UserLayout() {
     const fetchNotifs = async () => {
       try {
         const res = await api.get('/notifications');
-        const unread = res.data.filter(n => !n.is_read).length;
+        // Handle both object-style response and direct array response
+        const list = res?.data || (Array.isArray(res) ? res : []);
+        const unread = list.filter(n => !n.is_read).length;
         setUnreadCount(unread);
       } catch (e) {
         console.error('Failed to fetch notifications for badge');
