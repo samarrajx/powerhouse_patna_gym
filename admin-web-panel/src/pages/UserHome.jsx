@@ -4,8 +4,7 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { 
   TrendingUp, Award, Calendar, Zap, 
-  ChevronRight, ArrowRight, CheckCircle2, Clock,
-  Bell, MessageSquare
+  ChevronRight, ArrowRight, CheckCircle2, Clock
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip 
@@ -21,14 +20,12 @@ export default function UserHome() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [gRes, hRes, nRes] = await Promise.all([
+        const [gRes, hRes] = await Promise.all([
           api.get('/gym/status'),
-          api.get('/attendance/history'),
-          api.get('/notifications')
+          api.get('/attendance/history')
         ]);
         setGym(gRes.data);
         setHistory(hRes.data || []);
-        setNotifs(nRes.data || []);
       } catch (e) {
         toast.error('Failed to sync gym data');
       } finally {
@@ -176,35 +173,6 @@ export default function UserHome() {
            )}
         </div>
       )}
-
-      {/* 7. Latest Announcements */}
-      <section className="notifs-section">
-        <div className="section-header">
-           <h3 className="section-title">LATEST ANNOUNCEMENTS</h3>
-           <button className="view-all-btn" onClick={() => navigate('/user/notifications')}>
-              VIEW ALL
-           </button>
-        </div>
-        <div className="notif-list">
-          {notifs.length > 0 ? notifs.slice(0, 5).map((n) => (
-            <div key={n.id} className="notif-item">
-               <div className="notif-icon">
-                  {n.type === 'announcement' ? <MessageSquare size={16} /> : <Bell size={16} />}
-               </div>
-               <div className="notif-content">
-                  <h4>{n.title}</h4>
-                  <p>{n.message}</p>
-                  <span className="time">{new Date(n.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short' })}</span>
-               </div>
-            </div>
-          )) : (
-            <div className="empty-notifs">
-               <MessageSquare size={24} />
-               <p>No new announcements</p>
-            </div>
-          )}
-        </div>
-      </section>
 
       <style>{`
         .user-dashboard {
