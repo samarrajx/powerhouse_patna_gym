@@ -11,6 +11,7 @@ import 'features/dashboard/user_shell.dart';
 import 'features/dashboard/admin_shell.dart';
 import 'features/notifications/notifications_provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'core/notification_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -24,17 +25,8 @@ void main() async {
     await Firebase.initializeApp();
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // Setup High Importance Channel for Android
-    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'high_importance_channel',
-      'High Importance Notifications',
-      description: 'This channel is used for important notifications.',
-      importance: Importance.max,
-    );
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+    // Initialize Notification Service
+    await NotificationService.initialize();
 
   } catch (e) {
     print("Firebase initialization skipped or failed: $e");
