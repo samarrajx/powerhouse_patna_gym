@@ -7,6 +7,24 @@ import Logo from './Logo';
 export default function UserLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchNotifs = async () => {
+      try {
+        const res = await api.get('/notifications');
+        const unread = res.data.filter(n => !n.is_read).length;
+        setUnreadCount(unread);
+      } catch (e) {
+        console.error('Failed to fetch notifications for badge');
+      }
+    };
+
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 60000); // Poll every minute
+    return () => clearInterval(interval);
+  }, [user]);
 
   return (
     <div className="user-shell mobile-first">
@@ -17,7 +35,10 @@ export default function UserLayout() {
           <span className="brand-text">POWER HOUSE</span>
         </div>
         <div className="header-right">
-          <button className="icon-btn" title="Notifications"><Bell size={20} /></button>
+          <button className="icon-btn rel" onClick={() => navigate('/user/notifications')} title="Notifications">
+            <Bell size={20} />
+            {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+          </button>
           <button className="icon-btn logout" onClick={logout} title="Logout"><LogOut size={20} /></button>
         </div>
       </header>
@@ -80,6 +101,25 @@ export default function UserLayout() {
           padding: 8px; 
           border-radius: 10px; 
           cursor: pointer; 
+        }
+        .icon-btn.rel { position: relative; }
+        .notif-badge {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          background: var(--primary);
+          color: white;
+          font-size: 0.6rem;
+          font-weight: 900;
+          min-width: 16px;
+          height: 16px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 4px;
+          border: 2px solid var(--bg);
+          box-shadow: 0 0 10px var(--primary-glow);
         }
         .icon-btn.logout { color: var(--coral); }
         

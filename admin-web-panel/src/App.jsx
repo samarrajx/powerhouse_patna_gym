@@ -16,6 +16,7 @@ import TemplateManager from './pages/TemplateManager';
 import UserHome from './pages/UserHome';
 import UserScanner from './pages/UserScanner';
 import UserHistory from './pages/UserHistory';
+import UserNotifications from './pages/UserNotifications';
 import UserLayout from './components/UserLayout';
 import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare, Menu, Bell } from 'lucide-react';
 import { SidebarProvider, useSidebar } from './SidebarContext';
@@ -120,6 +121,7 @@ function ProtectedLayout() {
           <Route path="/user/home" element={<UserHome />} />
           <Route path="/user/scan" element={<UserScanner />} />
           <Route path="/user/history" element={<UserHistory />} />
+          <Route path="/user/notifications" element={<UserNotifications />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/user/home" replace />} />
         </Route>

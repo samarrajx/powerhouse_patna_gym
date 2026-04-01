@@ -181,7 +181,9 @@ export default function UserHome() {
       <section className="notifs-section">
         <div className="section-header">
            <h3 className="section-title">LATEST ANNOUNCEMENTS</h3>
-           <Bell size={16} className="title-icon" />
+           <button className="view-all-btn" onClick={() => navigate('/user/notifications')}>
+              VIEW ALL
+           </button>
         </div>
         <div className="notif-list">
           {notifs.length > 0 ? notifs.slice(0, 5).map((n) => (

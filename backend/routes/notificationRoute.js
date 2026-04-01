@@ -88,4 +88,20 @@ router.put('/:id/read', authMiddleware(['user', 'admin']), async (req, res) => {
   }
 });
 
+// PUT /api/notifications/read-all -> Mark all as read for current user
+router.put('/read-all', authMiddleware(['user', 'admin']), async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', req.user.userId)
+      .eq('is_read', false);
+
+    if (error) throw error;
+    res.json({ success: true, message: 'All notifications marked as read' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to mark all as read' });
+  }
+});
+
 module.exports = router;
