@@ -4,6 +4,7 @@ const { parse } = require('csv-parse/sync');
 const bcrypt = require('bcrypt');
 const supabase = require('../db/supabase');
 const authMiddleware = require('../middleware/auth');
+const { sendGlobalPush } = require('../utils/fcm');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -379,7 +380,14 @@ router.get('/announcements', authMiddleware(['admin']), async (req, res) => {
 router.post('/announcements', authMiddleware(['admin']), async (req, res) => {
   const { title, content, is_active } = req.body;
   const { data, error } = await supabase.from('announcements').insert([{ title, content, is_active }]).select().single();
+  
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'INSERT_ERROR' });
+
+  // Trigger Push Notification if active
+  if (is_active) {
+    sendGlobalPush(title || 'New Announcement', content || 'Check the app for details', { type: 'announcement', id: data.id.toString() });
+  }
+
   res.json({ success: true, message: 'Announcement created', data, error_code: null });
 });
 

@@ -5,12 +5,14 @@ const fs = require('fs');
 let fcmInitialized = false;
 
 try {
-  const serviceAccountPath = path.join(__dirname, '../config/firebase-service-account.json');
+  const serviceAccountPath = path.join(__dirname, '../config/firebase-service-account.json.json');
   if (fs.existsSync(serviceAccountPath)) {
-    const serviceAccount = require(serviceAccountPath);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+    }
     fcmInitialized = true;
     console.log('✅ FCM Initialized');
   } else {

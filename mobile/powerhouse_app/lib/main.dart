@@ -123,6 +123,10 @@ class _NotificationHandlerState extends ConsumerState<_NotificationHandler> {
     // Listen for foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (message.notification != null && mounted) {
+        // Show system-level local notification even in foreground
+        NotificationService.showNotification(message);
+
+        // Also show a snackbar for immediate feedback
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Column(
