@@ -170,8 +170,9 @@ export default function Members() {
   const downloadSample = () => {
     const headers = ['name','phone','phone_alt','roll_no','father_name','address','date_of_joining','body_type','membership_plan','membership_expiry','fees_status','notes'];
     const examples = [
-      ['Rahul Sharma','9876543210','9876543211','GYM001','Ramesh Sharma','12 MG Road, Delhi','2026-01-15','athletic','Gold','2027-01-15','paid','Morning batch preferred'],
-      ['Priya Singh','9123456780','','GYM002','Vijay Singh','45 Park Street, Mumbai','2026-02-01','slim','Standard','2026-08-01','paid',''],
+      ['Rahul Sharma','9876543210','9876543211','101','Ramesh Sharma','12 MG Road Patna','2026-01-15','normal','Standard','2027-01-15','paid','Morning batch preferred'],
+      ['Priya Singh','9123456780','','102','Vijay Singh','45 Park Colony Patna','2026-02-01','skinny','Monthly','2026-08-01','paid',''],
+      ['Amit Kumar','8765432109','','103','Suresh Kumar','88 Gandhi Nagar Patna','2026-03-01','fatty','Quarterly','2026-06-01','pending','Evening batch'],
     ];
     const csv = [headers, ...examples].map(row => row.map(v => `"${v}"`).join(',')).join('\n');
     const a = document.createElement('a');
