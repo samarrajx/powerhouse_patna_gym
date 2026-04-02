@@ -1,3 +1,7 @@
+const admin = require('firebase-admin');
+const path = require('path');
+const fs = require('fs');
+
 let fcmInitialized = false;
 let initError = null;
 
