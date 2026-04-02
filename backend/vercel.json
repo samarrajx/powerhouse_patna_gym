@@ -19,7 +19,7 @@
     },
     {
       "path": "/api/admin/notifications/membership-reminders",
-      "schedule": "0 4 * * *"
+      "schedule": "30 3 * * *"
     }
   ]
 }

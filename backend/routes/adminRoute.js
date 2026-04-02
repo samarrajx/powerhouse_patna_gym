@@ -449,17 +449,20 @@ router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, r
     const { data: schedule } = await supabase.from('weekly_schedule').select('*');
 
     const results = [];
-    const now = new Date();
+    
+    // Get current time in IST
+    const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
 
     for (const session of activeSessions) {
-      const timeIn = new Date(session.time_in);
-      const dayOfWeek = timeIn.toLocaleDateString('en-US', { weekday: 'lowercase' });
+      // Convert session time_in to IST for comparison
+      const timeIn = new Date(new Date(session.time_in).toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+      const dayOfWeek = new Intl.DateTimeFormat('en-US', { weekday: 'lowercase', timeZone: 'Asia/Kolkata' }).format(timeIn);
       
       let closingTimeStr = null;
       let reason = 'gym_close';
 
-      // Find matching batch for the check-in time
-      const timeInStr = timeIn.toTimeString().split(' ')[0]; // HH:MM:SS
+      // Find matching batch for the check-in time in IST
+      const timeInStr = timeIn.toLocaleTimeString('en-GB', { hour12: false, timeZone: 'Asia/Kolkata' });
       const matchingBatch = batches.find(b => timeInStr >= b.start_time && timeInStr <= b.end_time);
 
       if (matchingBatch) {
@@ -513,8 +516,9 @@ router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, r
  */
 router.get('/notifications/membership-reminders', authMiddleware(['admin']), async (req, res) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Get "today" in IST
+    const nowIST = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+    const today = new Date(nowIST.getFullYear(), nowIST.getMonth(), nowIST.getDate());
 
     const getTargetDate = (offset) => {
       const d = new Date(today);
