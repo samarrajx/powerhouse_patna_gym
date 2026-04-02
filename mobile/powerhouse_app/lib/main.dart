@@ -42,11 +42,6 @@ class PowerHouseApp extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final themeMode = ref.watch(themeProvider);
 
-    // Setup FCM when authenticated
-    if (authState.isAuthenticated) {
-      _setupFCM(ref);
-    }
-
     return MaterialApp(
       title: 'PH Gym',
       debugShowCheckedModeBanner: false,
@@ -58,36 +53,6 @@ class PowerHouseApp extends ConsumerWidget {
         return _NotificationHandler(child: child!);
       },
     );
-  }
-
-  Future<void> _setupFCM(WidgetRef ref) async {
-    try {
-      final messaging = FirebaseMessaging.instance;
-      
-      // Request permission
-      NotificationSettings settings = await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-      print('🔔 FCM Permission status: ${settings.authorizationStatus}');
-
-      // Get token
-      final token = await messaging.getToken();
-      if (token != null) {
-        print('🔔 FCM Device Token: $token');
-        await ApiService.post('/auth/device-token', {
-          'token': token,
-          'platform': Platform.isAndroid ? 'android' : 'ios',
-        });
-      }
-
-      // Subscribe to global topic
-      await messaging.subscribeToTopic('all_users');
-      print('🔔 FCM Subscribed to global topic: all_users');
-    } catch (e) {
-      print("❌ FCM Setup Error: $e");
-    }
   }
 
   Widget _getHome(AuthState authState) {
@@ -115,37 +80,59 @@ class _NotificationHandlerState extends ConsumerState<_NotificationHandler> {
   void initState() {
     super.initState();
     
+    // Listen for auth changes to trigger FCM registration
+    ref.listenManual(authProvider, (previous, next) {
+      if (next.isAuthenticated && !(previous?.isAuthenticated ?? false)) {
+        print("🔔 main: Auth detected, triggering FCM registration...");
+        _initFCM();
+      }
+    });
+
+    // Try initial check if already logged in (e.g. on hot restart)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initFCM();
+    });
+    
     // Listen for foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print("📩 main: Received FCM message in foreground: ${message.notification?.title}");
-      if (message.notification != null && mounted) {
+      print("📩 main: Received FCM message in foreground!");
+      print("📩 Data: ${message.data}");
+      
+      // Refresh the notifications list immediately
+      ref.read(notificationsProvider.notifier).fetchNotifications();
+      
+      if (message.notification != null) {
+        print("📩 Notification: ${message.notification!.title} - ${message.notification!.body}");
+        
         // Show system-level local notification even in foreground
         NotificationService.showNotification(message);
 
         // Also show a snackbar for immediate feedback
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(message.notification!.title ?? 'New Notification', 
-                     style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                Text(message.notification!.body ?? '', style: const TextStyle(color: Colors.white70)),
-              ],
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(message.notification!.title ?? 'New Notification', 
+                       style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text(message.notification!.body ?? '', style: const TextStyle(color: Colors.white70)),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.primary,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'VIEW',
+                textColor: Colors.white,
+                onPressed: () {
+                  ref.read(notificationsProvider.notifier).fetchNotifications();
+                },
+              ),
             ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: AppColors.primary,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'VIEW',
-              textColor: Colors.white,
-              onPressed: () {
-                ref.read(notificationsProvider.notifier).fetchNotifications();
-              },
-            ),
-          ),
-        );
+          );
+        }
       }
     });
 
@@ -153,6 +140,40 @@ class _NotificationHandlerState extends ConsumerState<_NotificationHandler> {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       ref.read(notificationsProvider.notifier).fetchNotifications();
     });
+  }
+
+  Future<void> _initFCM() async {
+    final authState = ref.read(authProvider);
+    if (!authState.isAuthenticated) return;
+
+    try {
+      final messaging = FirebaseMessaging.instance;
+      
+      // Request permission
+      NotificationSettings settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      print('🔔 FCM Permission status: ${settings.authorizationStatus}');
+
+      // Get token
+      final token = await messaging.getToken();
+      if (token != null) {
+        print('🔔 FCM Device Token: $token');
+        final response = await ApiService.post('/auth/device-token', {
+          'token': token,
+          'platform': Platform.isAndroid ? 'android' : 'ios',
+        });
+        print('🔔 FCM Registration API Response: ${response['success']}');
+      }
+
+      // Subscribe to global topic
+      await messaging.subscribeToTopic('all_users');
+      print('🔔 FCM Subscribed to global topic: all_users');
+    } catch (e) {
+      print("❌ FCM Setup Error: $e");
+    }
   }
 
   @override
