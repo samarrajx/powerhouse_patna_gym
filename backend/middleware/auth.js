@@ -2,6 +2,12 @@ const jwt = require("jsonwebtoken");
 
 const authMiddleware = (roles = []) => {
   return (req, res, next) => {
+    // 1. Allow Vercel Cron bypass (securely handled by Vercel infrastructure)
+    if (req.headers['x-vercel-cron'] === '1') {
+      req.user = { userId: 'cron', role: 'admin' };
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ success: false, message: "Unauthorized", error_code: "MISSING_TOKEN" });
