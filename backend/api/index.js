@@ -34,7 +34,18 @@ const getIstNow = () => {
 const app = express();
 
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] }));
+const ALLOWED_ORIGINS = [
+  'https://powerhouse-patna-gym.vercel.app',
+  'https://powerhouse-admin.vercel.app',
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Vercel cron, server-to-server)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(new Error('CORS: origin not allowed'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(apiLimiter);
 

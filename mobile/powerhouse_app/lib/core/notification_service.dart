@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -41,7 +42,7 @@ class NotificationService {
   }
 
   static Future<void> showNotification(RemoteMessage message) async {
-    print("🔔 NotificationService: Attempting to show notification: ${message.notification?.title}");
+    debugPrint("🔔 NotificationService: Attempting to show notification: ${message.notification?.title}");
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
 
@@ -64,12 +65,12 @@ class NotificationService {
           ),
           payload: message.data.toString(),
         );
-        print("✅ NotificationService: Notification displayed successfully");
+        debugPrint("✅ NotificationService: Notification displayed successfully");
       } catch (e) {
-        print("❌ NotificationService: Error showing local notification: $e");
+        debugPrint("❌ NotificationService: Error showing local notification: $e");
       }
     } else {
-      print("⚠️ NotificationService: Notification or Android details were null. Not showing.");
+      debugPrint("⚠️ NotificationService: Notification or Android details were null. Not showing.");
     }
   }
 }

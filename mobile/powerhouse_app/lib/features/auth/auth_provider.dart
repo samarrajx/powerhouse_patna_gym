@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api_service.dart';
 
@@ -138,12 +139,12 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final res = await ApiService.post('/auth/device-token', {'token': token});
       if (res['success'] == true) {
-        print('🔔 FCM Token registered with backend');
+        debugPrint('🔔 FCM Token registered with backend');
       } else {
-        print('⚠️ FCM Token registration failed: ${res['message']}');
+        debugPrint('⚠️ FCM Token registration failed: ${res["message"]}');
       }
     } catch (e) {
-      print('❌ FCM Token registration error: $e');
+      debugPrint('❌ FCM Token registration error: $e');
     }
   }
 }

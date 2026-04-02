@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -16,7 +17,7 @@ import 'core/notification_service.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  print("Handling a background message: ${message.messageId}");
+  debugPrint("Handling a background message: ${message.messageId}");
 }
 
 void main() async {
@@ -29,7 +30,7 @@ void main() async {
     await NotificationService.initialize();
 
   } catch (e) {
-    print("Firebase initialization skipped or failed: $e");
+    debugPrint("Firebase initialization skipped or failed: $e");
   }
   runApp(const ProviderScope(child: PowerHouseApp()));
 }
@@ -83,7 +84,7 @@ class _NotificationHandlerState extends ConsumerState<_NotificationHandler> {
     // Listen for auth changes to trigger FCM registration
     ref.listenManual(authProvider, (previous, next) {
       if (next.isAuthenticated && !(previous?.isAuthenticated ?? false)) {
-        print("🔔 main: Auth detected, triggering FCM registration...");
+        debugPrint("🔔 main: Auth detected, triggering FCM registration...");
         _initFCM();
       }
     });
@@ -95,14 +96,14 @@ class _NotificationHandlerState extends ConsumerState<_NotificationHandler> {
     
     // Listen for foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print("📩 main: Received FCM message in foreground!");
-      print("📩 Data: ${message.data}");
+      debugPrint("📩 main: Received FCM message in foreground!");
+      debugPrint("📩 Data: ${message.data}");
       
       // Refresh the notifications list immediately
       ref.read(notificationsProvider.notifier).fetchNotifications();
       
       if (message.notification != null) {
-        print("📩 Notification: ${message.notification!.title} - ${message.notification!.body}");
+        debugPrint("📩 Notification: ${message.notification!.title} - ${message.notification!.body}");
         
         // Show system-level local notification even in foreground
         NotificationService.showNotification(message);
@@ -164,9 +165,9 @@ class _NotificationHandlerState extends ConsumerState<_NotificationHandler> {
 
       // Subscribe to global topic
       await messaging.subscribeToTopic('all_users');
-      print('🔔 FCM Subscribed to global topic: all_users');
+      debugPrint('🔔 FCM Subscribed to global topic: all_users');
     } catch (e) {
-      print("❌ FCM Setup Error: $e");
+      debugPrint("❌ FCM Setup Error: $e");
     }
   }
 
