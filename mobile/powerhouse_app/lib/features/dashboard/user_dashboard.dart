@@ -355,29 +355,37 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
     final color = RankTheme.getRankColor(tier['rank']);
 
     return AppCard(
-      child: Row(
-        children: [
-          _buildStreakCircle(streak, color),
-          AppSpacing.s16,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen())),
+        borderRadius: BorderRadius.circular(AppRadius.r12),
+        child: Padding(
+          padding: const EdgeInsets.all(AppPadding.p16),
+          child: Row(
+            children: [
+              _buildStreakCircle(streak, color),
+              AppSpacing.s16,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(tier['name'].toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 2)),
-                    Text('RANK ${tier['rank']}', style: TextStyle(color: color.withOpacity(0.8), fontWeight: FontWeight.w900, fontSize: 11)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(tier['name'].toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 2)),
+                        Text('RANK ${tier['rank']}', style: TextStyle(color: color.withOpacity(0.8), fontWeight: FontWeight.w900, fontSize: 11)),
+                      ],
+                    ),
+                    AppSpacing.s12,
+                    _buildProgressBar(streak, tier['nextGoal'], color),
+                    AppSpacing.s8,
+                    Text('$streak DAYS IN A ROW', style: TextStyle(color: color.withOpacity(0.8), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
                   ],
                 ),
-                AppSpacing.s12,
-                _buildProgressBar(streak, tier['nextGoal'], color),
-                AppSpacing.s8,
-                Text('$streak DAYS IN A ROW', style: TextStyle(color: color.withOpacity(0.8), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
