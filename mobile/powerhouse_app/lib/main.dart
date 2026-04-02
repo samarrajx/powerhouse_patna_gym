@@ -28,20 +28,6 @@ void main() async {
     // Initialize Notification Service
     await NotificationService.initialize();
 
-    // TEST: Local notification 3 seconds after startup
-    Future.delayed(const Duration(seconds: 3), () async {
-      print("🛠️ TRIGGERING STARTUP LOCAL TEST...");
-      await NotificationService.showNotification(
-        const RemoteMessage(
-          notification: RemoteNotification(
-            title: 'System Tray Test 🛠️',
-            body: 'If you see this, the local notification tray is WORKING!',
-            android: AndroidNotification(smallIcon: '@mipmap/ic_launcher'),
-          ),
-        )
-      );
-    });
-
   } catch (e) {
     print("Firebase initialization skipped or failed: $e");
   }
