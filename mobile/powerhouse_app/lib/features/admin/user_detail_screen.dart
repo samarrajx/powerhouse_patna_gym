@@ -400,8 +400,14 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   Widget _buildDropdown(String label, String value, List<String> items, ValueChanged<String?>? onChanged) {
     return DropdownButtonFormField<String>(
       value: items.contains(value) ? value : null,
+      dropdownColor: AppColors.surf(context),
+      iconEnabledColor: AppColors.primary,
       decoration: InputDecoration(labelText: label),
-      items: items.map((p) => DropdownMenuItem(value: p, child: Text(p.toUpperCase(), style: const TextStyle(fontSize: 13)))).toList(),
+      style: TextStyle(color: AppColors.text1(context), fontSize: 13, fontWeight: FontWeight.w600),
+      items: items.map((p) => DropdownMenuItem(
+        value: p, 
+        child: Text(p.toUpperCase(), style: TextStyle(color: AppColors.text1(context)))
+      )).toList(),
       onChanged: onChanged,
     );
   }
@@ -409,9 +415,15 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   Widget _buildBatchDropdown() {
     return DropdownButtonFormField<String>(
       value: _batches.any((b) => b['id'] == _batchId) ? _batchId : null,
+      dropdownColor: AppColors.surf(context),
+      iconEnabledColor: AppColors.primary,
       decoration: const InputDecoration(labelText: 'ASSIGNED BATCH'),
-      hint: const Text('Select Batch'),
-      items: _batches.map((b) => DropdownMenuItem(value: b['id'] as String, child: Text((b['name'] ?? '???').toUpperCase(), style: const TextStyle(fontSize: 13)))).toList(),
+      style: TextStyle(color: AppColors.text1(context), fontSize: 13, fontWeight: FontWeight.w600),
+      hint: Text('Select Batch', style: TextStyle(color: AppColors.text3(context))),
+      items: _batches.map((b) => DropdownMenuItem(
+        value: b['id'] as String, 
+        child: Text((b['name'] ?? '???').toUpperCase(), style: TextStyle(color: AppColors.text1(context)))
+      )).toList(),
       onChanged: _isEditing ? (v) => setState(() => _batchId = v) : null,
     );
   }
