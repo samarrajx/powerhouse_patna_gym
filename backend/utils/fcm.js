@@ -119,4 +119,34 @@ async function sendToAll(title, body, data = {}) {
   }
 }
 
-module.exports = { sendGlobalPush, sendToDevices, sendToAll };
+/**
+ * Send push notification to a specific user (all their devices)
+ */
+async function sendToUser(userId, title, body, data = {}) {
+  if (!isInitialized()) {
+    console.warn('⚠️ FCM not initialized, skipping user push.');
+    return;
+  }
+
+  try {
+    const supabase = require('../db/supabase');
+    const { data: tokenRecords, error } = await supabase
+      .from('device_tokens')
+      .select('token')
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+    if (!tokenRecords || tokenRecords.length === 0) {
+      console.log(`ℹ️ No device tokens found for user: ${userId}`);
+      return;
+    }
+
+    const tokens = tokenRecords.map(r => r.token);
+    return await sendToDevices(tokens, title, body, data);
+  } catch (err) {
+    console.error(`❌ Failed to send to user ${userId}:`, err);
+    throw err;
+  }
+}
+
+module.exports = { sendGlobalPush, sendToDevices, sendToAll, sendToUser };

@@ -4,7 +4,7 @@ const { parse } = require('csv-parse/sync');
 const bcrypt = require('bcrypt');
 const supabase = require('../db/supabase');
 const authMiddleware = require('../middleware/auth');
-const { sendToAll } = require('../utils/fcm');
+const { sendToAll, sendToUser } = require('../utils/fcm');
 
 const { isInitialized, getError } = require('../db/firebase');
 const router = express.Router();
@@ -427,4 +427,86 @@ router.get('/batches', authMiddleware(['admin']), async (req, res) => {
 });
 
 
+
+/**
+ * Auto-checkout users who are past their batch time
+ */
+router.post('/attendance/auto-checkout', authMiddleware(['admin']), async (req, res) => {
+  try {
+    // 1. Get all active sessions
+    const { data: activeSessions, error: sessionError } = await supabase
+      .from('attendance')
+      .select('*, users(name, id, batch_id)')
+      .is('time_out', null);
+
+    if (sessionError) throw sessionError;
+    if (!activeSessions || activeSessions.length === 0) {
+      return res.json({ success: true, message: 'No active sessions found', count: 0 });
+    }
+
+    // 2. Get all batches and weekly schedule for lookup
+    const { data: batches } = await supabase.from('batches').select('*');
+    const { data: schedule } = await supabase.from('weekly_schedule').select('*');
+
+    const results = [];
+    const now = new Date();
+
+    for (const session of activeSessions) {
+      const timeIn = new Date(session.time_in);
+      const dayOfWeek = timeIn.toLocaleDateString('en-US', { weekday: 'lowercase' });
+      
+      let closingTimeStr = null;
+      let reason = 'gym_close';
+
+      // Find matching batch for the check-in time
+      const timeInStr = timeIn.toTimeString().split(' ')[0]; // HH:MM:SS
+      const matchingBatch = batches.find(b => timeInStr >= b.start_time && timeInStr <= b.end_time);
+
+      if (matchingBatch) {
+        closingTimeStr = matchingBatch.end_time;
+        reason = `batch_end_${matchingBatch.name}`;
+      } else {
+        // Fallback to gym global closing time
+        const daySchedule = schedule.find(s => s.day_of_week === dayOfWeek);
+        closingTimeStr = daySchedule ? daySchedule.close_time : '22:00:00';
+      }
+
+      // Construct the deadline Date object (same day as time_in)
+      const [hours, minutes, seconds] = closingTimeStr.split(':');
+      const deadline = new Date(timeIn);
+      deadline.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds), 0);
+
+      // Check if session should be closed (we allow a 5-minute grace period)
+      if (now.getTime() > deadline.getTime() + (5 * 60 * 1000)) {
+        // CLOSE SESSION
+        const { error: updateError } = await supabase
+          .from('attendance')
+          .update({ 
+            time_out: deadline.toISOString(),
+            updated_at: now.toISOString()
+          })
+          .eq('id', session.id);
+
+        if (!updateError) {
+          // Send Push Notification
+          await sendToUser(
+            session.user_id, 
+            'Session Auto-Checkout', 
+            `Your gym session has been auto-terminated at ${closingTimeStr}. Remember to check out next time!`,
+            { type: 'auto_checkout', session_id: session.id }
+          ).catch(e => console.error('Push failed for auto-checkout:', e));
+
+          results.push({ user: session.users.name, action: 'closed', reason });
+        }
+      }
+    }
+
+    res.json({ success: true, results, count: results.length });
+  } catch (error) {
+    console.error('❌ Auto-checkout error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;
+
