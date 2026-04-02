@@ -28,6 +28,20 @@ void main() async {
     // Initialize Notification Service
     await NotificationService.initialize();
 
+    // TEST: Local notification 3 seconds after startup
+    Future.delayed(const Duration(seconds: 3), () async {
+      print("🛠️ TRIGGERING STARTUP LOCAL TEST...");
+      await NotificationService.showNotification(
+        const RemoteMessage(
+          notification: RemoteNotification(
+            title: 'System Tray Test 🛠️',
+            body: 'If you see this, the local notification tray is WORKING!',
+            android: AndroidNotification(smallIcon: '@mipmap/ic_launcher'),
+          ),
+        )
+      );
+    });
+
   } catch (e) {
     print("Firebase initialization skipped or failed: $e");
   }
@@ -65,15 +79,17 @@ class PowerHouseApp extends ConsumerWidget {
       final messaging = FirebaseMessaging.instance;
       
       // Request permission
-      await messaging.requestPermission(
+      NotificationSettings settings = await messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
+      print('🔔 FCM Permission status: ${settings.authorizationStatus}');
 
       // Get token
       final token = await messaging.getToken();
       if (token != null) {
+        print('🔔 FCM Device Token: $token');
         await ApiService.post('/auth/device-token', {
           'token': token,
           'platform': Platform.isAndroid ? 'android' : 'ios',
@@ -82,8 +98,9 @@ class PowerHouseApp extends ConsumerWidget {
 
       // Subscribe to global topic
       await messaging.subscribeToTopic('all_users');
+      print('🔔 FCM Subscribed to global topic: all_users');
     } catch (e) {
-      debugPrint("FCM Setup Error: $e");
+      print("❌ FCM Setup Error: $e");
     }
   }
 
