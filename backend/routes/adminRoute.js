@@ -73,6 +73,25 @@ router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
 });
 
 
+// ─── Get next suggested roll number ──────────────────────────────────────────
+router.get('/users/next-roll-no', authMiddleware(['admin']), async (req, res) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('roll_no')
+    .not('roll_no', 'is', null);
+
+  if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
+
+  // Find the highest numeric roll_no and add 1
+  let maxRollNo = 0;
+  (data || []).forEach(u => {
+    const num = parseInt(u.roll_no, 10);
+    if (!isNaN(num) && num > maxRollNo) maxRollNo = num;
+  });
+
+  res.json({ success: true, data: { next_roll_no: String(maxRollNo + 1) }, error_code: null });
+});
+
 // ─── List all members ────────────────────────────────────────────────────────
 router.get('/users', authMiddleware(['admin']), async (req, res) => {
   const { status, search } = req.query;

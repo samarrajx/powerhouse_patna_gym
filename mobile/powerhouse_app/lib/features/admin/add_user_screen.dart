@@ -35,23 +35,29 @@ class _AddUserScreenState extends State<AddUserScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchBatches();
+    _fetchInitialData();
   }
 
-  Future<void> _fetchBatches() async {
+  Future<void> _fetchInitialData() async {
     setState(() => _isLoading = true);
     try {
-      final res = await ApiService.get('/admin/batches');
+      final results = await Future.wait([
+        ApiService.get('/admin/batches'),
+        ApiService.get('/admin/users/next-roll-no'),
+      ]);
       if (mounted) {
-        if (res['success'] == true) {
-          final List<dynamic> data = res['data'];
-          setState(() {
+        final batchRes = results[0];
+        final rollRes = results[1];
+        setState(() {
+          if (batchRes['success'] == true) {
+            final List<dynamic> data = batchRes['data'];
             _batches = data.map((e) => e as Map<String, dynamic>).toList();
-            if (_batches.isNotEmpty) {
-              _selectedBatchId = _batches.first['id'];
-            }
-          });
-        }
+            if (_batches.isNotEmpty) _selectedBatchId = _batches.first['id'];
+          }
+          if (rollRes['success'] == true) {
+            _rollNoController.text = rollRes['data']['next_roll_no'] ?? '';
+          }
+        });
       }
     } catch (_) {
     } finally {
@@ -178,7 +184,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
               const SizedBox(height: 32),
               _buildSectionLabel('ADDITIONAL DETAILS'),
               const SizedBox(height: 12),
-              _buildField('ROLL NO (OPTIONAL)', _rollNoController, Icons.numbers_outlined),
+              _buildField('ROLL NO (OPTIONAL)', _rollNoController, Icons.numbers_outlined, keyboardType: TextInputType.number),
               const SizedBox(height: 16),
               _buildField('ADDRESS', _addressController, Icons.home_outlined, maxLines: 2),
               const SizedBox(height: 16),
