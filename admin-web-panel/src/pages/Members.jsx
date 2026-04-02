@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { getNowIST, getTodayISTStr, formatIST, getDaysLeftIST } from '../utils/dateUtils';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { UserPlus, Search, RefreshCcw, X, Upload, Download, Edit2, Key, Shield, MessageCircle, CalendarCheck, Pause, Play } from 'lucide-react';
@@ -13,14 +14,14 @@ function MemberModal({ user, batches, onClose, onSave }) {
   const [f, setF] = useState(user ? {
     name: user.name||'', phone: user.phone||'', phone_alt: user.phone_alt||'', roll_no: user.roll_no||'',
     address: user.address||'', father_name: user.father_name||'',
-    date_of_joining: user.date_of_joining ? String(user.date_of_joining).split('T')[0] : new Date().toISOString().split('T')[0],
+    date_of_joining: user.date_of_joining ? String(user.date_of_joining).split('T')[0] : getTodayISTStr(),
     body_type: user.body_type||'normal', membership_plan: user.membership_plan||'Standard',
     batch_id: user.batch_id||(batches?.[0]?.id || ''),
     membership_expiry: user.membership_expiry ? String(user.membership_expiry).split('T')[0] : '',
     fees_status: user.fees_status||'paid', notes: user.notes||''
   } : { 
     name:'', phone:'', phone_alt:'', roll_no:'', address:'', father_name:'',
-    date_of_joining: new Date().toISOString().split('T')[0], body_type:'normal',
+    date_of_joining: getTodayISTStr(), body_type:'normal',
     batch_id: batches?.[0]?.id || '',
     membership_plan:'Standard', membership_expiry:'', fees_status:'paid', notes:'' 
   });
@@ -266,7 +267,7 @@ export default function Members() {
     if (!match) return false;
     if (filter === 'all') return true;
     if (filter === 'expired') {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayISTStr();
       return u.membership_expiry && u.membership_expiry < today;
     }
     if (filter === 'frozen') return u.is_frozen;

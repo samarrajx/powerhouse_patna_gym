@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getNowIST, getTodayISTStr, formatIST, getDaysLeftIST } from '../utils/dateUtils';
 import { useAuth } from '../AuthContext';
 import api from '../api';
 import toast from 'react-hot-toast';
@@ -72,7 +73,7 @@ export default function UserHome() {
   if (loading) return <div className="loader-box"><div className="spinner" /></div>;
 
   const expiry = user?.membership_expiry ? new Date(user.membership_expiry) : null;
-  const daysLeft = expiry ? Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24)) : 0;
+  const daysLeft = expiry ? getDaysLeftIST(expiry) : 0;
 
   return (
     <div className="user-dashboard fade-up">
@@ -162,7 +163,7 @@ export default function UserHome() {
       </div>
 
       {/* 6. Today's Attendance (if checked in) */}
-      {history[0]?.date === new Date().toISOString().split('T')[0] && (
+      {history[0]?.date === getTodayISTStr() && (
         <div className="today-log">
            <Clock size={16} />
            <span>Today: Checked in at {new Date(history[0].time_in).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>

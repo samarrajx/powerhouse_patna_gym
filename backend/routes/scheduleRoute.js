@@ -1,4 +1,5 @@
 const express = require('express');
+const { getNowIST, toIST } = require('../utils/dateUtils');
 const supabase = require('../db/supabase');
 const authMiddleware = require('../middleware/auth');
 const { sendGlobalPush } = require('../utils/fcm');
@@ -28,7 +29,7 @@ router.put('/weekly/:day', authMiddleware(['admin']), async (req, res) => {
   const { day } = req.params;
   const normalizedDay = `${day.slice(0, 1).toUpperCase()}${day.slice(1).toLowerCase()}`;
   const { is_open, open_time, close_time } = req.body;
-  const { data, error } = await supabase.from('weekly_schedule').update({ is_open, open_time, close_time, updated_at: new Date().toISOString() }).ilike('day_of_week', normalizedDay).select().single();
+  const { data, error } = await supabase.from('weekly_schedule').update({ is_open, open_time, close_time, updated_at: getNowIST().toISO() }).ilike('day_of_week', normalizedDay).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
   
   await supabase.from('audit_logs').insert([{ action: 'UPDATE_SCHEDULE', performed_by: req.user.userId, details: { day: normalizedDay, is_open, open_time, close_time } }]);
@@ -66,13 +67,13 @@ router.post('/holidays', authMiddleware(['admin']), async (req, res) => {
   // Trigger notification
   await supabase.from('notifications').insert([{
     title: 'NEW HOLIDAY / CLOSURE',
-    message: `The gym will be ${is_closed ? 'CLOSED' : 'OPEN'} on ${new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. Reason: ${reason}`,
+    message: `The gym will be ${is_closed ? 'CLOSED' : 'OPEN'} on ${toIST(date).setLocale('en-IN').toLocaleString({ day: 'numeric', month: 'short' })}. Reason: ${reason}`,
     type: 'holiday',
     user_id: null
   }]);
 
   // Push notification
-  await sendGlobalPush('HOLIDAY ALERT', `Gym will be ${is_closed ? 'CLOSED' : 'OPEN'} on ${new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. Reason: ${reason}`);
+  await sendGlobalPush('HOLIDAY ALERT', `Gym will be ${is_closed ? 'CLOSED' : 'OPEN'} on ${toIST(date).setLocale('en-IN').toLocaleString({ day: 'numeric', month: 'short' })}. Reason: ${reason}`);
 
   res.json({ success: true, message: 'Holiday added', data, error_code: null });
 });

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/app_theme.dart';
 import '../../core/api_service.dart';
+import '../../core/utils/date_utils.dart';
 
 class ManualAttendanceScreen extends ConsumerStatefulWidget {
   const ManualAttendanceScreen({super.key});
@@ -14,7 +15,7 @@ class ManualAttendanceScreen extends ConsumerStatefulWidget {
 class _ManualAttendanceScreenState extends ConsumerState<ManualAttendanceScreen> {
   List<dynamic> _users = [];
   Map<String, dynamic>? _selectedUser;
-  DateTime _date = DateTime.now();
+  DateTime _date = GymDateUtils.getNowIST();
   TimeOfDay? _timeIn;
   TimeOfDay? _timeOut;
   bool _loading = false;
@@ -50,7 +51,7 @@ class _ManualAttendanceScreenState extends ConsumerState<ManualAttendanceScreen>
 
   String? _buildTimeIso(TimeOfDay? t) {
     if (t == null) return null;
-    final now = DateTime.now();
+    final now = GymDateUtils.getNowIST();
     return DateTime(_date.year, _date.month, _date.day, t.hour, t.minute).toIso8601String();
   }
 
@@ -67,7 +68,7 @@ class _ManualAttendanceScreenState extends ConsumerState<ManualAttendanceScreen>
       setState(() => _loading = false);
       if (res['success'] == true) {
         _snack('Attendance record saved successfully');
-        setState(() { _selectedUser = null; _timeIn = null; _timeOut = null; _date = DateTime.now(); });
+        setState(() { _selectedUser = null; _timeIn = null; _timeOut = null; _date = GymDateUtils.getNowIST(); });
       } else {
         _snack(res['message'] ?? 'Failed to save record', isError: true);
       }
@@ -234,7 +235,7 @@ class _ManualAttendanceScreenState extends ConsumerState<ManualAttendanceScreen>
           context: context,
           initialDate: date,
           firstDate: DateTime(2024),
-          lastDate: DateTime.now(),
+          lastDate: GymDateUtils.getNowIST(),
         );
         if (d != null) onPick(d);
       },

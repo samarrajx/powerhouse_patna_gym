@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/app_theme.dart';
 import '../../core/api_service.dart';
+import '../../core/utils/date_utils.dart';
 
 class UserDetailScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -54,8 +55,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     _fatherNameController = TextEditingController(text: _userData['father_name']);
     _notesController = TextEditingController(text: _userData['notes']);
     
-    _dateOfJoining = DateTime.tryParse(_userData['date_of_joining'] ?? '') ?? DateTime.now();
-    _membershipExpiry = DateTime.tryParse(_userData['membership_expiry'] ?? '') ?? DateTime.now();
+    _dateOfJoining = DateTime.tryParse(_userData['date_of_joining'] ?? '') ?? GymDateUtils.getNowIST();
+    _membershipExpiry = DateTime.tryParse(_userData['membership_expiry'] ?? '') ?? GymDateUtils.getNowIST();
     
     _membershipPlan = _userData['membership_plan'] ?? 'Monthly';
     _bodyType = _userData['body_type'] ?? 'normal';

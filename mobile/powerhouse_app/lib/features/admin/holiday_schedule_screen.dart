@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_theme.dart';
 import '../../core/api_service.dart';
+import '../../core/utils/date_utils.dart';
 
 class HolidayScheduleScreen extends ConsumerStatefulWidget {
   const HolidayScheduleScreen({super.key});
@@ -59,9 +60,9 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
               onTap: () async {
                 final d = await showDatePicker(
                   context: ctx, 
-                  initialDate: DateTime.now(), 
-                  firstDate: DateTime.now().subtract(const Duration(days: 30)), 
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                  initialDate: GymDateUtils.getNowIST(), 
+                  firstDate: GymDateUtils.getNowIST().subtract(const Duration(days: 30)), 
+                  lastDate: GymDateUtils.getNowIST().add(const Duration(days: 365)),
                 );
                 if (d != null) setS(() => picked = d);
               },

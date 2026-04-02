@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import '../../core/utils/date_utils.dart';
 import '../../core/app_theme.dart';
 import '../../core/api_service.dart';
 import '../../core/ui/design_system.dart';
@@ -53,7 +54,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
 
   List<DailyActivity> _processWeeklyStats(List<dynamic> history) {
     final List<DailyActivity> stats = [];
-    final now = DateTime.now();
+    final now = GymDateUtils.getNowIST();
     
     // Generate last 7 days including today
     for (int i = 6; i >= 0; i--) {

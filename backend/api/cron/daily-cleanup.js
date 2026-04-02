@@ -1,11 +1,10 @@
 const supabase = require('../../db/supabase');
+const { getNowIST, getTodayISTStr } = require('../../utils/dateUtils');
 
 module.exports = async (req, res) => {
   try {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const cutoff30 = new Date();
-    cutoff30.setDate(cutoff30.getDate() - 30);
-    const cutoff30Iso = cutoff30.toISOString();
+    const todayStr = getTodayISTStr();
+    const cutoff30Iso = getNowIST().minus({ days: 30 }).toISO();
 
     let markedInactive = 0;
     let markedGrace = 0;

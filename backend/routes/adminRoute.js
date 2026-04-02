@@ -1,4 +1,5 @@
 const express = require('express');
+const { getNowIST, getTodayISTStr, getNowISTDate, toIST } = require('../utils/dateUtils');
 const multer = require('multer');
 const { parse } = require('csv-parse/sync');
 const bcrypt = require('bcrypt');
@@ -13,7 +14,7 @@ const hasMissingColumn = (err, column) => (err?.message || '').toLowerCase().inc
 
 // ─── Dashboard stats ────────────────────────────────────────────────────────
 router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayISTStr();
   
   // PROACTIVE SYNC: Update all active members whose membership has expired
   try {
@@ -27,7 +28,7 @@ router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
   // Calculate last 7 days
   const last7Days = [];
   for (let i = 6; i >= 0; i--) {
-    const d = new Date();
+    const d = getNowISTDate();
     d.setDate(d.getDate() - i);
     last7Days.push(d.toISOString().split('T')[0]);
   }
@@ -233,7 +234,7 @@ router.post('/users/:id/restore', authMiddleware(['admin']), async (req, res) =>
   const { id } = req.params;
   const { data: existing, error: fetchErr } = await supabase.from('users').select('id,membership_expiry').eq('id', id).single();
   if (fetchErr || !existing) return res.status(404).json({ success: false, message: 'User not found', error_code: 'NOT_FOUND' });
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayISTStr();
   if (existing.membership_expiry && existing.membership_expiry < today) {
     return res.status(400).json({ success: false, message: 'Cannot restore: membership has expired. Update expiry first.', error_code: 'EXPIRED_MEMBERSHIP' });
   }
@@ -246,7 +247,7 @@ router.post('/users/:id/restore', authMiddleware(['admin']), async (req, res) =>
 // ─── Freeze User ─────────────────────────────────────────────────────────────
 router.post('/users/:id/freeze', authMiddleware(['admin']), async (req, res) => {
   const { id } = req.params;
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayISTStr();
   const { data, error } = await supabase.from('users').update({ is_frozen: true, freeze_start_date: today }).eq('id', id).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'FREEZE_ERROR' });
   await supabase.from('audit_logs').insert([{ action: 'FREEZE_USER', performed_by: req.user.userId, target_user: id, details: { date: today } }]);
@@ -261,7 +262,7 @@ router.post('/users/:id/unfreeze', authMiddleware(['admin']), async (req, res) =
   if (!user.is_frozen || !user.freeze_start_date) return res.status(400).json({ success: false, message: 'User is not frozen' });
 
   const start = new Date(user.freeze_start_date);
-  const end = new Date();
+  const end = getNowISTDate();
   const diffTime = Math.abs(end - start);
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -281,7 +282,7 @@ router.post('/users/:id/unfreeze', authMiddleware(['admin']), async (req, res) =
 
 // ─── Today's attendance (admin) ──────────────────────────────────────────────
 router.get('/attendance/today', authMiddleware(['admin']), async (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayISTStr();
   const { data, error } = await supabase.from('attendance').select('*, users(name,phone,roll_no)').eq('date', today).order('time_in', { ascending: false });
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
   res.json({ success: true, message: "Today's attendance", data: data || [], error_code: null });
@@ -366,7 +367,7 @@ router.get('/templates', authMiddleware(['admin']), async (req, res) => {
 
 router.put('/templates/:id', authMiddleware(['admin']), async (req, res) => {
   const { message } = req.body;
-  const { data, error } = await supabase.from('templates').update({ message, updated_at: new Date() }).eq('id', req.params.id).select().single();
+  const { data, error } = await supabase.from('templates').update({ message, updated_at: getNowISTDate() }).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
   res.json({ success: true, message: 'Template updated', data, error_code: null });
 });
@@ -449,20 +450,17 @@ router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, r
     const { data: schedule } = await supabase.from('weekly_schedule').select('*');
 
     const results = [];
-    
-    // Get current time in IST
-    const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+    const now = getNowIST();
 
     for (const session of activeSessions) {
-      // Convert session time_in to IST for comparison
-      const timeIn = new Date(new Date(session.time_in).toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-      const dayOfWeek = new Intl.DateTimeFormat('en-US', { weekday: 'lowercase', timeZone: 'Asia/Kolkata' }).format(timeIn);
+      const timeIn = toIST(session.time_in);
+      const dayOfWeek = timeIn.setLocale('en-US').toFormat('cccc').toLowerCase();
       
       let closingTimeStr = null;
       let reason = 'gym_close';
 
       // Find matching batch for the check-in time in IST
-      const timeInStr = timeIn.toLocaleTimeString('en-GB', { hour12: false, timeZone: 'Asia/Kolkata' });
+      const timeInStr = timeIn.toFormat('HH:mm:ss');
       const matchingBatch = batches.find(b => timeInStr >= b.start_time && timeInStr <= b.end_time);
 
       if (matchingBatch) {
@@ -474,19 +472,18 @@ router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, r
         closingTimeStr = daySchedule ? daySchedule.close_time : '22:00:00';
       }
 
-      // Construct the deadline Date object (same day as time_in)
+      // Construct the deadline DateTime object in IST
       const [hours, minutes, seconds] = closingTimeStr.split(':');
-      const deadline = new Date(timeIn);
-      deadline.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds), 0);
+      const deadline = timeIn.set({ hour: parseInt(hours), minute: parseInt(minutes), second: parseInt(seconds), millisecond: 0 });
 
       // Check if session should be closed (we allow a 5-minute grace period)
-      if (now.getTime() > deadline.getTime() + (5 * 60 * 1000)) {
+      if (now.toMillis() > deadline.toMillis() + (5 * 60 * 1000)) {
         // CLOSE SESSION
         const { error: updateError } = await supabase
           .from('attendance')
           .update({ 
-            time_out: deadline.toISOString(),
-            updated_at: now.toISOString()
+            time_out: deadline.toISO(),
+            updated_at: now.toISO()
           })
           .eq('id', session.id);
 
@@ -517,13 +514,11 @@ router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, r
 router.get('/notifications/membership-reminders', authMiddleware(['admin']), async (req, res) => {
   try {
     // Get "today" in IST
-    const nowIST = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-    const today = new Date(nowIST.getFullYear(), nowIST.getMonth(), nowIST.getDate());
+    const nowIST = getNowIST();
+    const today = nowIST.startOf('day');
 
     const getTargetDate = (offset) => {
-      const d = new Date(today);
-      d.setDate(d.getDate() + offset);
-      return d.toISOString().split('T')[0];
+      return today.plus({ days: offset }).toISODate();
     };
 
     const target5 = getTargetDate(5);
@@ -539,7 +534,7 @@ router.get('/notifications/membership-reminders', authMiddleware(['admin']), asy
     if (reminderError) throw reminderError;
 
     for (const user of reminderUsers) {
-      const daysLeft = Math.round((new Date(user.membership_expiry) - today) / (1000 * 60 * 60 * 24));
+      const daysLeft = Math.round(toIST(user.membership_expiry).diff(today, 'days').days);
       let message = "";
       
       if (daysLeft === 5) message = "Your membership expires in 5 days! Plan ahead to keep your streak going. 💪";
@@ -556,7 +551,7 @@ router.get('/notifications/membership-reminders', authMiddleware(['admin']), asy
     const { data: overdueUsers, error: overdueError } = await supabase
       .from('users')
       .select('id, name, membership_expiry')
-      .lt('membership_expiry', today.toISOString().split('T')[0])
+      .lt('membership_expiry', today.toISODate())
       .eq('status', 'active'); // Only notify active users who forgot to renew
 
     if (overdueError) throw overdueError;

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { RefreshCcw, Clock, Plus } from 'lucide-react';
 import AttendanceModal from '../components/AttendanceModal';
 import { Topbar } from '../components/Topbar';
+import { formatIST } from '../utils/dateUtils';
 import { fmtIST } from '../utils/time';
 
 export default function Attendance() {
@@ -24,7 +25,7 @@ export default function Attendance() {
 
   return (
     <>
-      <Topbar title="Attendance" sub={`Today — ${new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long' })} (IST)`} />
+      <Topbar title="Attendance" sub={`Today — ${formatIST(new Date())} (IST)`} />
       <div className="page-body">
         {showModal && (
           <AttendanceModal 

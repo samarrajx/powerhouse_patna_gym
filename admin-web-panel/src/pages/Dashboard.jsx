@@ -9,6 +9,7 @@ import {
 import { Users, TrendingUp, UserX, Timer, RefreshCcw, Menu } from 'lucide-react';
 import { useSidebar } from '../SidebarContext';
 import { Topbar } from '../components/Topbar';
+import { formatIST } from '../utils/dateUtils';
 
 // Removed MOCK_CHART as we now use real backend data
 
@@ -55,7 +56,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <Topbar title="Command Center" sub={`Today — ${new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long' })}`} />
+      <Topbar title="Command Center" sub={`Today — ${formatIST(new Date())}`} />
       <div className="page-body">
 
         {/* Gym status banner (Control Center) */}

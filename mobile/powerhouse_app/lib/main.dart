@@ -155,17 +155,11 @@ class _NotificationHandlerState extends ConsumerState<_NotificationHandler> {
         badge: true,
         sound: true,
       );
-      print('🔔 FCM Permission status: ${settings.authorizationStatus}');
 
       // Get token
       final token = await messaging.getToken();
       if (token != null) {
-        print('🔔 FCM Device Token: $token');
-        final response = await ApiService.post('/auth/device-token', {
-          'token': token,
-          'platform': Platform.isAndroid ? 'android' : 'ios',
-        });
-        print('🔔 FCM Registration API Response: ${response['success']}');
+        await ref.read(authProvider.notifier).registerDeviceToken(token);
       }
 
       // Subscribe to global topic

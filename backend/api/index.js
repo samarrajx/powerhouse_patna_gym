@@ -14,7 +14,8 @@ const userRoute = require('../routes/userRoute');
 const IST_TZ = 'Asia/Kolkata';
 
 const getIstNow = () => {
-  const now = new Date();
+  const { getNowISTDate } = require('./utils/dateUtils');
+  const now = getNowISTDate();
   const day = now
     .toLocaleDateString('en-US', { weekday: 'long', timeZone: IST_TZ })
     .toLowerCase();
@@ -119,7 +120,7 @@ app.get('/api/health', (req, res) =>
   res.json({
     success: true,
     message: 'Power House API running',
-    timestamp: new Date().toISOString(),
+    timestamp: getNowIST().toISO(),
   })
 );
 

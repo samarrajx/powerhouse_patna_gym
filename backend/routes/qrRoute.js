@@ -6,23 +6,20 @@ const authMiddleware = require('../middleware/auth');
 const router = express.Router();
 const IST_TZ = 'Asia/Kolkata';
 
+const { getNowIST, getTodayISTStr } = require('../utils/dateUtils');
+
 const getIstNow = () => {
-  const now = new Date();
-  const day = now.toLocaleDateString('en-US', { weekday: 'long', timeZone: IST_TZ });
-  const date = new Intl.DateTimeFormat('en-CA', { timeZone: IST_TZ }).format(now);
-  const time = new Intl.DateTimeFormat('en-GB', {
-    timeZone: IST_TZ,
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).format(now);
-  return { now, day, date, time };
+  const now = getNowIST();
+  const day = now.setLocale('en-US').toFormat('cccc'); // Monday, Tuesday, etc.
+  const date = now.toISODate(); // YYYY-MM-DD
+  const time = now.toFormat('HH:mm:ss');
+  return { now: now.toJSDate(), day, date, time };
 };
 
 const dateFromIst = (dateStr) => {
   const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  const { DateTime } = require('luxon');
+  return DateTime.fromObject({ year: y, month: m, day: d }, { zone: 'Asia/Kolkata' }).toJSDate();
 };
 
 // ─── Helper: Check if Gym is Open ────────────────────────────────────────────
@@ -158,7 +155,7 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
     .select('*').eq('user_id', user_id).eq('date', today).single();
 
   let action = '';
-  const nowIso = now.toISOString();
+  const nowIso = getNowIST().toISO();
   let streakData = null;
 
   if (!existing) {

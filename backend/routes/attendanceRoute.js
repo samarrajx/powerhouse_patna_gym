@@ -6,7 +6,8 @@ const router = express.Router();
 
 // GET /attendance/today (for current user)
 router.get("/today", authMiddleware(["user","admin"]), async (req, res) => {
-  const today = new Date().toISOString().split("T")[0];
+  const { getTodayISTStr, getNowIST } = require('../utils/dateUtils');
+  const today = getTodayISTStr();
   const { data } = await supabase.from("attendance").select("*").eq("user_id", req.user.userId).eq("date", today).single();
   res.json({ success: true, message: "Today's record", data: data || null, error_code: null });
 });

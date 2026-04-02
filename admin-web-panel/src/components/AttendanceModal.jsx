@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getNowIST, getTodayISTStr, formatIST, getDaysLeftIST } from '../utils/dateUtils';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { X, Search } from 'lucide-react';
@@ -11,7 +12,7 @@ export default function AttendanceModal({ userId, userName, onClose, onSave }) {
   const [selectedUserName, setSelectedUserName] = useState(userName || '');
   
   const [f, setF] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayISTStr(),
     time_in: '',
     time_out: ''
   });

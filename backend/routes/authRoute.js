@@ -59,15 +59,17 @@ router.get('/me', authMiddleware(), async (req, res) => {
 
 // Helper
 function _checkComeback(user) {
+  const { getNowIST } = require('../utils/dateUtils');
   if (!user.streak_last_updated) return false;
   const last = new Date(user.streak_last_updated);
-  const diff = (new Date() - last) / (1000 * 60 * 60 * 24);
+  const now = getNowIST().toJSDate();
+  const diff = (now - last) / (1000 * 60 * 60 * 24);
   
   // 15 days inactivity AND either never claimed or claimed > 30 days ago
   if (diff > 15) {
      if (!user.last_comeback_date) return true;
      const lastClaim = new Date(user.last_comeback_date);
-     const diffClaim = (new Date() - lastClaim) / (1000 * 60 * 60 * 24);
+     const diffClaim = (now - lastClaim) / (1000 * 60 * 60 * 24);
      return diffClaim > 30;
   }
   return false;
@@ -89,7 +91,8 @@ router.post('/claim-comeback', authMiddleware(), async (req, res) => {
     newExpiry = expDate.toISOString().split('T')[0];
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const { getTodayISTStr } = require('../utils/dateUtils');
+  const today = getTodayISTStr();
   const { error } = await supabase.from('users').update({ 
     membership_expiry: newExpiry, 
     last_comeback_date: today 
@@ -132,7 +135,7 @@ router.post('/device-token', authMiddleware(), async (req, res) => {
         user_id: req.user.userId, 
         token, 
         platform, 
-        updated_at: new Date() 
+        updated_at: require('../utils/dateUtils').getNowISTDate() 
       }, { onConflict: 'user_id, token' });
 
     if (error) throw error;

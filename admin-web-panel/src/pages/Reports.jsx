@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getNowIST, getTodayISTStr, formatIST, getDaysLeftIST } from '../utils/dateUtils';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { Download, FileBarChart } from 'lucide-react';
@@ -10,7 +11,7 @@ export default function Reports() {
     const d = new Date(); d.setMonth(d.getMonth()-1);
     return d.toISOString().split('T')[0];
   });
-  const [to, setTo] = useState(new Date().toISOString().split('T')[0]);
+  const [to, setTo] = useState(getTodayISTStr());
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +47,7 @@ export default function Reports() {
     let queryTo = to;
 
     if (preset === 'today') {
-      const d = new Date().toISOString().split('T')[0];
+      const d = getTodayISTStr();
       queryFrom = d;
       queryTo = d;
     } else if (preset === 'month') {

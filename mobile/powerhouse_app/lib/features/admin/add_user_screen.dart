@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/app_theme.dart';
 import '../../core/api_service.dart';
+import '../../core/utils/date_utils.dart';
 
 class AddUserScreen extends StatefulWidget {
   const AddUserScreen({super.key});
@@ -20,8 +21,8 @@ class _AddUserScreenState extends State<AddUserScreen> {
   final _fatherNameController = TextEditingController();
   final _notesController = TextEditingController();
   
-  DateTime _dateOfJoining = DateTime.now();
-  DateTime _membershipExpiry = DateTime.now().add(const Duration(days: 30));
+  DateTime _dateOfJoining = GymDateUtils.getNowIST();
+  DateTime _membershipExpiry = GymDateUtils.getNowIST().add(const Duration(days: 30));
   
   String _membershipPlan = 'Standard';
   String _bodyType = 'normal';
