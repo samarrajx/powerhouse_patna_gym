@@ -337,13 +337,14 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Day Window: ${schedule['open_time']} - ${schedule['close_time']}',
-                        style: TextStyle(color: AppColors.text3(context), fontSize: 13, fontWeight: FontWeight.w600),
+                      Text(
+                        'Morning: ${morning != null && morning['is_active'] == true ? "${morning['start_time'].toString().substring(0,5)} - ${morning['end_time'].toString().substring(0,5)}" : "CLOSED"}',
+                        style: TextStyle(color: (morning != null && morning['is_active'] == true) ? AppColors.text3(context) : AppColors.error, fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Morning ${morning?['start_time'] ?? '--:--'}-${morning?['end_time'] ?? '--:--'} · Evening ${evening?['start_time'] ?? '--:--'}-${evening?['end_time'] ?? '--:--'}',
-                        style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w600),
+                        'Evening: ${evening != null && evening['is_active'] == true ? "${evening['start_time'].toString().substring(0,5)} - ${evening['end_time'].toString().substring(0,5)}" : "CLOSED"}',
+                        style: TextStyle(color: (evening != null && evening['is_active'] == true) ? AppColors.text3(context) : AppColors.error, fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ],
                   )

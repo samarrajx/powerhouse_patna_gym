@@ -10,68 +10,64 @@ const DAY_LABELS = { monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday', 
 export default function Schedule() {
   const [schedule, setSchedule] = useState([]);
   const [batches, setBatches] = useState({
-    morning: { slot: 'morning', name: 'Morning Batch', start_time: '05:30:00', end_time: '09:30:00' },
-    evening: { slot: 'evening', name: 'Evening Batch', start_time: '16:00:00', end_time: '20:00:00' },
+    morning: { slot: 'morning', name: 'Morning Batch', start_time: '05:30:00', end_time: '09:30:00', is_active: true },
+    evening: { slot: 'evening', name: 'Evening Batch', start_time: '16:00:00', end_time: '20:00:00', is_active: true },
   });
   const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showHolidayForm, setShowHolidayForm] = useState(false);
   const [newHoliday, setNewHoliday] = useState({ date:'', reason:'', is_closed:true });
-  const [saving, setSaving] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [s, h, b] = await Promise.all([api.get('/schedule/weekly'), api.get('/schedule/holidays'), api.get('/schedule/batches')]);
-      // Fill all 7 days even if some missing
       const map = {};
       (s.data||[]).forEach(d => { map[(d.day_of_week || '').toLowerCase()] = { ...d, day_of_week: (d.day_of_week || '').toLowerCase() }; });
       setSchedule(DAYS.map(day => map[day] || { day_of_week: day, is_open: true, open_time: '05:00', close_time: '22:00' }));
       setHolidays((h.data||[]).sort((a,b) => new Date(b.date) - new Date(a.date)));
+      
       const batchMap = {
-        morning: { slot: 'morning', name: 'Morning Batch', start_time: '05:30:00', end_time: '09:30:00' },
-        evening: { slot: 'evening', name: 'Evening Batch', start_time: '16:00:00', end_time: '20:00:00' },
+        morning: { slot: 'morning', name: 'Morning Batch', start_time: '05:30:00', end_time: '09:30:00', is_active: true },
+        evening: { slot: 'evening', name: 'Evening Batch', start_time: '16:00:00', end_time: '20:00:00', is_active: true },
       };
       (b.data || []).forEach((slotRow) => {
         if (slotRow?.slot && batchMap[slotRow.slot]) batchMap[slotRow.slot] = slotRow;
       });
       setBatches(batchMap);
+      setHasChanges(false);
     } catch { toast.error('Failed to load schedule'); }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const updateDay = async (day, field, value) => {
-    const updated = schedule.map(d => d.day_of_week === day ? { ...d, [field]: value } : d);
-    setSchedule(updated);
-    const row = updated.find(d => d.day_of_week === day);
-    setSaving(day);
-    try {
-      await api.put(`/schedule/weekly/${DAY_LABELS[day]}`, { is_open: row.is_open, open_time: row.open_time, close_time: row.close_time });
-      toast.success(`${DAY_LABELS[day]} updated`);
-    } catch(e) { toast.error(e.message||'Save failed'); }
-    finally { setSaving(''); }
+  const onScheduleChange = (day, field, value) => {
+    setSchedule(prev => prev.map(d => d.day_of_week === day ? { ...d, [field]: value } : d));
+    setHasChanges(true);
   };
 
-  const updateBatch = async (slot, field, value) => {
-    const next = { ...batches, [slot]: { ...batches[slot], [field]: value } };
-    setBatches(next);
-    setSaving(`batch-${slot}`);
+  const onBatchChange = (slot, field, value) => {
+    setBatches(prev => ({ ...prev, [slot]: { ...prev[slot], [field]: value } }));
+    setHasChanges(true);
+  };
+
+  const saveAllChanges = async () => {
+    setSaving(true);
+    const toastId = toast.loading('Saving changes...');
     try {
-      const row = next[slot];
-      const defaultStart = slot === 'morning' ? '05:30:00' : '16:00:00';
-      const defaultEnd = slot === 'morning' ? '09:30:00' : '20:00:00';
-      await api.put(`/schedule/batches/${slot}`, {
-        start_time: row.start_time?.slice(0, 8) || defaultStart,
-        end_time: row.end_time?.slice(0, 8) || defaultEnd,
+      await api.post('/schedule/bulk-update', {
+        weekly: schedule,
+        batches: Object.values(batches)
       });
-      toast.success(`${slot[0].toUpperCase()}${slot.slice(1)} batch updated`);
+      toast.success('Schedule & Batch timings updated!', { id: toastId });
+      setHasChanges(false);
     } catch (e) {
-      toast.error(e.message || 'Failed to update batch');
-      load();
+      toast.error(e.message || 'Failed to save changes', { id: toastId });
     } finally {
-      setSaving('');
+      setSaving(false);
     }
   };
 
@@ -96,6 +92,20 @@ export default function Schedule() {
     <>
       <Topbar title="Schedule & Holidays" sub="Manage gym timing and closures" />
       <div className="page-body">
+        {/* Floating Save Button */}
+        {hasChanges && (
+          <div className="fade-in" style={{ position:'fixed', bottom:'30px', right:'30px', zIndex:100 }}>
+            <button 
+              className="btn btn-primary" 
+              onClick={saveAllChanges} 
+              disabled={saving}
+              style={{ boxShadow: '0 8px 30px rgba(var(--primary-rgb), 0.4)', padding: '12px 24px', borderRadius: '12px' }}
+            >
+              {saving ? <RefreshCcw className="spinner" size={18}/> : 'SAVE ALL CHANGES'}
+            </button>
+          </div>
+        )}
+
         {/* Weekly schedule */}
         <div className="card fade-up-1" style={{ marginBottom:'20px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'18px' }}>
@@ -103,7 +113,10 @@ export default function Schedule() {
               <h3 style={{ fontSize:'1rem', fontWeight:'600' }}>Weekly Operating Hours</h3>
               <p style={{ fontSize:'0.78rem', color:'var(--text-2)', marginTop:'2px' }}>Set each day as open or closed</p>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={load}><RefreshCcw size={14}/></button>
+            <div style={{ display:'flex', gap:'10px' }}>
+               {hasChanges && <button className="btn btn-ghost btn-sm" onClick={load} style={{ color: 'var(--error)' }}>Discard</button>}
+               <button className="btn btn-ghost btn-sm" onClick={load}><RefreshCcw size={14}/></button>
+            </div>
           </div>
           {loading ? <div style={{ height:'200px', display:'flex', alignItems:'center', justifyContent:'center' }}><div className="spinner spinner-light" style={{ width:'28px', height:'28px' }}/></div> : (
             <div className="schedule-grid">
@@ -113,14 +126,30 @@ export default function Schedule() {
                 const bg = row.is_open ? 'var(--badge-green)' : 'var(--badge-red)';
                 const border = row.is_open ? 'var(--badge-green-border)' : 'var(--badge-red-border)';
                 return (
-                <div key={row.day_of_week} className="schedule-row" style={{ opacity: saving === row.day_of_week ? 0.6 : 1 }}>
+                <div key={row.day_of_week} className="schedule-row">
                   <span className="day-label">{DAY_LABELS[row.day_of_week]}</span>
                   <label className="toggle-switch">
-                    <input type="checkbox" checked={row.is_open} onChange={e => updateDay(row.day_of_week, 'is_open', e.target.checked)} />
+                    <input type="checkbox" checked={row.is_open} onChange={e => onScheduleChange(row.day_of_week, 'is_open', e.target.checked)} />
                     <span className="toggle-slider" />
                   </label>
-                  <div style={{ fontSize:'0.78rem', color:'var(--text-2)' }}>
-                    {row.is_open ? 'Open day' : 'Closed day'}
+                  <div style={{ display:'flex', gap:'12px', alignItems:'center' }}>
+                    <input 
+                      type="time" 
+                      className="input-field btn-sm" 
+                      style={{ width:'110px', padding:'4px 8px', fontSize:'12px', margin:0 }} 
+                      value={row.open_time?.slice(0,5)} 
+                      onChange={e => onScheduleChange(row.day_of_week, 'open_time', e.target.value)}
+                      disabled={!row.is_open}
+                    />
+                    <span style={{ fontSize:'10px', color:'var(--text-3)' }}>TO</span>
+                    <input 
+                      type="time" 
+                      className="input-field btn-sm" 
+                      style={{ width:'110px', padding:'4px 8px', fontSize:'12px', margin:0 }} 
+                      value={row.close_time?.slice(0,5)} 
+                      onChange={e => onScheduleChange(row.day_of_week, 'close_time', e.target.value)}
+                      disabled={!row.is_open}
+                    />
                   </div>
                   <span className="badge" style={{ background: bg, color, border: `1px solid ${border}` }}>
                     <span className="badge-dot" style={{ background: color }} />{status}
@@ -135,30 +164,38 @@ export default function Schedule() {
         <div className="card fade-up-2" style={{ marginBottom:'24px' }}>
           <div style={{ marginBottom:'18px' }}>
             <h3 style={{ fontSize:'1rem', fontWeight:'900', letterSpacing: '0.5px' }}>GYM BATCH CONFIGURATION</h3>
-            <p style={{ fontSize:'0.78rem', color:'var(--text-3)', marginTop:'2px', fontWeight: '600' }}>Synchronized with mobile dashboard status indicators</p>
+            <p style={{ fontSize:'0.78rem', color:'var(--text-3)', marginTop:'2px', fontWeight: '600' }}>Enable/Disable batches or adjust their operating window</p>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(350px,1fr))', gap:'20px' }}>
             {['morning', 'evening'].map((slot) => {
               const row = batches[slot];
+              const active = row?.is_active ?? true;
               return (
-                <div key={slot} className="card" style={{ 
-                  opacity: saving === `batch-${slot}` ? 0.6 : 1,
-                  padding: '20px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                    <div style={{ padding: '8px', borderRadius: '8px', background: 'var(--primary-dim)' }}>
-                      <Timer size={18} color="var(--primary)" />
+                <div key={slot} className="card" style={{ padding: '20px', border: active ? '1px solid var(--glass-border)' : '1px dashed var(--error)', opacity: active ? 1 : 0.8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ padding: '8px', borderRadius: '8px', background: active ? 'var(--primary-dim)' : 'var(--badge-red)' }}>
+                        <Timer size={18} color={active ? 'var(--primary)' : 'var(--error)'} />
+                      </div>
+                      <span style={{ fontWeight: '900', fontSize: '0.9rem', letterSpacing: '0.5px' }}>{row?.name?.toUpperCase() || `${slot.toUpperCase()} BATCH`}</span>
                     </div>
-                    <span style={{ fontWeight: '900', fontSize: '0.9rem', letterSpacing: '0.5px' }}>{row?.name?.toUpperCase() || `${slot.toUpperCase()} BATCH`}</span>
+                    <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                      <span style={{ fontSize:'10px', fontWeight:'800', color: active ? 'var(--success)' : 'var(--error)' }}>{active ? 'ACTIVE' : 'CLOSED'}</span>
+                      <label className="toggle-switch">
+                        <input type="checkbox" checked={active} onChange={e => onBatchChange(slot, 'is_active', e.target.checked)} />
+                        <span className="toggle-slider" />
+                      </label>
+                    </div>
                   </div>
-                  <div style={{ display:'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div style={{ display:'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', opacity: active ? 1 : 0.5 }}>
                     <div className="input-wrap" style={{ marginBottom: 0 }}>
                       <label className="input-label" style={{ fontSize: '10px' }}>START TIME</label>
                       <input
                         type="time"
                         className="input-field"
-                        value={(row?.start_time || '05:30:00').slice(0,5)}
-                        onChange={e => updateBatch(slot, 'start_time', e.target.value)}
+                        value={(row?.start_time || '00:00:00').slice(0,5)}
+                        onChange={e => onBatchChange(slot, 'start_time', e.target.value)}
+                        disabled={!active}
                       />
                     </div>
                     <div className="input-wrap" style={{ marginBottom: 0 }}>
@@ -166,8 +203,9 @@ export default function Schedule() {
                       <input
                         type="time"
                         className="input-field"
-                        value={(row?.end_time || '09:30:00').slice(0,5)}
-                        onChange={e => updateBatch(slot, 'end_time', e.target.value)}
+                        value={(row?.end_time || '00:00:00').slice(0,5)}
+                        onChange={e => onBatchChange(slot, 'end_time', e.target.value)}
+                        disabled={!active}
                       />
                     </div>
                   </div>

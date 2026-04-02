@@ -88,12 +88,12 @@ router.delete('/holidays/:id', authMiddleware(['admin']), async (req, res) => {
 
 // GET /schedule/batches — fetch morning/evening slot timings
 router.get('/batches', async (req, res) => {
-  const { data, error } = await supabase.from('batches').select('id,name,start_time,end_time').order('name');
+  const { data, error } = await supabase.from('batches').select('id,name,start_time,end_time,is_active').order('name');
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
 
   const slots = {
-    morning: { slot: 'morning', ...SLOT_FALLBACKS.morning, id: null },
-    evening: { slot: 'evening', ...SLOT_FALLBACKS.evening, id: null },
+    morning: { slot: 'morning', ...SLOT_FALLBACKS.morning, id: null, is_active: true },
+    evening: { slot: 'evening', ...SLOT_FALLBACKS.evening, id: null, is_active: true },
   };
 
   (data || []).forEach((batch) => {
@@ -105,6 +105,7 @@ router.get('/batches', async (req, res) => {
       name: batch.name,
       start_time: batch.start_time || SLOT_FALLBACKS[slot].start_time,
       end_time: batch.end_time || SLOT_FALLBACKS[slot].end_time,
+      is_active: batch.is_active ?? true,
     };
   });
 
@@ -118,7 +119,7 @@ router.put('/batches/:slot', authMiddleware(['admin']), async (req, res) => {
     return res.status(400).json({ success: false, message: 'Slot must be morning or evening', error_code: 'INVALID_SLOT' });
   }
 
-  const { start_time, end_time } = req.body;
+  const { start_time, end_time, is_active = true } = req.body;
   if (!start_time || !end_time) {
     return res.status(400).json({ success: false, message: 'start_time and end_time required', error_code: 'MISSING_FIELDS' });
   }
@@ -129,11 +130,11 @@ router.put('/batches/:slot', authMiddleware(['admin']), async (req, res) => {
 
   let updated;
   if (existing?.id) {
-    const { data, error } = await supabase.from('batches').update({ start_time, end_time }).eq('id', existing.id).select('id,name,start_time,end_time').single();
+    const { data, error } = await supabase.from('batches').update({ start_time, end_time, is_active }).eq('id', existing.id).select('id,name,start_time,end_time,is_active').single();
     if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
     updated = data;
   } else {
-    const { data, error } = await supabase.from('batches').insert([{ name: defaultName, start_time, end_time }]).select('id,name,start_time,end_time').single();
+    const { data, error } = await supabase.from('batches').insert([{ name: defaultName, start_time, end_time, is_active }]).select('id,name,start_time,end_time,is_active').single();
     if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'INSERT_ERROR' });
     updated = data;
   }
@@ -141,26 +142,58 @@ router.put('/batches/:slot', authMiddleware(['admin']), async (req, res) => {
   await supabase.from('audit_logs').insert([{
     action: 'UPDATE_BATCH_TIMING',
     performed_by: req.user.userId,
-    details: { slot, start_time, end_time, batch_id: updated.id },
+    details: { slot, start_time, end_time, is_active, batch_id: updated.id },
   }]);
 
-  // Trigger notification
-  await supabase.from('notifications').insert([{
-    title: 'TIMING UPDATE',
-    message: `The ${slot.toUpperCase()} batch timings have been updated to ${start_time.slice(0, 5)} - ${end_time.slice(0, 5)}.`,
-    type: 'timing',
-    user_id: null
-  }]);
+  // Push notification (Only if requested or for critical changes)
+  if (req.query.notify !== 'false') {
+    await sendGlobalPush('TIMING UPDATE', `The ${slot.toUpperCase()} batch timings updated. Status: ${is_active ? 'OPEN' : 'CLOSED'}.`);
+  }
 
-  // Push notification
-  await sendGlobalPush('TIMING UPDATE', `The ${slot.toUpperCase()} batch timings updated to ${start_time.slice(0, 5)} - ${end_time.slice(0, 5)}.`);
+  res.json({ success: true, message: `${slot} batch timing updated`, data: { slot, ...updated }, error_code: null });
+});
 
-  res.json({
-    success: true,
-    message: `${slot} batch timing updated`,
-    data: { slot, ...updated },
-    error_code: null,
-  });
+// POST /schedule/bulk-update — unified update for schedule and batches
+router.post('/bulk-update', authMiddleware(['admin']), async (req, res) => {
+  const { weekly, batches: batchUpdates } = req.body;
+  
+  try {
+    // 1. Update Weekly Schedule
+    if (weekly && Array.isArray(weekly)) {
+      for (const day of weekly) {
+        const normalizedDay = `${day.day_of_week.slice(0, 1).toUpperCase()}${day.day_of_week.slice(1).toLowerCase()}`;
+        await supabase.from('weekly_schedule')
+          .update({ is_open: day.is_open, open_time: day.open_time, close_time: day.close_time, updated_at: getNowIST().toISO() })
+          .ilike('day_of_week', normalizedDay);
+      }
+    }
+
+    // 2. Update Batches
+    if (batchUpdates && Array.isArray(batchUpdates)) {
+      for (const b of batchUpdates) {
+         const { data: existing } = await supabase.from('batches').select('id').ilike('name', `%${b.slot}%`).limit(1).maybeSingle();
+         if (existing?.id) {
+           await supabase.from('batches').update({ start_time: b.start_time, end_time: b.end_time, is_active: b.is_active }).eq('id', existing.id);
+         }
+      }
+    }
+
+    // 3. Audit Log
+    await supabase.from('audit_logs').insert([{
+      action: 'BULK_SCHEDULE_UPDATE',
+      performed_by: req.user.userId,
+      details: { weekly_count: (weekly||[]).length, batch_count: (batchUpdates||[]).length }
+    }]);
+
+    // 4. ONE Notification & ONE Push
+    const msg = "Gym operating hours and batch timings have been updated. Please check the dashboard for details.";
+    await supabase.from('notifications').insert([{ title: 'OPERATIONS UPDATE', message: msg, type: 'timing', user_id: null }]);
+    await sendGlobalPush('OPERATIONS UPDATE', msg);
+
+    res.json({ success: true, message: 'Bulk update successful' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 module.exports = router;

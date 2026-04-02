@@ -53,9 +53,9 @@ app.get('/api/gym/status', async (req, res) => {
   const { date: today, day, time: nowTime } = getIstNow();
 
   const [{ data: holiday }, { data: schedule }, { data: batches }] = await Promise.all([
-    supabase.from('holidays').select('is_closed').eq('date', today).single(),
-    supabase.from('weekly_schedule').select('*').eq('day_of_week', day).single(),
-    supabase.from('batches').select('id,name,start_time,end_time'),
+    supabase.from('holidays').select('is_closed, reason').eq('date', today).maybeSingle(),
+    supabase.from('weekly_schedule').select('*').eq('day_of_week', day).maybeSingle(),
+    supabase.from('batches').select('id,name,start_time,end_time,is_active'),
   ]);
 
   const is_holiday = holiday != null && holiday.is_closed;
@@ -68,19 +68,21 @@ app.get('/api/gym/status', async (req, res) => {
     if (name.includes('evening')) batchTimings.evening = batch;
   });
 
-  const defaultMorning = { name: 'Morning Batch', start_time: '05:30:00', end_time: '09:30:00' };
-  const defaultEvening = { name: 'Evening Batch', start_time: '16:00:00', end_time: '20:00:00' };
+  const defaultMorning = { name: 'Morning Batch', start_time: '05:30:00', end_time: '09:30:00', is_active: true };
+  const defaultEvening = { name: 'Evening Batch', start_time: '16:00:00', end_time: '20:00:00', is_active: true };
 
   const morningSlot = {
     name: batchTimings.morning?.name || defaultMorning.name,
     start_time: batchTimings.morning?.start_time || defaultMorning.start_time,
     end_time: batchTimings.morning?.end_time || defaultMorning.end_time,
+    is_active: batchTimings.morning?.is_active ?? true,
   };
 
   const eveningSlot = {
     name: batchTimings.evening?.name || defaultEvening.name,
     start_time: batchTimings.evening?.start_time || defaultEvening.start_time,
     end_time: batchTimings.evening?.end_time || defaultEvening.end_time,
+    is_active: batchTimings.evening?.is_active ?? true,
   };
 
   const mergedDaySchedule = {
@@ -93,7 +95,11 @@ app.get('/api/gym/status', async (req, res) => {
   const isInWindow = (start, end) => Boolean(start && end && nowTime >= start && nowTime <= end);
   const inMorningSlot = isInWindow(morningSlot.start_time.slice(0, 8), morningSlot.end_time.slice(0, 8));
   const inEveningSlot = isInWindow(eveningSlot.start_time.slice(0, 8), eveningSlot.end_time.slice(0, 8));
-  const is_open = isOpenByDay && (inMorningSlot || inEveningSlot);
+  
+  // Gym is open ONLY if it's an open day AND we are in a batch window AND that batch is currently ACTIVE
+  const isMorningOpen = inMorningSlot && morningSlot.is_active;
+  const isEveningOpen = inEveningSlot && eveningSlot.is_active;
+  const is_open = isOpenByDay && (isMorningOpen || isEveningOpen);
 
   res.json({
     success: true,
