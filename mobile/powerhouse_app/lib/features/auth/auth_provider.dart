@@ -133,6 +133,19 @@ class AuthNotifier extends Notifier<AuthState> {
     await ApiService.clearToken();
     state = AuthState();
   }
+
+  Future<void> registerDeviceToken(String token) async {
+    try {
+      final res = await ApiService.post('/auth/device-token', {'token': token});
+      if (res['success'] == true) {
+        print('🔔 FCM Token registered with backend');
+      } else {
+        print('⚠️ FCM Token registration failed: ${res['message']}');
+      }
+    } catch (e) {
+      print('❌ FCM Token registration error: $e');
+    }
+  }
 }
 
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(() {
