@@ -399,8 +399,18 @@ router.post('/announcements', authMiddleware(['admin']), async (req, res) => {
 
 router.put('/announcements/:id', authMiddleware(['admin']), async (req, res) => {
   const { title, content, is_active } = req.body;
+  console.log('📢 adminRoute: Received request to update announcement:', { id: req.params.id, title, is_active });
+
   const { data, error } = await supabase.from('announcements').update({ title, content, is_active }).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
+
+  // Trigger Push Notification if active
+  if (is_active) {
+    console.log('📢 adminRoute: Triggering Token-Based Push for Updated Announcement:', title);
+    await sendToAll(title || 'Updated Announcement', content || 'Check the app for details', { type: 'announcement', id: data.id.toString() })
+      .catch(err => console.error('❌ adminRoute: Push failed:', err));
+  }
+
   res.json({ success: true, message: 'Announcement updated', data, error_code: null });
 });
 
