@@ -189,7 +189,11 @@ export default function Members() {
     form.append('file', file);
     try {
       const r = await api.post('/admin/users/bulk', form, { headers:{ 'Content-Type':'multipart/form-data' }});
-      toast.success(`${r.data.created} members imported, ${r.data.failed.length} failed`);
+      const { created, failed } = r.data;
+      if (created > 0) toast.success(`${created} member(s) imported successfully`);
+      if (failed?.length > 0) {
+        failed.forEach(f => toast.error(`Failed (${f.phone}): ${f.reason}`, { duration: 8000 }));
+      }
       load();
     } catch(e) { toast.error(e.message||'Upload failed'); }
     finally { setUploading(false); e.target.value=''; }

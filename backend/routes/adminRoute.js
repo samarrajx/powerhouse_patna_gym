@@ -231,17 +231,17 @@ router.post('/users/bulk', authMiddleware(['admin']), upload.single('file'), asy
     must_change_password: true,
   }));
 
-  if (allRows.length) {
-    const { error } = await supabase.from('users').insert(allRows);
+  // Insert row by row for precise per-row error reporting
+  for (const row of allRows) {
+    const { error } = await supabase.from('users').insert([row]);
     if (error) {
-      const duplicate = error.message?.toLowerCase().includes('duplicate') || error.code === '23505';
-      if (duplicate) {
-        results.failed.push({ phone: 'multiple', reason: 'One or more records have duplicate unique fields' });
-      } else {
-        results.failed.push({ phone: 'multiple', reason: error.message });
-      }
+      const isDuplicate = error.message?.toLowerCase().includes('duplicate') || error.code === '23505';
+      results.failed.push({
+        phone: row.phone,
+        reason: isDuplicate ? 'Duplicate phone number already exists' : error.message,
+      });
     } else {
-      results.created += allRows.length;
+      results.created += 1;
     }
   }
 
