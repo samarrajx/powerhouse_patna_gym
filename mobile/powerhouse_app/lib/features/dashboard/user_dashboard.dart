@@ -567,14 +567,14 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                         x: entry.key,
                         barRods: [
                           BarChartRodData(
-                            toY: entry.value.durationHours,
+                            toY: entry.value.durationHours == 0 ? 0.2 : entry.value.durationHours,
                             gradient: AppColors.primaryGradient,
                             width: 14,
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                             backDrawRodData: BackgroundBarChartRodData(
                               show: true,
                               toY: 5,
-                              color: AppColors.surfHigh(context),
+                              color: AppColors.surfHigh(context).withOpacity(0.05),
                             ),
                           ),
                         ],
