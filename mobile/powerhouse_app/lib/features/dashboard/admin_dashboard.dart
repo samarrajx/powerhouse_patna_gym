@@ -305,9 +305,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                 Text(scans.toString(), style: TextStyle(fontSize: 10, color: isHigh ? AppColors.primary : AppColors.text3(context), fontWeight: FontWeight.w900)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Container(
-                  height: 80 * ratio + 4,
+                  height: 60 * ratio + 4,
                   decoration: BoxDecoration(
                     gradient: isHigh ? AppColors.primaryGradient : null,
                     color: isHigh ? null : AppColors.surfHigh(context),
@@ -315,7 +315,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                     boxShadow: isHigh ? [BoxShadow(color: AppColors.primaryGlow.withOpacity(0.2), blurRadius: 8)] : null,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(d['day']?.toString().substring(0, 3).toUpperCase() ?? '', style: TextStyle(fontSize: 9, color: AppColors.text3(context), fontWeight: FontWeight.w800)),
               ]),
             ),
