@@ -222,105 +222,92 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   }
 
   Widget _buildLiveMonitor(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surf(context), 
-        borderRadius: BorderRadius.circular(20), 
-        border: Border.all(color: AppColors.surfHigh(context)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(children: [
-                Container(
-                  width: 10, height: 10, 
-                  decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppColors.success, blurRadius: 4)]),
-                ),
-                const SizedBox(width: 12),
-                const Text('LIVE ACTIVITY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5, fontSize: 14)),
-              ]),
-              Text('${_todayAttendance.length} CHECK-INS', style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1)),
-            ],
+    return AppCard(
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(bottom: 12),
+          leading: Container(
+            width: 10, height: 10, 
+            decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppColors.success, blurRadius: 4)]),
           ),
-          const SizedBox(height: 20),
-          if (_todayAttendance.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Text('Awaiting first scan of the day...', style: TextStyle(color: AppColors.text3(context), fontSize: 13, fontWeight: FontWeight.w600)),
-            )
-          else ...[
-            ...(_todayAttendance.take(4).map((r) {
-              final user = r['users'] as Map<String, dynamic>?;
-              final timeIn = r['time_in'] as String?;
-              String time = '--:--';
-              if (timeIn != null) {
-                try { final dt = DateTime.parse(timeIn).toLocal(); time = '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}'; } catch(_) {}
-              }
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(children: [
-                  Container(
-                    width: 32, height: 32,
-                    decoration: BoxDecoration(color: AppColors.primaryDim, borderRadius: BorderRadius.circular(8)),
-                    child: const Icon(Icons.person, color: AppColors.primary, size: 16),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(child: Text(user?['name']?.toString().toUpperCase() ?? '—', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800))),
-                  Text(time, style: TextStyle(color: AppColors.text3(context), fontSize: 12, fontWeight: FontWeight.w900)),
-                ]),
-              );
-            }).toList()),
-            if (_todayAttendance.length > 4)
+          title: const Text('LIVE ACTIVITY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5, fontSize: 13)),
+          subtitle: Text('${_todayAttendance.length} CHECK-INS TODAY', style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1)),
+          children: [
+            const Divider(height: 24),
+            if (_todayAttendance.isEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text('View ${_todayAttendance.length - 4} more in Attendance link', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w700)),
-              ),
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(child: Text('Awaiting first scan of the day...', style: TextStyle(color: AppColors.text3(context), fontSize: 13, fontWeight: FontWeight.w600))),
+              )
+            else ...[
+              ...(_todayAttendance.take(8).map((r) {
+                final user = r['users'] as Map<String, dynamic>?;
+                final timeIn = r['time_in'] as String?;
+                String time = '--:--';
+                if (timeIn != null) {
+                  try { final dt = DateTime.parse(timeIn).toLocal(); time = DateFormat('hh:mm a').format(dt); } catch(_) {}
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(children: [
+                    Container(
+                      width: 32, height: 32,
+                      decoration: BoxDecoration(color: AppColors.primaryDim, borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.person, color: AppColors.primary, size: 16),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(child: Text(user?['name']?.toString().toUpperCase() ?? '—', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800))),
+                    Text(time, style: TextStyle(color: AppColors.text3(context), fontSize: 11, fontWeight: FontWeight.w900)),
+                  ]),
+                );
+              }).toList()),
+              if (_todayAttendance.length > 8)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text('View more in Attendance Monitor', style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w800)),
+                ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildFootfall(BuildContext context, List data) {
     final maxScans = data.isEmpty ? 1 : data.map((d) => (d['scans'] as num?)?.toInt() ?? 0).reduce((a, b) => a > b ? a : b);
-    return Container(
-      height: 160,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surf(context), 
-        borderRadius: BorderRadius.circular(20), 
-        border: Border.all(color: AppColors.surfHigh(context)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: data.map<Widget>((d) {
-          final scans = (d['scans'] as num?)?.toInt() ?? 0;
-          final ratio = maxScans > 0 ? scans / maxScans : 0.0;
-          final isHigh = ratio > 0.7;
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                Text(scans.toString(), style: TextStyle(fontSize: 10, color: isHigh ? AppColors.primary : AppColors.text3(context), fontWeight: FontWeight.w900)),
-                const SizedBox(height: 4),
-                Container(
-                  height: 60 * ratio + 4,
-                  decoration: BoxDecoration(
-                    gradient: isHigh ? AppColors.primaryGradient : null,
-                    color: isHigh ? null : AppColors.surfHigh(context),
-                    borderRadius: BorderRadius.circular(6),
-                    boxShadow: isHigh ? [BoxShadow(color: AppColors.primaryGlow.withOpacity(0.2), blurRadius: 8)] : null,
-                  ),
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: data.map<Widget>((d) {
+              final scans = (d['scans'] as num?)?.toInt() ?? 0;
+              final ratio = maxScans > 0 ? scans / maxScans : 0.0;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                    Text(scans.toString(), style: TextStyle(fontSize: 10, color: AppColors.text3(context), fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 80 * ratio + 4,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(6),
+                        boxShadow: [BoxShadow(color: AppColors.primaryGlow.withOpacity(0.1), blurRadius: 4)],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(d['day']?.toString().substring(0, 3).toUpperCase() ?? '', style: TextStyle(fontSize: 9, color: AppColors.text3(context), fontWeight: FontWeight.w800)),
+                  ]),
                 ),
-                const SizedBox(height: 4),
-                Text(d['day']?.toString().substring(0, 3).toUpperCase() ?? '', style: TextStyle(fontSize: 9, color: AppColors.text3(context), fontWeight: FontWeight.w800)),
-              ]),
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
