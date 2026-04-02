@@ -114,4 +114,37 @@ async function sendToDevices(tokens, title, body, data = {}) {
   }
 }
 
-module.exports = { sendGlobalPush, sendToDevices };
+/**
+ * Send push notification to ALL registered device tokens in the database
+ */
+async function sendToAll(title, body, data = {}) {
+  if (!fcmInitialized) {
+    console.warn('⚠️ FCM not initialized, skipping global push.');
+    return;
+  }
+
+  try {
+    const supabase = require('../db/supabase');
+    // Fetch all unique tokens
+    const { data: tokenRecords, error } = await supabase
+      .from('device_tokens')
+      .select('token');
+    
+    if (error) throw error;
+    
+    const uniqueTokens = [...new Set(tokenRecords.map(r => r.token))];
+    
+    if (uniqueTokens.length === 0) {
+      console.log('ℹ️ No device tokens found in database.');
+      return;
+    }
+
+    console.log(`🚀 Sending Push to ${uniqueTokens.length} unique devices (token-based)...`);
+    return await sendToDevices(uniqueTokens, title, body, data);
+  } catch (err) {
+    console.error('❌ Failed to send to all devices:', err);
+    throw err;
+  }
+}
+
+module.exports = { sendGlobalPush, sendToDevices, sendToAll };

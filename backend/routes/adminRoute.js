@@ -4,7 +4,7 @@ const { parse } = require('csv-parse/sync');
 const bcrypt = require('bcrypt');
 const supabase = require('../db/supabase');
 const authMiddleware = require('../middleware/auth');
-const { sendGlobalPush } = require('../utils/fcm');
+const { sendToAll } = require('../utils/fcm');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -387,8 +387,8 @@ router.post('/announcements', authMiddleware(['admin']), async (req, res) => {
 
   // Trigger Push Notification if active
   if (is_active) {
-    console.log('📢 adminRoute: Triggering Global Push for Announcement:', title);
-    await sendGlobalPush(title || 'New Announcement', content || 'Check the app for details', { type: 'announcement', id: data.id.toString() })
+    console.log('📢 adminRoute: Triggering Token-Based Push for Announcement:', title);
+    await sendToAll(title || 'New Announcement', content || 'Check the app for details', { type: 'announcement', id: data.id.toString() })
       .catch(err => console.error('❌ adminRoute: Push failed:', err));
   } else {
     console.log('📢 adminRoute: Announcement created but not active, skipping push.');

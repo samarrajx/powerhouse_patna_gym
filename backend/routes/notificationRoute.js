@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../db/supabase');
 const authMiddleware = require('../middleware/auth');
-const { sendGlobalPush } = require('../utils/fcm');
+const { sendToAll } = require('../utils/fcm');
 
 // GET /api/notifications -> Get user notifications + global announcements
 router.get('/', authMiddleware(['user', 'admin']), async (req, res) => {
@@ -64,7 +64,8 @@ router.post('/broadcast', authMiddleware(['admin']), async (req, res) => {
     if (error) throw error;
     
     // Broadcast via FCM
-    await sendGlobalPush(title, message, { type });
+    await sendToAll(title, message, { type })
+      .catch(err => console.error('❌ Broadcast Push failed:', err));
     
     res.json({ success: true, message: 'Broadcast sent successfully', data });
   } catch (err) {
