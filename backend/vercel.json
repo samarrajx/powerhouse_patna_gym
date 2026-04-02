@@ -11,5 +11,11 @@
       "src": "/(.*)",
       "dest": "api/index.js"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/admin/attendance/auto-checkout",
+      "schedule": "0 * * * *"
+    }
   ]
 }

@@ -431,7 +431,7 @@ router.get('/batches', authMiddleware(['admin']), async (req, res) => {
 /**
  * Auto-checkout users who are past their batch time
  */
-router.post('/attendance/auto-checkout', authMiddleware(['admin']), async (req, res) => {
+router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, res) => {
   try {
     // 1. Get all active sessions
     const { data: activeSessions, error: sessionError } = await supabase
