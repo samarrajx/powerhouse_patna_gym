@@ -138,7 +138,12 @@ router.post('/device-token', authMiddleware(), async (req, res) => {
       }, { onConflict: 'user_id, token' });
 
     if (error) {
-      console.error('❌ authRoute: Token registration error:', error);
+      console.error('❌ authRoute: Token registration error:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       throw error;
     }
     
