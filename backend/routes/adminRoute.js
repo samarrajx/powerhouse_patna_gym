@@ -219,12 +219,24 @@ router.post('/users/bulk', authMiddleware(['admin']), upload.single('file'), asy
   });
 
   const passwordHashes = await Promise.all(validRecords.map((r) => bcrypt.hash(r.password || 'samgym', 10)));
+
+  // Normalize DD-MM-YYYY or DD/MM/YYYY -> YYYY-MM-DD
+  const normalizeDate = (val) => {
+    if (!val) return null;
+    // already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+    // DD-MM-YYYY or DD/MM/YYYY
+    const m = val.match(/^(\d{2})[-\/](\d{2})[-\/](\d{4})$/);
+    if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+    return val; // pass through, let DB error naturally
+  };
+
   const allRows = validRecords.map((r, i) => ({
     name: r.name, phone: r.phone, phone_alt: r.phone_alt || null,
     password_hash: passwordHashes[i], roll_no: r.roll_no || null, address: r.address || null,
-    father_name: r.father_name || null, date_of_joining: r.date_of_joining || null,
+    father_name: r.father_name || null, date_of_joining: normalizeDate(r.date_of_joining),
     body_type: r.body_type || null, membership_plan: r.membership_plan || 'Standard',
-    membership_expiry: r.membership_expiry || null,
+    membership_expiry: normalizeDate(r.membership_expiry),
     fees_status: r.fees_status || 'paid',
     notes: r.notes || null,
     batch_id: r.batch_name ? (batchMap[r.batch_name.toLowerCase()] || null) : null,
