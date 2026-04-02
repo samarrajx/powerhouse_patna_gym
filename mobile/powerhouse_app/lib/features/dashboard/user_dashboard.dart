@@ -34,6 +34,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   bool isLoading = true;
 
   List<DailyActivity> _weeklyStats = [];
+  Map<String, dynamic>? _activeSession;
 
   @override
   void initState() {
@@ -55,6 +56,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
   List<DailyActivity> _processWeeklyStats(List<dynamic> history) {
     final List<DailyActivity> stats = [];
     final now = GymDateUtils.getNowIST();
+    _activeSession = null;
     
     // Generate last 7 days including today
     for (int i = 6; i >= 0; i--) {
@@ -77,16 +79,25 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
             final tOut = DateTime.parse(tOutStr);
             duration = tOut.difference(tIn).inMinutes / 60.0;
           } else {
-            // Live session: calculate duration up to now (maximum 4 hours for graph display)
+            // Live session: calculate duration up to now
             final currentDuration = now.difference(tIn).inMinutes / 60.0;
             duration = currentDuration;
+            
+            // Store active session metadata
+            if (i == 0) { // Only if it's today
+              _activeSession = {
+                'start_time': DateFormat('hh:mm a').format(tIn),
+                'duration': currentDuration.toStringAsFixed(1),
+                'id': record['id']?.toString() ?? 'N/A',
+              };
+            }
           }
         } catch (_) {}
       }
       
       stats.add(DailyActivity(
         day: DateFormat('E').format(date).toUpperCase(),
-        durationHours: duration.clamp(0.0, 5.0), // Max 5 hours for visual scale
+        durationHours: duration.clamp(0.0, 5.0),
         date: date,
       ));
     }
@@ -185,6 +196,10 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                 AppSpacing.s24,
                 _buildStatusCard(isOpen, gymStatus?['schedule']),
                 AppSpacing.s24,
+                if (_activeSession != null) ...[
+                  _buildLiveActivity(_activeSession!),
+                  AppSpacing.s24,
+                ],
                 _buildActivityGraph(),
                 const SizedBox(height: 120), // Bottom padding
               ],
@@ -354,6 +369,47 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLiveActivity(Map<String, dynamic> data) {
+    return AppCard(
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(bottom: 12),
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.timer_outlined, color: AppColors.primary, size: 20),
+          ),
+          title: const Text('LIVE ACTIVITY', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1)),
+          subtitle: Text('Session Active: ${data['duration']} hrs', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 11)),
+          children: [
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildLiveDetail('Checked In', data['start_time']),
+                _buildLiveDetail('Duration', '${data['duration']} hrs'),
+                _buildLiveDetail('Session ID', '#${data['id'].substring(0, 4)}'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLiveDetail(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(color: AppColors.text3(context), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+      ],
     );
   }
 
@@ -563,18 +619,19 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                     gridData: const FlGridData(show: false),
                     borderData: FlBorderData(show: false),
                     barGroups: _weeklyStats.asMap().entries.map((entry) {
+                      final bool isToday = entry.key == 6; // Last bar is today
                       return BarChartGroupData(
                         x: entry.key,
                         barRods: [
                           BarChartRodData(
-                            toY: entry.value.durationHours == 0 ? 0.2 : entry.value.durationHours,
-                            gradient: AppColors.primaryGradient,
-                            width: 14,
+                            toY: entry.value.durationHours == 0 ? 0.3 : entry.value.durationHours,
+                            color: isToday ? AppColors.primary : AppColors.primary.withOpacity(0.6),
+                            width: 16,
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                             backDrawRodData: BackgroundBarChartRodData(
                               show: true,
                               toY: 5,
-                              color: AppColors.surfHigh(context).withOpacity(0.05),
+                              color: AppColors.surfHigh(context).withOpacity(0.02),
                             ),
                           ),
                         ],
