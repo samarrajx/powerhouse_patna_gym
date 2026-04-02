@@ -29,6 +29,16 @@ function MemberModal({ user, batches, onClose, onSave }) {
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
 
+  // Auto-populate roll number when adding a new member
+  useEffect(() => {
+    if (!user) {
+      api.get('/admin/users/next-roll-no').then(res => {
+        if (res.data?.next_roll_no) set('roll_no', String(res.data.next_roll_no));
+      }).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const submit = async (e) => {
     e.preventDefault(); setSaving(true);
     try {
