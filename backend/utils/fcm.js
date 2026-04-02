@@ -133,13 +133,14 @@ async function sendToAll(title, body, data = {}) {
     if (error) throw error;
     
     const uniqueTokens = [...new Set(tokenRecords.map(r => r.token))];
+    console.log(`🔍 fcm.js: Found ${uniqueTokens.length} unique tokens in DB.`);
     
     if (uniqueTokens.length === 0) {
       console.log('ℹ️ No device tokens found in database.');
       return;
     }
 
-    console.log(`🚀 Sending Push to ${uniqueTokens.length} unique devices (token-based)...`);
+    console.log(`🚀 fcm.js: Dispatching to tokens:`, uniqueTokens);
     return await sendToDevices(uniqueTokens, title, body, data);
   } catch (err) {
     console.error('❌ Failed to send to all devices:', err);

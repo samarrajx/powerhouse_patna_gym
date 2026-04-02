@@ -379,6 +379,7 @@ router.get('/announcements', authMiddleware(['admin']), async (req, res) => {
 
 router.post('/announcements', authMiddleware(['admin']), async (req, res) => {
   const { title, content, is_active } = req.body;
+  console.log('📢 adminRoute: POST /announcements body:', JSON.stringify(req.body));
   console.log('📢 adminRoute: Received request to create announcement:', { title, is_active, bodyType: typeof is_active });
   
   const { data, error } = await supabase.from('announcements').insert([{ title, content, is_active }]).select().single();
