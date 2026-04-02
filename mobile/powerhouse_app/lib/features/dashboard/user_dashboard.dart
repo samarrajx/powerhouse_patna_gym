@@ -337,7 +337,6 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                      Text(
                         'Morning: ${morning != null && morning['is_active'] == true ? "${morning['start_time'].toString().substring(0,5)} - ${morning['end_time'].toString().substring(0,5)}" : "CLOSED"}',
                         style: TextStyle(color: (morning != null && morning['is_active'] == true) ? AppColors.text3(context) : AppColors.error, fontSize: 11, fontWeight: FontWeight.w700),
                       ),

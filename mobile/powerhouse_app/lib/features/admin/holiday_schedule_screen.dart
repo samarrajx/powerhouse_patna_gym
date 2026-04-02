@@ -130,8 +130,6 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
   Future<void> _editDayDialog(int index) async {
     final day = _schedule[index];
     bool isOpen = day['is_open'] ?? true;
-    final openCtrl = TextEditingController(text: (day['open_time'] as String?)?.substring(0,5) ?? '05:00');
-    final closeCtrl = TextEditingController(text: (day['close_time'] as String?)?.substring(0,5) ?? '22:00');
 
     await showDialog(
       context: context,
@@ -148,16 +146,6 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
               ],
             ),
             Text(isOpen ? 'GYM IS OPEN' : 'GYM IS CLOSED', style: TextStyle(color: isOpen ? AppColors.success : AppColors.error, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-            if (isOpen) ...[
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(child: TextField(controller: openCtrl, decoration: const InputDecoration(labelText: 'OPENING'))),
-                  const SizedBox(width: 16),
-                  Expanded(child: TextField(controller: closeCtrl, decoration: const InputDecoration(labelText: 'CLOSING'))),
-                ],
-              ),
-            ],
           ],
         ),
         actions: [
@@ -166,8 +154,6 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
             onPressed: () {
               setState(() {
                 _schedule[index]['is_open'] = isOpen;
-                _schedule[index]['open_time'] = openCtrl.text;
-                _schedule[index]['close_time'] = closeCtrl.text;
                 _isDirty = true;
               });
               Navigator.pop(ctx);
@@ -267,10 +253,12 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
         listenable: _tabController,
         builder: (_, __) => _tabController.index == 0
             ? FloatingActionButton(
+                heroTag: 'add_holiday_fab',
                 onPressed: _addHolidayDialog,
                 child: const Icon(Icons.add, color: Colors.white),
               )
             : _isDirty ? FloatingActionButton.extended(
+                heroTag: 'save_schedule_fab',
                 onPressed: _isSaving ? null : _saveAllChanges,
                 label: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text('SAVE CHANGES', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
                 icon: const Icon(Icons.save, color: Colors.white),
@@ -365,7 +353,7 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
             final isOpen = d['is_open'] ?? true;
             return _buildOperationItem(
               title: d['day_of_week']?.toString().toUpperCase() ?? '',
-              subtitle: isOpen ? '${d['open_time'].toString().substring(0,5)} to ${d['close_time'].toString().substring(0,5)}' : 'GYM CLOSED',
+              subtitle: isOpen ? 'GYM OPEN' : 'GYM CLOSED',
               active: isOpen,
               onTap: () => _editDayDialog(i),
             );
@@ -428,5 +416,4 @@ class _HolidayScheduleScreenState extends ConsumerState<HolidayScheduleScreen> w
       ),
     );
   }
-}
 }

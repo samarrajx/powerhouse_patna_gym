@@ -132,25 +132,7 @@ export default function Schedule() {
                     <input type="checkbox" checked={row.is_open} onChange={e => onScheduleChange(row.day_of_week, 'is_open', e.target.checked)} />
                     <span className="toggle-slider" />
                   </label>
-                  <div style={{ display:'flex', gap:'12px', alignItems:'center' }}>
-                    <input 
-                      type="time" 
-                      className="input-field btn-sm" 
-                      style={{ width:'110px', padding:'4px 8px', fontSize:'12px', margin:0 }} 
-                      value={row.open_time?.slice(0,5)} 
-                      onChange={e => onScheduleChange(row.day_of_week, 'open_time', e.target.value)}
-                      disabled={!row.is_open}
-                    />
-                    <span style={{ fontSize:'10px', color:'var(--text-3)' }}>TO</span>
-                    <input 
-                      type="time" 
-                      className="input-field btn-sm" 
-                      style={{ width:'110px', padding:'4px 8px', fontSize:'12px', margin:0 }} 
-                      value={row.close_time?.slice(0,5)} 
-                      onChange={e => onScheduleChange(row.day_of_week, 'close_time', e.target.value)}
-                      disabled={!row.is_open}
-                    />
-                  </div>
+                  <div style={{ flex: 1 }} />
                   <span className="badge" style={{ background: bg, color, border: `1px solid ${border}` }}>
                     <span className="badge-dot" style={{ background: color }} />{status}
                   </span>
