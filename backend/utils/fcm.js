@@ -1,32 +1,10 @@
-const admin = require('firebase-admin');
-const path = require('path');
-const fs = require('fs');
-
-let fcmInitialized = false;
-
-try {
-  const serviceAccountPath = path.join(__dirname, '../config/firebase-service-account.json.json');
-  if (fs.existsSync(serviceAccountPath)) {
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-    }
-    fcmInitialized = true;
-    console.log('✅ FCM Initialized');
-  } else {
-    console.warn('⚠️ FCM Service Account missing at:', serviceAccountPath);
-  }
-} catch (error) {
-  console.error('❌ FCM Initialization Error:', error);
-}
+const { admin, isInitialized } = require('../db/firebase');
 
 /**
  * Send push notification to all users (Global)
  */
 async function sendGlobalPush(title, body, data = {}) {
-  if (!fcmInitialized) {
+  if (!isInitialized()) {
     console.warn('⚠️ FCM not initialized, skipping global push.');
     return;
   }
@@ -72,7 +50,7 @@ async function sendGlobalPush(title, body, data = {}) {
  * Send push notification to specific device tokens
  */
 async function sendToDevices(tokens, title, body, data = {}) {
-  if (!fcmInitialized || !tokens.length) {
+  if (!isInitialized() || !tokens.length) {
     console.warn('⚠️ FCM not initialized or no tokens, skipping device push.');
     return;
   }
@@ -118,7 +96,7 @@ async function sendToDevices(tokens, title, body, data = {}) {
  * Send push notification to ALL registered device tokens in the database
  */
 async function sendToAll(title, body, data = {}) {
-  if (!fcmInitialized) {
+  if (!isInitialized()) {
     console.warn('⚠️ FCM not initialized, skipping global push.');
     return;
   }

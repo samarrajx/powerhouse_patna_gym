@@ -6,6 +6,7 @@ const supabase = require('../db/supabase');
 const authMiddleware = require('../middleware/auth');
 const { sendToAll } = require('../utils/fcm');
 
+const { isInitialized, getError } = require('../db/firebase');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 const hasMissingColumn = (err, column) => (err?.message || '').toLowerCase().includes(column.toLowerCase());
@@ -429,5 +430,14 @@ router.get('/batches', authMiddleware(['admin']), async (req, res) => {
   res.json({ success: true, message: 'Batches list', data: data || [], error_code: null });
 });
 
+
+router.get('/fcm/status', authMiddleware(['admin']), (req, res) => {
+  res.json({
+    success: true,
+    initialized: isInitialized(),
+    error: getError(),
+    timestamp: new Date().toISOString()
+  });
+});
 
 module.exports = router;
