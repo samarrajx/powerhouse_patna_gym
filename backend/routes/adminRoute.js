@@ -508,5 +508,74 @@ router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, r
   }
 });
 
+/**
+ * Periodic Membership Renewal Reminders
+ */
+router.get('/notifications/membership-reminders', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const getTargetDate = (offset) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() + offset);
+      return d.toISOString().split('T')[0];
+    };
+
+    const target5 = getTargetDate(5);
+    const target2 = getTargetDate(2);
+    const target1 = getTargetDate(1);
+
+    // 1. Fetch users for reminders
+    const { data: reminderUsers, error: reminderError } = await supabase
+      .from('users')
+      .select('id, name, membership_expiry')
+      .in('membership_expiry', [target5, target2, target1]);
+
+    if (reminderError) throw reminderError;
+
+    for (const user of reminderUsers) {
+      const daysLeft = Math.round((new Date(user.membership_expiry) - today) / (1000 * 60 * 60 * 24));
+      let message = "";
+      
+      if (daysLeft === 5) message = "Your membership expires in 5 days! Plan ahead to keep your streak going. 💪";
+      else if (daysLeft === 2) message = "Your membership expires in 2 days. Renew today to avoid any interruption! ⏳";
+      else if (daysLeft === 1) message = "Last call! Your membership expires tomorrow. Don't miss your next workout! 🏃‍♂️";
+
+      if (message) {
+        await sendToUser(user.id, 'Membership Renewal', message, { type: 'membership_reminder' })
+          .catch(e => console.error(`Reminder failed for ${user.name}:`, e));
+      }
+    }
+
+    // 2. Fetch users who are overdue (expired before today)
+    const { data: overdueUsers, error: overdueError } = await supabase
+      .from('users')
+      .select('id, name, membership_expiry')
+      .lt('membership_expiry', today.toISOString().split('T')[0])
+      .eq('status', 'active'); // Only notify active users who forgot to renew
+
+    if (overdueError) throw overdueError;
+
+    for (const user of overdueUsers) {
+      await sendToUser(
+        user.id, 
+        'Plan Overdue', 
+        "Your membership has expired. Please renew your plan to keep your account up to date! 🚨",
+        { type: 'membership_overdue' }
+      ).catch(e => console.error(`Overdue alert failed for ${user.name}:`, e));
+    }
+
+    res.json({ 
+      success: true, 
+      reminders_sent: reminderUsers.length, 
+      overdue_notified: overdueUsers.length 
+    });
+  } catch (error) {
+    console.error('❌ Membership reminders error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;
 
