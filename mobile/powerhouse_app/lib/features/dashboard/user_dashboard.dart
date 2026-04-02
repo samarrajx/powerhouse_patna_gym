@@ -63,22 +63,30 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
       
       // Find history for this date
       final record = history.firstWhere(
-        (entry) => (entry['date'] as String).startsWith(dateStr), 
+        (entry) => (entry['date']?.toString() ?? '').startsWith(dateStr), 
         orElse: () => null
       );
       
       double duration = 0;
-      if (record != null && record['time_in'] != null && record['time_out'] != null) {
+      if (record != null && record['time_in'] != null) {
         try {
           final tIn = DateTime.parse(record['time_in']);
-          final tOut = DateTime.parse(record['time_out']);
-          duration = tOut.difference(tIn).inMinutes / 60.0;
+          final tOutStr = record['time_out'];
+          
+          if (tOutStr != null) {
+            final tOut = DateTime.parse(tOutStr);
+            duration = tOut.difference(tIn).inMinutes / 60.0;
+          } else {
+            // Live session: calculate duration up to now (maximum 4 hours for graph display)
+            final currentDuration = now.difference(tIn).inMinutes / 60.0;
+            duration = currentDuration;
+          }
         } catch (_) {}
       }
       
       stats.add(DailyActivity(
         day: DateFormat('E').format(date).toUpperCase(),
-        durationHours: duration.clamp(0, 5), // Max 5 hours for visual scale
+        durationHours: duration.clamp(0.0, 5.0), // Max 5 hours for visual scale
         date: date,
       ));
     }
