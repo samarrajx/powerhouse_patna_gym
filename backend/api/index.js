@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const { apiLimiter } = require('../middleware/rateLimit');
+const { getNowIST, getNowISTDate } = require('../utils/dateUtils');
 
 const authRoute = require('../routes/authRoute');
 const qrRoute = require('../routes/qrRoute');
@@ -14,7 +15,6 @@ const userRoute = require('../routes/userRoute');
 const IST_TZ = 'Asia/Kolkata';
 
 const getIstNow = () => {
-  const { getNowISTDate } = require('./utils/dateUtils');
   const now = getNowISTDate();
   const day = now
     .toLocaleDateString('en-US', { weekday: 'long', timeZone: IST_TZ })
