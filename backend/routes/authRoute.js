@@ -125,8 +125,6 @@ router.post('/device-token', authMiddleware(), async (req, res) => {
   const { token, platform } = req.body;
   if (!token) return res.status(400).json({ success: false, message: 'Token required' });
 
-  console.log('🔔 authRoute: Registering device token for user:', req.user.userId, { platform });
-
   try {
     const { error } = await supabase
       .from('device_tokens')
@@ -137,17 +135,8 @@ router.post('/device-token', authMiddleware(), async (req, res) => {
         updated_at: new Date() 
       }, { onConflict: 'user_id, token' });
 
-    if (error) {
-      console.error('❌ authRoute: Token registration error:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-      throw error;
-    }
+    if (error) throw error;
     
-    console.log('✅ authRoute: Token registered successfully');
     res.json({ success: true, message: 'Token registered' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to register token' });

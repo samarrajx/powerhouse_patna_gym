@@ -380,8 +380,6 @@ router.get('/announcements', authMiddleware(['admin']), async (req, res) => {
 
 router.post('/announcements', authMiddleware(['admin']), async (req, res) => {
   const { title, content, is_active } = req.body;
-  console.log('📢 adminRoute: POST /announcements body:', JSON.stringify(req.body));
-  console.log('📢 adminRoute: Received request to create announcement:', { title, is_active, bodyType: typeof is_active });
   
   const { data, error } = await supabase.from('announcements').insert([{ title, content, is_active }]).select().single();
   
@@ -401,16 +399,14 @@ router.post('/announcements', authMiddleware(['admin']), async (req, res) => {
 
 router.put('/announcements/:id', authMiddleware(['admin']), async (req, res) => {
   const { title, content, is_active } = req.body;
-  console.log('📢 adminRoute: Received request to update announcement:', { id: req.params.id, title, is_active });
 
   const { data, error } = await supabase.from('announcements').update({ title, content, is_active }).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
 
   // Trigger Push Notification if active
   if (is_active) {
-    console.log('📢 adminRoute: Triggering Token-Based Push for Updated Announcement:', title);
     await sendToAll(title || 'Updated Announcement', content || 'Check the app for details', { type: 'announcement', id: data.id.toString() })
-      .catch(err => console.error('❌ adminRoute: Push failed:', err));
+      .catch(err => console.error('Push failed:', err));
   }
 
   res.json({ success: true, message: 'Announcement updated', data, error_code: null });
@@ -430,14 +426,5 @@ router.get('/batches', authMiddleware(['admin']), async (req, res) => {
   res.json({ success: true, message: 'Batches list', data: data || [], error_code: null });
 });
 
-
-router.get('/fcm/status', authMiddleware(['admin']), (req, res) => {
-  res.json({
-    success: true,
-    initialized: isInitialized(),
-    error: getError(),
-    timestamp: new Date().toISOString()
-  });
-});
 
 module.exports = router;
