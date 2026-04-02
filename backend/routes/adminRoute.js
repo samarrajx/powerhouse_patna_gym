@@ -204,6 +204,11 @@ router.post('/users/bulk', authMiddleware(['admin']), upload.single('file'), asy
     return res.status(400).json({ success: false, message: 'Invalid CSV: ' + e.message, error_code: 'CSV_PARSE_ERROR' });
   }
 
+  // Fetch all batches for batch_name -> batch_id resolution
+  const { data: batchList } = await supabase.from('batches').select('id, name');
+  const batchMap = {};
+  (batchList || []).forEach(b => { batchMap[b.name.toLowerCase()] = b.id; });
+
   const results = { created: 0, failed: [], total: records.length };
   const validRecords = records.filter((r) => {
     if (!r.name || !r.phone) {
@@ -220,7 +225,10 @@ router.post('/users/bulk', authMiddleware(['admin']), upload.single('file'), asy
     father_name: r.father_name || null, date_of_joining: r.date_of_joining || null,
     body_type: r.body_type || null, membership_plan: r.membership_plan || 'Standard',
     membership_expiry: r.membership_expiry || null,
-    fees_status: r.fees_status || 'paid', must_change_password: true,
+    fees_status: r.fees_status || 'paid',
+    notes: r.notes || null,
+    batch_id: r.batch_name ? (batchMap[r.batch_name.toLowerCase()] || null) : null,
+    must_change_password: true,
   }));
 
   if (allRows.length) {
