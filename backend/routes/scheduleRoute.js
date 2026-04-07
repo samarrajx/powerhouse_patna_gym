@@ -26,10 +26,12 @@ router.get('/weekly', async (req, res) => {
 
 // PUT /schedule/weekly/:day — admin update a day
 router.put('/weekly/:day', authMiddleware(['admin']), async (req, res) => {
-  const { day } = req.params;
-  const normalizedDay = `${day.slice(0, 1).toUpperCase()}${day.slice(1).toLowerCase()}`;
+  const normalizedDay = day.trim().toLowerCase();
   const { is_open, open_time, close_time } = req.body;
-  const { data, error } = await supabase.from('weekly_schedule').update({ is_open, open_time, close_time, updated_at: getNowIST().toISO() }).ilike('day_of_week', normalizedDay).select().single();
+  const { data, error } = await supabase.from('weekly_schedule')
+    .update({ is_open, open_time, close_time, updated_at: getNowIST().toISO() })
+    .eq('day_of_week', normalizedDay)
+    .select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
   
 
@@ -157,10 +159,12 @@ router.post('/bulk-update', authMiddleware(['admin']), async (req, res) => {
     // 1. Update Weekly Schedule
     if (weekly && Array.isArray(weekly)) {
       for (const day of weekly) {
-        const normalizedDay = `${day.day_of_week.slice(0, 1).toUpperCase()}${day.day_of_week.slice(1).toLowerCase()}`;
-        await supabase.from('weekly_schedule')
+        const normalizedDay = day.day_of_week.trim().toLowerCase();
+        const { error: updateErr } = await supabase.from('weekly_schedule')
           .update({ is_open: day.is_open, open_time: day.open_time, close_time: day.close_time, updated_at: getNowIST().toISO() })
-          .ilike('day_of_week', normalizedDay);
+          .eq('day_of_week', normalizedDay);
+        
+        if (updateErr) console.error(`Failed to update ${normalizedDay}:`, updateErr.message);
       }
     }
 
