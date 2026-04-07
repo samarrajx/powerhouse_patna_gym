@@ -9,10 +9,14 @@ const router = express.Router();
 // POST /auth/login
 router.post('/login', async (req, res) => {
   const { phone, password } = req.body;
+  console.log(`[AUTH] Login attempt for: ${phone}`);
   if (!phone || !password) return res.status(400).json({ success: false, message: 'Phone and password required', error_code: 'MISSING_CREDS' });
 
   const { data: user, error } = await supabase.from('users').select('*').eq('phone', phone.trim()).single();
-  if (error || !user) return res.status(401).json({ success: false, message: 'Invalid credentials', error_code: 'INVALID_CREDS' });
+  if (error || !user) {
+    console.warn(`[AUTH] User not found or DB error: ${phone}`, error?.message);
+    return res.status(401).json({ success: false, message: 'Invalid credentials', error_code: 'INVALID_CREDS' });
+  }
   if (user.status === 'inactive') return res.status(403).json({ success: false, message: 'Account is inactive', error_code: 'ACCOUNT_INACTIVE' });
 
   const isMatch = await bcrypt.compare(password, user.password_hash);

@@ -26,7 +26,8 @@ router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
   } catch (err) {
     console.error('Proactive expiry sync failed:', err);
   }
-  // Calculate last 7 days
+
+  // Last 7 days helper
   const last7Days = [];
   for (let i = 6; i >= 0; i--) {
     const d = getNowISTDate();
@@ -34,18 +35,30 @@ router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
     last7Days.push(d.toISOString().split('T')[0]);
   }
 
+  // Robust Fetching: Execute queries and catch errors individually
+  const fetchStat = async (query, fallback = 0) => {
+    try {
+      const { count, error } = await query;
+      if (error) throw error;
+      return count || 0;
+    } catch (err) {
+      console.error('Dashboard stat fetch failed:', err.message);
+      return fallback;
+    }
+  };
+
   const [
-    { count: total_users },
-    { count: today_attendance },
-    { count: inactive_users },
-    { count: expiring_soon },
-    { data: footfallRaw }
+    total_users,
+    today_attendance,
+    inactive_users,
+    expiring_soon,
+    footfallRaw
   ] = await Promise.all([
-    supabase.from('users').select('*', { count: 'exact', head: true }).neq('role', 'admin').eq('status', 'active'),
-    supabaseLogs.from('attendance').select('*', { count: 'exact', head: true }).eq('date', today),
-    supabase.from('users').select('*', { count: 'exact', head: true }).in('status', ['inactive', 'grace']),
-    supabase.from('users').select('*', { count: 'exact', head: true }).neq('role', 'admin').lte('membership_expiry', new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]).gte('membership_expiry', today),
-    supabaseLogs.from('attendance').select('date').gte('date', last7Days[0]).lte('date', last7Days[6])
+    fetchStat(supabase.from('users').select('*', { count: 'exact', head: true }).neq('role', 'admin').eq('status', 'active')),
+    fetchStat(supabaseLogs.from('attendance').select('*', { count: 'exact', head: true }).eq('date', today)),
+    fetchStat(supabase.from('users').select('*', { count: 'exact', head: true }).in('status', ['inactive', 'grace'])),
+    fetchStat(supabase.from('users').select('*', { count: 'exact', head: true }).neq('role', 'admin').lte('membership_expiry', new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]).gte('membership_expiry', today)),
+    supabaseLogs.from('attendance').select('date').gte('date', last7Days[0]).lte('date', last7Days[6]).then(res => res.data || [])
   ]);
 
   const footfallMap = (footfallRaw || []).reduce((acc, curr) => {
@@ -61,7 +74,7 @@ router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
 
   res.json({ 
     success: true, 
-    message: 'Dashboard data', 
+    message: 'Dashboard data fetched', 
     data: { 
       total_users, 
       today_attendance, 
@@ -408,7 +421,7 @@ router.post('/attendance/manual', authMiddleware(['admin']), async (req, res) =>
   const { user_id, date, time_in, time_out } = req.body;
   if (!user_id || !date) return res.status(400).json({ success: false, message: 'user_id and date required', error_code: 'MISSING_FIELDS' });
 
-  const { data: existing } = await supabaseLogs.from('attendance').select('id').eq('user_id', user_id).eq('date', date).single();
+  const { data: existing } = await supabaseLogs.from('attendance').select('id').eq('user_id', user_id).eq('date', date).maybeSingle();
 
   let result;
   if (existing) {

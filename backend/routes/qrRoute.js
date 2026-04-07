@@ -109,7 +109,9 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
   try {
     const decoded = jwt.verify(code_hash, process.env.JWT_SECRET);
     if (decoded.type !== 'attendance_qr') throw new Error('Invalid token type');
+    console.log(`[QR SCAN] Token verified for user: ${req.user.userId}`);
   } catch (err) {
+    console.warn(`[QR SCAN] Verification failed: ${err.message}`);
     return res.status(400).json({ success: false, message: `Invalid or expired QR: ${err.message}`, error_code: 'INVALID_QR' });
   }
 
