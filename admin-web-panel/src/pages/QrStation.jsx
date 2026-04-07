@@ -19,7 +19,7 @@ export default function QrStation() {
       const code = res.data?.qr_code || res.data?.code;
       setIsClosed(false);
       setQr(code);
-      const expiry = res.data?.expires_in || 30;
+      const expiry = res.data?.expires_in || 60;
       setTimeLeft(expiry);
     } catch(e) {
       if (e.data?.error_code === 'GYM_CLOSED' || e.message?.toLowerCase().includes('closed')) {
@@ -41,7 +41,7 @@ export default function QrStation() {
       setTimeLeft(prev => {
         if (prev <= 1) {
           fetchToken(); // Fetch a new one immediately when 0
-          return 30;
+          return 60;
         }
         return prev - 1;
       });
@@ -50,7 +50,7 @@ export default function QrStation() {
     return () => clearInterval(timerRef.current);
   }, []);
 
-  const pct = (timeLeft / 30) * 100;
+  const pct = (timeLeft / 60) * 100;
   const danger = timeLeft <= 5;
 
   return (
@@ -67,7 +67,7 @@ export default function QrStation() {
                 Turnstile Access Token
               </h3>
               <p style={{ fontSize:'0.8rem', color:'var(--text-2)', marginTop:'4px' }}>
-                Auto-refreshes every 30 seconds
+                Auto-refreshes every 60 seconds
               </p>
             </div>
 
@@ -111,8 +111,8 @@ export default function QrStation() {
           {/* Info panel */}
           <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
             {[
-              { emoji:'🔒', title:'Security', body:'Tokens expire every 30 seconds. For additional security, consider implementing a token blacklist.' },
-              { emoji:'⏱️', title:'30-Second Expiry', body:'Tokens auto-expire after 30 seconds.' },
+              { emoji: '🔒', title: 'Security', body: 'Tokens expire every 60 seconds.' },
+              { emoji: '⏱️', title: '60-Second Expiry', body: 'Tokens auto-expire after 60 seconds.' },
               { emoji:'📱', title:'Mobile Scanner', body:'Members scan using the Power House mobile app (Android). The app validates in real-time via the backend API.' },
               { emoji:'📊', title:'Audit Logged', body:'Every scan — successful or failed — is logged in the audit trail for security review.' },
             ].map(({ emoji, title, body }) => (

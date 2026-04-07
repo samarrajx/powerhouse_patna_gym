@@ -81,7 +81,7 @@ router.get('/generate', authMiddleware(['admin']), async (req, res) => {
     const token = jwt.sign(
       { type: 'attendance_qr' },
       process.env.JWT_SECRET,
-      { expiresIn: '35s' }
+      { expiresIn: '75s' } // 60s + 15s buffer for scan latency
     );
     
     if (!gymStatus.isOpen) {
@@ -90,12 +90,12 @@ router.get('/generate', authMiddleware(['admin']), async (req, res) => {
         success: true, 
         message: 'QR generated (Admin Bypass)', 
         warning: gymStatus.reason, 
-        data: { qr_code: token, expires_in: 30 }, 
+        data: { qr_code: token, expires_in: 60 }, 
         error_code: null 
       });
     }
 
-    res.json({ success: true, message: 'QR generated', data: { qr_code: token, expires_in: 30 }, error_code: null });
+    res.json({ success: true, message: 'QR generated', data: { qr_code: token, expires_in: 60 }, error_code: null });
   } catch(e) {
     res.status(500).json({ success: false, message: e.message, error_code: 'GENERATE_ERROR' });
   }
@@ -114,12 +114,20 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
 
   // 2. Token Verification
   try {
+    if (!process.env.JWT_SECRET) {
+      console.error('[QR SCAN] JWT_SECRET is missing from environment!');
+    }
     const decoded = jwt.verify(code_hash, process.env.JWT_SECRET);
     if (decoded.type !== 'attendance_qr') throw new Error('Invalid token type');
     console.log(`[QR SCAN] Token verified for user: ${req.user.userId}`);
   } catch (err) {
-    console.warn(`[QR SCAN] Verification failed: ${err.message}`);
-    return res.status(400).json({ success: false, message: `Invalid or expired QR: ${err.message}`, error_code: 'INVALID_QR' });
+    console.warn(`[QR SCAN] Verification failed for token: ${code_hash.substring(0, 10)}... | Error: ${err.message}`);
+    return res.status(400).json({ 
+      success: false, 
+      message: `Invalid or expired QR: ${err.message}`, 
+      error_code: 'INVALID_QR',
+      debug: { error: err.message, token_start: code_hash.substring(0, 10) }
+    });
   }
 
   const user_id = req.user.userId;
