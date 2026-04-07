@@ -1,4 +1,5 @@
 const supabase = require('../../db/supabase');
+const supabaseLogs = require('../../db/supabaseLogs');
 const { getNowIST, getTodayISTStr } = require('../../utils/dateUtils');
 
 module.exports = async (req, res) => {
@@ -24,88 +25,54 @@ module.exports = async (req, res) => {
       const expiredIds = expiredUsers.map((u) => u.id);
       const { error: updateInactiveErr } = await supabase.from('users').update({ status: 'inactive' }).in('id', expiredIds);
       if (updateInactiveErr) throw updateInactiveErr;
-
-      const { error: inactiveLogErr } = await supabase.from('audit_logs').insert(
-        expiredIds.map((id) => ({
-          action: 'MARKED_INACTIVE',
-          target_user: id,
-          details: { reason: 'membership_expired', date: todayStr },
-        }))
-      );
-      if (inactiveLogErr) throw inactiveLogErr;
       markedInactive = expiredIds.length;
     }
 
-    // Step 2: inactive > 30 days since MARKED_INACTIVE -> grace
-    const { data: inactiveLogs, error: inactiveLogsErr } = await supabase
-      .from('audit_logs')
-      .select('target_user, created_at')
-      .eq('action', 'MARKED_INACTIVE')
-      .lt('created_at', cutoff30Iso)
-      .order('created_at', { ascending: false });
+    // Step 2: inactive & expired > 30 days -> grace
+    const cutoff30Date = getNowIST().minus({ days: 30 }).toISODate();
+    const { data: graceUsers, error: graceErr } = await supabase
+      .from('users')
+      .select('id')
+      .eq('status', 'inactive')
+      .eq('is_frozen', false)
+      .lt('membership_expiry', cutoff30Date);
 
-    if (inactiveLogsErr) throw inactiveLogsErr;
+    if (graceErr) throw graceErr;
 
-    const inactiveUserIds = [...new Set((inactiveLogs || []).map((l) => l.target_user).filter(Boolean))];
-    if (inactiveUserIds.length) {
-      const { data: inactiveUsers, error: inactiveUsersErr } = await supabase
-        .from('users')
-        .select('id')
-        .in('id', inactiveUserIds)
-        .eq('status', 'inactive');
-      if (inactiveUsersErr) throw inactiveUsersErr;
-
-      const toGraceIds = (inactiveUsers || []).map((u) => u.id);
-      if (toGraceIds.length) {
-        const { error: graceUpdateErr } = await supabase.from('users').update({ status: 'grace' }).in('id', toGraceIds);
-        if (graceUpdateErr) throw graceUpdateErr;
-
-        const { error: graceLogErr } = await supabase.from('audit_logs').insert(
-          toGraceIds.map((id) => ({
-            action: 'MARKED_GRACE',
-            target_user: id,
-            details: { reason: 'inactive_30_days', date: todayStr },
-          }))
-        );
-        if (graceLogErr) throw graceLogErr;
-        markedGrace = toGraceIds.length;
-      }
+    if (graceUsers?.length) {
+      const graceIds = graceUsers.map((u) => u.id);
+      const { error: graceUpdateErr } = await supabase.from('users').update({ status: 'grace' }).in('id', graceIds);
+      if (graceUpdateErr) throw graceUpdateErr;
+      markedGrace = graceIds.length;
     }
 
-    // Step 3: grace > 30 days since MARKED_GRACE -> archived
-    const { data: graceLogs, error: graceLogsErr } = await supabase
-      .from('audit_logs')
-      .select('target_user, created_at')
-      .eq('action', 'MARKED_GRACE')
-      .lt('created_at', cutoff30Iso)
-      .order('created_at', { ascending: false });
+    // Step 3: grace & expired > 60 days -> archived
+    const cutoff60Date = getNowIST().minus({ days: 60 }).toISODate();
+    const { data: archiveUsers, error: archiveErr } = await supabase
+      .from('users')
+      .select('id')
+      .in('status', ['inactive', 'grace'])
+      .eq('is_frozen', false)
+      .lt('membership_expiry', cutoff60Date);
 
-    if (graceLogsErr) throw graceLogsErr;
+    if (archiveErr) throw archiveErr;
 
-    const graceUserIds = [...new Set((graceLogs || []).map((l) => l.target_user).filter(Boolean))];
-    if (graceUserIds.length) {
-      const { data: graceUsers, error: graceUsersErr } = await supabase
-        .from('users')
-        .select('id')
-        .in('id', graceUserIds)
-        .eq('status', 'grace');
-      if (graceUsersErr) throw graceUsersErr;
+    if (archiveUsers?.length) {
+      const archiveIds = archiveUsers.map((u) => u.id);
+      const { error: archiveUpdateErr } = await supabase.from('users').update({ status: 'archived' }).in('id', archiveIds);
+      if (archiveUpdateErr) throw archiveUpdateErr;
+      markedArchived = archiveIds.length;
+    }
 
-      const toArchiveIds = (graceUsers || []).map((u) => u.id);
-      if (toArchiveIds.length) {
-        const { error: archiveUpdateErr } = await supabase.from('users').update({ status: 'archived' }).in('id', toArchiveIds);
-        if (archiveUpdateErr) throw archiveUpdateErr;
+    // Step 4: Clear automated alerts older than 24 hours
+    const cutoff24h = getNowIST().minus({ hours: 24 }).toISO();
+    const { error: deleteNotifErr, count: deletedNotifs } = await supabaseLogs
+      .from('notifications')
+      .delete({ count: 'exact' })
+      .lt('created_at', cutoff24h);
 
-        const { error: archiveLogErr } = await supabase.from('audit_logs').insert(
-          toArchiveIds.map((id) => ({
-            action: 'MARKED_ARCHIVED',
-            target_user: id,
-            details: { reason: 'grace_30_days', date: todayStr },
-          }))
-        );
-        if (archiveLogErr) throw archiveLogErr;
-        markedArchived = toArchiveIds.length;
-      }
+    if (deleteNotifErr) {
+      console.error('❌ Notification cleanup failed:', deleteNotifErr);
     }
 
     return res.status(200).json({
@@ -115,6 +82,7 @@ module.exports = async (req, res) => {
         marked_inactive: markedInactive,
         marked_grace: markedGrace,
         marked_archived: markedArchived,
+        deleted_notifications: deletedNotifs || 0
       },
       error_code: null,
     });

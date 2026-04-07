@@ -17,8 +17,9 @@ import UserHome from './pages/UserHome';
 import UserScanner from './pages/UserScanner';
 import UserHistory from './pages/UserHistory';
 import UserNotifications from './pages/UserNotifications';
+import StorageControl from './pages/StorageControl';
 import UserLayout from './components/UserLayout';
-import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare, Menu, Bell } from 'lucide-react';
+import { LayoutDashboard, Users, Scan, ClipboardList, Settings2, Calendar, UserX, BarChart3, LogOut, MessageSquare, Menu, Bell, HardDrive } from 'lucide-react';
 import { SidebarProvider, useSidebar } from './SidebarContext';
 import Logo from './components/Logo';
 
@@ -61,6 +62,7 @@ function Sidebar() {
     { to:'/inactive',  icon: UserX,            label:'Inactive Users' },
     { section:'SYSTEM' },
     { to:'/settings',  icon: Settings2,        label:'Settings' },
+    { to:'/storage',   icon: HardDrive,        label:'Storage & Data' },
   ];
 
   return (
@@ -144,6 +146,7 @@ function ProtectedLayout() {
           <Route path="/schedule"   element={<Schedule/>}/>
           <Route path="/inactive"   element={<InactiveUsers/>}/>
           <Route path="/reports"    element={<Reports/>}/>
+          <Route path="/storage"    element={<StorageControl/>}/>
           <Route path="*"           element={<Navigate to="/dashboard" replace/>}/>
         </Routes>
         </main>

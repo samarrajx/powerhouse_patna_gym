@@ -4,6 +4,7 @@ const multer = require('multer');
 const { parse } = require('csv-parse/sync');
 const bcrypt = require('bcrypt');
 const supabase = require('../db/supabase');
+const supabaseLogs = require('../db/supabaseLogs');
 const authMiddleware = require('../middleware/auth');
 const { sendToAll, sendToUser } = require('../utils/fcm');
 
@@ -41,10 +42,10 @@ router.get('/dashboard', authMiddleware(['admin']), async (req, res) => {
     { data: footfallRaw }
   ] = await Promise.all([
     supabase.from('users').select('*', { count: 'exact', head: true }).neq('role', 'admin').eq('status', 'active'),
-    supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('date', today),
+    supabaseLogs.from('attendance').select('*', { count: 'exact', head: true }).eq('date', today),
     supabase.from('users').select('*', { count: 'exact', head: true }).in('status', ['inactive', 'grace']),
     supabase.from('users').select('*', { count: 'exact', head: true }).neq('role', 'admin').lte('membership_expiry', new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]).gte('membership_expiry', today),
-    supabase.from('attendance').select('date').gte('date', last7Days[0]).lte('date', last7Days[6])
+    supabaseLogs.from('attendance').select('date').gte('date', last7Days[0]).lte('date', last7Days[6])
   ]);
 
   const footfallMap = (footfallRaw || []).reduce((acc, curr) => {
@@ -322,9 +323,28 @@ router.post('/users/:id/unfreeze', authMiddleware(['admin']), async (req, res) =
 // ─── Today's attendance (admin) ──────────────────────────────────────────────
 router.get('/attendance/today', authMiddleware(['admin']), async (req, res) => {
   const today = getTodayISTStr();
-  const { data, error } = await supabase.from('attendance').select('*, users(name,phone,roll_no)').eq('date', today).order('time_in', { ascending: false });
+  const { data: attData, error } = await supabaseLogs.from('attendance')
+    .select('id,user_id,date,time_in,time_out')
+    .eq('date', today)
+    .order('time_in', { ascending: false });
+
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
-  res.json({ success: true, message: "Today's attendance", data: data || [], error_code: null });
+
+  // Application-level Join
+  let mappedData = [];
+  if (attData && attData.length > 0) {
+    const userIds = [...new Set(attData.map(a => a.user_id).filter(Boolean))];
+    const { data: userData } = await supabase.from('users').select('id,name,phone,roll_no').in('id', userIds);
+    const userMap = {};
+    (userData || []).forEach(u => { userMap[u.id] = u; });
+
+    mappedData = attData.map(a => ({
+      ...a,
+      users: userMap[a.user_id] || null
+    }));
+  }
+
+  res.json({ success: true, message: "Today's attendance", data: mappedData, error_code: null });
 });
 
 // ─── Attendance report by date range (admin) ────────────────────────────────
@@ -337,16 +357,31 @@ router.get('/reports/attendance', authMiddleware(['admin']), async (req, res) =>
     return res.status(400).json({ success: false, message: 'from must be <= to', error_code: 'INVALID_RANGE' });
   }
 
-  const { data, error } = await supabase
+  const { data: attData, error } = await supabaseLogs
     .from('attendance')
-    .select('id,user_id,date,time_in,time_out,users(name,phone,roll_no)')
+    .select('id,user_id,date,time_in,time_out')
     .gte('date', from)
     .lte('date', to)
     .order('date', { ascending: false })
     .order('time_in', { ascending: false });
 
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
-  res.json({ success: true, message: 'Attendance report', data: data || [], error_code: null });
+
+  // Application-level Join
+  let mappedData = [];
+  if (attData && attData.length > 0) {
+    const userIds = [...new Set(attData.map(a => a.user_id).filter(Boolean))];
+    const { data: userData } = await supabase.from('users').select('id,name,phone,roll_no').in('id', userIds);
+    const userMap = {};
+    (userData || []).forEach(u => { userMap[u.id] = u; });
+
+    mappedData = attData.map(a => ({
+      ...a,
+      users: userMap[a.user_id] || null
+    }));
+  }
+
+  res.json({ success: true, message: 'Attendance report', data: mappedData, error_code: null });
 });
 
 // ─── Revenue summary (admin) ────────────────────────────────────────────────
@@ -373,26 +408,25 @@ router.post('/attendance/manual', authMiddleware(['admin']), async (req, res) =>
   const { user_id, date, time_in, time_out } = req.body;
   if (!user_id || !date) return res.status(400).json({ success: false, message: 'user_id and date required', error_code: 'MISSING_FIELDS' });
 
-  const { data: existing } = await supabase.from('attendance').select('id').eq('user_id', user_id).eq('date', date).single();
+  const { data: existing } = await supabaseLogs.from('attendance').select('id').eq('user_id', user_id).eq('date', date).single();
 
   let result;
   if (existing) {
-    const { data, error } = await supabase.from('attendance').update({ time_in: time_in || existing.time_in, time_out }).eq('id', existing.id).select().single();
+    const { data, error } = await supabaseLogs.from('attendance').update({ time_in: time_in || existing.time_in, time_out }).eq('id', existing.id).select().single();
     if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
     result = data;
   } else {
-    const { data, error } = await supabase.from('attendance').insert([{ user_id, date, time_in, time_out }]).select().single();
+    const { data, error } = await supabaseLogs.from('attendance').insert([{ user_id, date, time_in, time_out }]).select().single();
     if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'INSERT_ERROR' });
     result = data;
   }
 
-  await supabase.from('audit_logs').insert([{ action: 'MANUAL_ATTENDANCE', performed_by: req.user.userId, target_user: user_id, details: { date, time_in, time_out } }]);
   res.json({ success: true, message: 'Attendance record saved', data: result, error_code: null });
 });
 
 // ─── User-specific attendance history (admin) ─────────────────────────────
 router.get('/attendance/user/:userId', authMiddleware(['admin']), async (req, res) => {
-  const { data, error } = await supabase.from('attendance').select('*').eq('user_id', req.params.userId).order('date', { ascending: false }).limit(90);
+  const { data, error } = await supabaseLogs.from('attendance').select('*').eq('user_id', req.params.userId).order('date', { ascending: false }).limit(90);
   if (error) return res.status(500).json({ success: false, message: error.message, error_code: 'DB_ERROR' });
   res.json({ success: true, message: 'History', data: data || [], error_code: null });
 });
@@ -471,15 +505,23 @@ router.get('/batches', authMiddleware(['admin']), async (req, res) => {
 router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, res) => {
   try {
     // 1. Get all active sessions
-    const { data: activeSessions, error: sessionError } = await supabase
+    const { data: activeSessions, error: sessionError } = await supabaseLogs
       .from('attendance')
-      .select('*, users(name, id, batch_id)')
+      .select('id, user_id, date, time_in')
       .is('time_out', null);
 
     if (sessionError) throw sessionError;
     if (!activeSessions || activeSessions.length === 0) {
       return res.json({ success: true, message: 'No active sessions found', count: 0 });
     }
+
+    // App-level join for users (name, id, batch_id)
+    const userIds = [...new Set(activeSessions.map(s => s.user_id).filter(Boolean))];
+    const { data: usersData } = await supabase.from('users').select('id, name, batch_id').in('id', userIds);
+    const userMap = {};
+    (usersData || []).forEach(u => { userMap[u.id] = u; });
+
+    activeSessions.forEach(s => { s.users = userMap[s.user_id] || {}; });
 
     // 2. Get all batches and weekly schedule for lookup
     const { data: batches } = await supabase.from('batches').select('*');
@@ -515,7 +557,7 @@ router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, r
       // Check if session should be closed (we allow a 5-minute grace period)
       if (now.toMillis() > deadline.toMillis() + (5 * 60 * 1000)) {
         // CLOSE SESSION
-        const { error: updateError } = await supabase
+        const { error: updateError } = await supabaseLogs
           .from('attendance')
           .update({ 
             time_out: deadline.toISO(),
@@ -608,6 +650,126 @@ router.get('/notifications/membership-reminders', authMiddleware(['admin']), asy
     });
   } catch (error) {
     console.error('❌ Membership reminders error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ─── Storage & Data Management ───────────────────────────────────────────────
+
+/**
+ * GET /admin/storage/overview
+ * Combined storage usage from both Supabase projects.
+ */
+router.get('/storage/overview', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const [coreRes, logsRes] = await Promise.all([
+      supabase.rpc('get_db_size'),
+      supabaseLogs.rpc('get_db_size')
+    ]);
+
+    const coreSize = coreRes.data || 0;
+    const logsSize = logsRes.data || 0;
+    const totalSize = coreSize + logsSize;
+    const totalSizeMB = parseFloat((totalSize / (1024 * 1024)).toFixed(2));
+    
+    // Each project has a 500MB limit, so 1000MB combined
+    const limitMB = 1000;
+    const usedPercent = Math.min(Math.round((totalSizeMB / limitMB) * 100), 100);
+
+    res.json({
+      success: true,
+      size_mb: totalSizeMB,
+      storage_limit_mb: limitMB,
+      used_percent: usedPercent
+    });
+  } catch (error) {
+    console.error('❌ Storage overview error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /admin/storage/tables
+ * Lists tables and sizes from both projects.
+ */
+router.get('/storage/tables', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const [coreRes, logsRes] = await Promise.all([
+      supabase.rpc('get_table_sizes'),
+      supabaseLogs.rpc('get_table_sizes')
+    ]);
+
+    const coreTables = (coreRes.data || []).map(t => ({
+      ...t,
+      size_mb: parseFloat((t.size_bytes / (1024 * 1024)).toFixed(2)),
+      is_deletable: false // Core tables like users shouldn't be bulk deleted here
+    }));
+
+    const logsTables = (logsRes.data || []).map(t => ({
+      ...t,
+      size_mb: parseFloat((t.size_bytes / (1024 * 1024)).toFixed(2)),
+      is_deletable: ['attendance', 'notifications'].includes(t.table_name)
+    }));
+
+    // Combine and sort by size
+    const allTables = [...coreTables, ...logsTables].sort((a, b) => b.size_bytes - a.size_bytes);
+    
+    // Calculate percentages relative to the 1000MB limit
+    const totalLimitBytes = 1000 * 1024 * 1024;
+    const finalTables = allTables.map(t => ({
+      ...t,
+      percent_of_total: parseFloat(((t.size_bytes / totalLimitBytes) * 100).toFixed(2))
+    }));
+
+    res.json(finalTables);
+  } catch (error) {
+    console.error('❌ Storage tables error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /admin/storage/count
+ * Preview number of rows to be deleted.
+ */
+router.get('/storage/count', authMiddleware(['admin']), async (req, res) => {
+  const { table, from_date, to_date } = req.query;
+  if (!table || !from_date || !to_date) return res.status(400).json({ success: false, message: 'Missing parameters' });
+
+  try {
+    const client = ['attendance', 'notifications'].includes(table) ? supabaseLogs : supabase;
+    const { count, error } = await client
+      .from(table)
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', `${from_date}T00:00:00`)
+      .lte('created_at', `${to_date}T23:59:59`);
+
+    if (error) throw error;
+    res.json({ success: true, row_count: count });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * DELETE /admin/storage/clean
+ * Bulk delete data from specified table and range.
+ */
+router.delete('/storage/clean', authMiddleware(['admin']), async (req, res) => {
+  const { table, from_date, to_date } = req.body;
+  if (!table || !from_date || !to_date) return res.status(400).json({ success: false, message: 'Missing parameters' });
+
+  try {
+    const client = ['attendance', 'notifications'].includes(table) ? supabaseLogs : supabase;
+    const { error } = await client
+      .from(table)
+      .delete()
+      .gte('created_at', `${from_date}T00:00:00`)
+      .lte('created_at', `${to_date}T23:59:59`);
+
+    if (error) throw error;
+    res.json({ success: true, message: `Successfully cleared data from ${table}` });
+  } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });

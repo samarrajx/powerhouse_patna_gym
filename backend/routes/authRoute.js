@@ -100,7 +100,7 @@ router.post('/claim-comeback', authMiddleware(), async (req, res) => {
 
   if (error) return res.status(400).json({ success: false, message: error.message });
 
-  await supabase.from('audit_logs').insert([{ action: 'CLAIM_COMEBACK', performed_by: req.user.userId, details: { days_added: 2 } }]);
+
   res.json({ success: true, message: 'Welcome back! 2 days added to your membership.' });
 });
 
@@ -118,7 +118,7 @@ router.post('/change-password', authMiddleware(), async (req, res) => {
 
   const newHash = await bcrypt.hash(newPassword, 10);
   await supabase.from('users').update({ password_hash: newHash, must_change_password: false }).eq('id', req.user.userId);
-  await supabase.from('audit_logs').insert([{ action: 'CHANGE_PASSWORD', performed_by: req.user.userId, details: {} }]);
+
 
   res.json({ success: true, message: 'Password updated successfully', data: {}, error_code: null });
 });

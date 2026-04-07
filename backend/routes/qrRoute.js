@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const supabase = require('../db/supabase');
+const supabaseLogs = require('../db/supabaseLogs');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -10,7 +11,7 @@ const { getNowIST, getTodayISTStr } = require('../utils/dateUtils');
 
 const getIstNow = () => {
   const now = getNowIST();
-  const day = now.setLocale('en-US').toFormat('cccc'); // Monday, Tuesday, etc.
+  const day = now.setLocale('en-US').toFormat('cccc').toLowerCase(); // monday, tuesday, etc.
   const date = now.toISODate(); // YYYY-MM-DD
   const time = now.toFormat('HH:mm:ss');
   return { now: now.toJSDate(), day, date, time };
@@ -58,7 +59,7 @@ async function getLastValidGymDay(beforeDateStr) {
     safety++;
     checkDate.setDate(checkDate.getDate() - 1);
     const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: IST_TZ }).format(checkDate);
-    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][checkDate.getDay()];
+    const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][checkDate.getDay()];
     
     // 1. Check if it was a holiday
     const { data: holiday } = await supabase.from('holidays').select('*').eq('date', dateStr).single();
@@ -151,8 +152,12 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
   }
 
   // 4. Attendance & Streak Logic
-  const { data: existing } = await supabase.from('attendance')
-    .select('*').eq('user_id', user_id).eq('date', today).single();
+  const { data: existing, error: fetchErr } = await supabaseLogs.from('attendance')
+    .select('*').eq('user_id', user_id).eq('date', today).maybeSingle();
+
+  if (fetchErr) {
+    return res.status(500).json({ success: false, message: 'Database error fetching attendance', error: fetchErr.message });
+  }
 
   let action = '';
   const nowIso = getNowIST().toISO();
@@ -171,8 +176,8 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
 
     const newBest = Math.max(userRecord.best_streak || 0, newStreak);
     
-    const { error: attErr } = await supabase.from('attendance').insert([{ user_id, date: today, time_in: nowIso }]);
-    if (attErr) return res.status(400).json({ success: false, message: attErr.message, error_code: 'ATTENDANCE_ERROR' });
+    const { error: attErr } = await supabaseLogs.from('attendance').insert([{ user_id, date: today, time_in: nowIso }]);
+    if (attErr) return res.status(400).json({ success: false, message: `Check-in failed: ${attErr.message}`, error_code: 'ATTENDANCE_ERROR' });
     
     const { error: userUpdateErr } = await supabase.from('users').update({ 
       current_streak: newStreak, 
@@ -185,7 +190,7 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
     action = 'IN';
     streakData = { current: newStreak, best: newBest, isNewRecord: newBest > (userRecord.best_streak || 0) };
   } else if (!existing.time_out) {
-    const { error } = await supabase.from('attendance').update({ time_out: nowIso }).eq('id', existing.id);
+    const { error } = await supabaseLogs.from('attendance').update({ time_out: nowIso }).eq('id', existing.id);
     if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'ATTENDANCE_ERROR' });
     action = 'OUT';
   } else {
@@ -193,9 +198,7 @@ router.post('/scan', authMiddleware(['user']), async (req, res) => {
   }
 
   // 5. Logging & Response
-  await supabase.from('audit_logs').insert([{
-    action: 'QR_SCAN', performed_by: user_id, target_user: user_id, details: { action, time: nowIso }
-  }]);
+  // 5. Logging & Response (removed)
 
   res.json({ success: true, message: `Checked ${action} successfully`, data: { action, streak: streakData, user: { name: userRecord.name, roll_no: userRecord.roll_no } }, error_code: null });
 });

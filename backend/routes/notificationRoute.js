@@ -1,17 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../db/supabase');
+const supabaseLogs = require('../db/supabaseLogs');
 const authMiddleware = require('../middleware/auth');
 const { sendToAll } = require('../utils/fcm');
 
 // GET /api/notifications -> Get user notifications + global announcements
 router.get('/', authMiddleware(['user', 'admin']), async (req, res) => {
   try {
+    const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
     const [notifRes, announceRes] = await Promise.all([
-      supabase
+      supabaseLogs
         .from('notifications')
         .select('*')
         .or(`user_id.eq.${req.user.userId},user_id.is.null`)
+        .gte('created_at', cutoff24h)
         .order('created_at', { ascending: false })
         .limit(50),
       supabase
@@ -56,7 +60,7 @@ router.post('/broadcast', authMiddleware(['admin']), async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseLogs
       .from('notifications')
       .insert({ title, message, type, user_id: null })
       .select();
@@ -76,7 +80,7 @@ router.post('/broadcast', authMiddleware(['admin']), async (req, res) => {
 // PUT /api/notifications/:id/read -> Mark as read
 router.put('/:id/read', authMiddleware(['user', 'admin']), async (req, res) => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseLogs
       .from('notifications')
       .update({ is_read: true })
       .eq('id', req.params.id)
@@ -92,7 +96,7 @@ router.put('/:id/read', authMiddleware(['user', 'admin']), async (req, res) => {
 // PUT /api/notifications/read-all -> Mark all as read for current user
 router.put('/read-all', authMiddleware(['user', 'admin']), async (req, res) => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseLogs
       .from('notifications')
       .update({ is_read: true })
       .eq('user_id', req.user.userId)

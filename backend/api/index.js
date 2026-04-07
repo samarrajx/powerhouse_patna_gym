@@ -37,6 +37,8 @@ app.use(helmet({ contentSecurityPolicy: false }));
 const ALLOWED_ORIGINS = [
   'https://powerhouse-patna-gym.vercel.app',
   'https://powerhouse-admin.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
 ];
 app.use(cors({
   origin: (origin, callback) => {

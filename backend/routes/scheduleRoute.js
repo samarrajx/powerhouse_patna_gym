@@ -32,7 +32,7 @@ router.put('/weekly/:day', authMiddleware(['admin']), async (req, res) => {
   const { data, error } = await supabase.from('weekly_schedule').update({ is_open, open_time, close_time, updated_at: getNowIST().toISO() }).ilike('day_of_week', normalizedDay).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'UPDATE_ERROR' });
   
-  await supabase.from('audit_logs').insert([{ action: 'UPDATE_SCHEDULE', performed_by: req.user.userId, details: { day: normalizedDay, is_open, open_time, close_time } }]);
+
   
   // Trigger notification
   await supabase.from('notifications').insert([{
@@ -62,7 +62,7 @@ router.post('/holidays', authMiddleware(['admin']), async (req, res) => {
   const { data, error } = await supabase.from('holidays').insert([{ date, reason, is_closed }]).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'INSERT_ERROR' });
   
-  await supabase.from('audit_logs').insert([{ action: 'ADD_HOLIDAY', performed_by: req.user.userId, details: { date, reason } }]);
+
   
   // Trigger notification
   await supabase.from('notifications').insert([{
@@ -82,7 +82,7 @@ router.post('/holidays', authMiddleware(['admin']), async (req, res) => {
 router.delete('/holidays/:id', authMiddleware(['admin']), async (req, res) => {
   const { error } = await supabase.from('holidays').delete().eq('id', req.params.id);
   if (error) return res.status(400).json({ success: false, message: error.message, error_code: 'DELETE_ERROR' });
-  await supabase.from('audit_logs').insert([{ action: 'DELETE_HOLIDAY', performed_by: req.user.userId, details: { id: req.params.id } }]);
+
   res.json({ success: true, message: 'Holiday removed', error_code: null });
 });
 
@@ -139,11 +139,7 @@ router.put('/batches/:slot', authMiddleware(['admin']), async (req, res) => {
     updated = data;
   }
 
-  await supabase.from('audit_logs').insert([{
-    action: 'UPDATE_BATCH_TIMING',
-    performed_by: req.user.userId,
-    details: { slot, start_time, end_time, is_active, batch_id: updated.id },
-  }]);
+
 
   // Push notification (Only if requested or for critical changes)
   if (req.query.notify !== 'false') {
@@ -178,12 +174,7 @@ router.post('/bulk-update', authMiddleware(['admin']), async (req, res) => {
       }
     }
 
-    // 3. Audit Log
-    await supabase.from('audit_logs').insert([{
-      action: 'BULK_SCHEDULE_UPDATE',
-      performed_by: req.user.userId,
-      details: { weekly_count: (weekly||[]).length, batch_count: (batchUpdates||[]).length }
-    }]);
+    // 3. Audit Log (removed)
 
     // 4. ONE Notification & ONE Push
     const msg = "Gym operating hours and batch timings have been updated. Please check the dashboard for details.";
