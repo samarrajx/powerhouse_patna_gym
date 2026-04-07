@@ -28,23 +28,23 @@ async function checkGymOpen() {
   const { date: todayDateStr, day: dayName, time: currentTime } = getIstNow();
 
   // 1. Check if today is a holiday
-  const { data: holiday } = await supabase.from('holidays').select('*').eq('date', todayDateStr).single();
-  if (holiday && holiday.is_closed) {
-    return { isOpen: false, reason: `Holiday: ${holiday.reason}` };
-  }
+  const { data: holiday } = await supabase.from('holidays').select('is_closed, reason').eq('date', todayDateStr).maybeSingle();
+  if (holiday && holiday.is_closed) return { isOpen: false, reason: `Holiday: ${holiday.reason}` };
 
   // 2. Check weekly schedule
-  const { data: schedule } = await supabase.from('weekly_schedule').select('*').eq('day_of_week', dayName).single();
-  if (!schedule) return { isOpen: true }; // Default open if no schedule defined
-  if (!schedule.is_open) return { isOpen: false, reason: 'Closed today based on weekly schedule' };
+  const { data: schedule } = await supabase.from('weekly_schedule').select('*').eq('day_of_week', dayName).maybeSingle();
+  if (schedule && !schedule.is_open) return { isOpen: false, reason: 'Closed today (Weekly Schedule)' };
 
-  // 3. Check time logic (Warning: time zones can be tricky, keeping it simple using server time)
-  // Assuming open_time and close_time are 'HH:MM:SS' strings
-  if (schedule.open_time && currentTime < schedule.open_time) {
-    return { isOpen: false, reason: `Gym opens at ${schedule.open_time}` };
-  }
-  if (schedule.close_time && currentTime > schedule.close_time) {
-    return { isOpen: false, reason: `Gym closed at ${schedule.close_time}` };
+  // 3. Check Batches (Dashboard Logic: One of the active batches must cover the current time)
+  const { data: batches } = await supabase.from('batches').select('start_time, end_time, is_active');
+  if (!batches || batches.length === 0) return { isOpen: true }; // Default open if no batches defined
+
+  const inWindow = (start, end) => currentTime >= start && currentTime <= end;
+  const isAnyBatchActiveNow = (batches || []).some(b => b.is_active && inWindow(b.start_time, b.end_time));
+
+  if (!isAnyBatchActiveNow) {
+    // If no batch is active, the gym is technically closed for scans
+    return { isOpen: false, reason: "Outside of active batch hours" };
   }
 
   return { isOpen: true };
