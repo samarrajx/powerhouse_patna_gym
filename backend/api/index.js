@@ -33,6 +33,9 @@ const getIstNow = () => {
 
 const app = express();
 
+// Trust proxy for Vercel/proxies (required for express-rate-limit)
+app.set('trust proxy', 1);
+
 app.use(helmet({ contentSecurityPolicy: false }));
 const ALLOWED_ORIGINS = [
   'https://powerhouse-patna-gym.vercel.app',
