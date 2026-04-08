@@ -753,25 +753,36 @@ router.get('/notifications/membership-reminders', authMiddleware(['admin']), asy
  */
 router.get('/storage/overview', authMiddleware(['admin']), async (req, res) => {
   try {
-    const [coreRes, logsRes] = await Promise.all([
-      supabase.rpc('get_db_size'),
-      supabaseLogs.rpc('get_db_size')
+    // Robust fetching: handle cases where one RPC might not exist yet
+    const fetchSize = async (client) => {
+      try {
+        const { data, error } = await client.rpc('get_db_size');
+        if (error) return 0;
+        return data || 0;
+      } catch { return 0; }
+    };
+
+    const [coreSize, logsSize] = await Promise.all([
+      fetchSize(supabase),
+      fetchSize(supabaseLogs)
     ]);
 
-    const coreSize = coreRes.data || 0;
-    const logsSize = logsRes.data || 0;
     const totalSize = coreSize + logsSize;
     const totalSizeMB = parseFloat((totalSize / (1024 * 1024)).toFixed(2));
     
     // Each project has a 500MB limit, so 1000MB combined
     const limitMB = 1000;
+    const remainingMB = Math.max(0, parseFloat((limitMB - totalSizeMB).toFixed(2)));
     const usedPercent = Math.min(Math.round((totalSizeMB / limitMB) * 100), 100);
 
     res.json({
       success: true,
       size_mb: totalSizeMB,
       storage_limit_mb: limitMB,
-      used_percent: usedPercent
+      used_percent: usedPercent,
+      remaining_mb: remainingMB,
+      core_size_mb: parseFloat((coreSize / (1024 * 1024)).toFixed(2)),
+      logs_size_mb: parseFloat((logsSize / (1024 * 1024)).toFixed(2))
     });
   } catch (error) {
     console.error('❌ Storage overview error:', error);
@@ -785,27 +796,34 @@ router.get('/storage/overview', authMiddleware(['admin']), async (req, res) => {
  */
 router.get('/storage/tables', authMiddleware(['admin']), async (req, res) => {
   try {
-    const [coreRes, logsRes] = await Promise.all([
-      supabase.rpc('get_table_sizes'),
-      supabaseLogs.rpc('get_table_sizes')
+    const fetchTables = async (client, projectLabel) => {
+      try {
+        const { data, error } = await client.rpc('get_table_sizes');
+        if (error) {
+          console.warn(`⚠️ Project ${projectLabel} RPC error:`, error.message);
+          return [];
+        }
+        return (data || []).map(t => ({
+          ...t,
+          project: projectLabel,
+          size_mb: parseFloat((t.size_bytes / (1024 * 1024)).toFixed(2)),
+          is_deletable: ['attendance', 'notifications', 'audit_logs'].includes(t.table_name)
+        }));
+      } catch (err) {
+        console.error(`❌ Project ${projectLabel} fetch error:`, err.message);
+        return [];
+      }
+    };
+
+    const [coreTables, logsTables] = await Promise.all([
+      fetchTables(supabase, 'Core'),
+      fetchTables(supabaseLogs, 'Logs')
     ]);
-
-    const coreTables = (coreRes.data || []).map(t => ({
-      ...t,
-      size_mb: parseFloat((t.size_bytes / (1024 * 1024)).toFixed(2)),
-      is_deletable: false // Core tables like users shouldn't be bulk deleted here
-    }));
-
-    const logsTables = (logsRes.data || []).map(t => ({
-      ...t,
-      size_mb: parseFloat((t.size_bytes / (1024 * 1024)).toFixed(2)),
-      is_deletable: ['attendance', 'notifications'].includes(t.table_name)
-    }));
 
     // Combine and sort by size
     const allTables = [...coreTables, ...logsTables].sort((a, b) => b.size_bytes - a.size_bytes);
     
-    // Calculate percentages relative to the 1000MB limit
+    // Calculate percentages relative to the 1000MB combined limit
     const totalLimitBytes = 1000 * 1024 * 1024;
     const finalTables = allTables.map(t => ({
       ...t,
@@ -824,16 +842,21 @@ router.get('/storage/tables', authMiddleware(['admin']), async (req, res) => {
  * Preview number of rows to be deleted.
  */
 router.get('/storage/count', authMiddleware(['admin']), async (req, res) => {
-  const { table, from_date, to_date } = req.query;
+  const { table, from_date, to_date, project } = req.query;
   if (!table || !from_date || !to_date) return res.status(400).json({ success: false, message: 'Missing parameters' });
 
   try {
-    const client = ['attendance', 'notifications'].includes(table) ? supabaseLogs : supabase;
+    const client = project === 'Logs' ? supabaseLogs : supabase;
+    
+    // Determine the date column to use
+    // Attendance uses 'date', others usually use 'created_at'
+    const dateCol = table === 'attendance' ? 'date' : 'created_at';
+    
     const { count, error } = await client
       .from(table)
       .select('*', { count: 'exact', head: true })
-      .gte('created_at', `${from_date}T00:00:00`)
-      .lte('created_at', `${to_date}T23:59:59`);
+      .gte(dateCol, table === 'attendance' ? from_date : `${from_date}T00:00:00`)
+      .lte(dateCol, table === 'attendance' ? to_date : `${to_date}T23:59:59`);
 
     if (error) throw error;
     res.json({ success: true, row_count: count });
@@ -847,19 +870,21 @@ router.get('/storage/count', authMiddleware(['admin']), async (req, res) => {
  * Bulk delete data from specified table and range.
  */
 router.delete('/storage/clean', authMiddleware(['admin']), async (req, res) => {
-  const { table, from_date, to_date } = req.body;
+  const { table, from_date, to_date, project } = req.body;
   if (!table || !from_date || !to_date) return res.status(400).json({ success: false, message: 'Missing parameters' });
 
   try {
-    const client = ['attendance', 'notifications'].includes(table) ? supabaseLogs : supabase;
+    const client = project === 'Logs' ? supabaseLogs : supabase;
+    const dateCol = table === 'attendance' ? 'date' : 'created_at';
+
     const { error } = await client
       .from(table)
       .delete()
-      .gte('created_at', `${from_date}T00:00:00`)
-      .lte('created_at', `${to_date}T23:59:59`);
+      .gte(dateCol, table === 'attendance' ? from_date : `${from_date}T00:00:00`)
+      .lte(dateCol, table === 'attendance' ? to_date : `${to_date}T23:59:59`);
 
     if (error) throw error;
-    res.json({ success: true, message: `Successfully cleared data from ${table}` });
+    res.json({ success: true, message: `Successfully cleared data from ${table} (${project})` });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

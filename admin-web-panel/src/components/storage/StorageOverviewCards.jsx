@@ -26,7 +26,7 @@ export default function StorageOverviewCards({ overview, loading }) {
       <StorageCard
         label="Total Used"
         value={overview ? `${overview.size_mb} MB` : null}
-        sub="Database size"
+        sub={overview ? `Core: ${overview.core_size_mb}MB | Logs: ${overview.logs_size_mb}MB` : "Combined database size"}
         icon={HardDrive}
         accent="var(--primary)"
         delay="1"

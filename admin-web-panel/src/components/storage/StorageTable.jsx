@@ -29,6 +29,7 @@ export default function StorageTable({ tables, loading, onQuickClean }) {
 
   const headers = [
     { key: 'table_name', label: 'Table Name' },
+    { key: 'project', label: 'Project' },
     { key: 'size_mb', label: 'Size (MB)' },
     { key: 'percent_of_total', label: '% of Total' },
     { key: 'row_count', label: 'Rows' },
@@ -37,7 +38,7 @@ export default function StorageTable({ tables, loading, onQuickClean }) {
 
   const ShimmerRow = ({ i }) => (
     <tr key={i} style={{ animation: `fadeUp 0.4s ${i * 0.05}s both` }}>
-      {[1, 2, 3, 4, 5].map(j => (
+      {[1, 2, 3, 4, 5, 6].map(j => (
         <td key={j}><div className="shimmer" style={{ height: '16px', borderRadius: '6px', width: j === 1 ? '120px' : '60px' }} /></td>
       ))}
     </tr>
@@ -83,7 +84,7 @@ export default function StorageTable({ tables, loading, onQuickClean }) {
               : sorted.length === 0
                 ? (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={6}>
                       <div className="empty-state">
                         <span>No table data available</span>
                       </div>
@@ -105,6 +106,11 @@ export default function StorageTable({ tables, loading, onQuickClean }) {
                               Cleanable
                             </span>
                           )}
+                        </td>
+                        <td>
+                          <span className={`badge ${row.project === 'Core' ? 'badge-blue' : 'badge-purple'}`} style={{ fontSize: '0.65rem' }}>
+                            {row.project}
+                          </span>
                         </td>
                         <td style={{ fontWeight: 600 }}>{row.size_mb} MB</td>
                         <td>
@@ -133,7 +139,7 @@ export default function StorageTable({ tables, loading, onQuickClean }) {
                               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                 <button
                                   className="btn btn-danger btn-sm"
-                                  onClick={() => onQuickClean(row.table_name, 'clear_all')}
+                                  onClick={() => onQuickClean(row.table_name, 'clear_all', row.project)}
                                   style={{ padding: '5px 10px', fontSize: '0.75rem' }}
                                   title="Clear all data from this table"
                                 >
@@ -165,7 +171,7 @@ export default function StorageTable({ tables, loading, onQuickClean }) {
                                   ].map(opt => (
                                     <button
                                       key={opt.action}
-                                      onClick={() => { setOpenDropdown(null); onQuickClean(row.table_name, opt.action); }}
+                                      onClick={() => { setOpenDropdown(null); onQuickClean(row.table_name, opt.action, row.project); }}
                                       style={{
                                         display: 'block', width: '100%', textAlign: 'left',
                                         padding: '8px 12px', fontSize: '0.8rem', fontWeight: 500,

@@ -143,11 +143,11 @@ export default function StorageControl() {
   useEffect(() => { refreshAll(); }, []);
 
   // ─── Row count preview ────────────────────────────────────────────────────
-  const fetchRowCount = useCallback(async (table, from, to) => {
+  const fetchRowCount = useCallback(async (table, from, to, project) => {
     if (!table || !from || !to) { setRowCount(null); return; }
     setLoadingCount(true);
     try {
-      const res = await api.get('/admin/storage/count', { params: { table, from_date: from, to_date: to } });
+      const res = await api.get('/admin/storage/count', { params: { table, from_date: from, to_date: to, project } });
       setRowCount(res.data?.row_count ?? 0);
     } catch {
       setRowCount(null);
@@ -159,7 +159,9 @@ export default function StorageControl() {
   // ─── Filter apply ─────────────────────────────────────────────────────────
   const handleApply = () => {
     if (filter.table && filter.from && filter.to) {
-      fetchRowCount(filter.table, filter.from, filter.to);
+      // Find the project for the selected table
+      const tableObj = tables.find(t => t.table_name === filter.table);
+      fetchRowCount(filter.table, filter.from, filter.to, tableObj?.project);
     }
   };
 
@@ -169,7 +171,7 @@ export default function StorageControl() {
   };
 
   // ─── Quick clean from table row ───────────────────────────────────────────
-  const handleQuickClean = (tableName, action) => {
+  const handleQuickClean = (tableName, action, project) => {
     const today = new Date().toISOString().split('T')[0];
     let fromDate = '';
     let toDate = today;
@@ -188,16 +190,17 @@ export default function StorageControl() {
       return;
     }
 
-    setDeleteModal({ table: tableName, from: fromDate, to: toDate, clearType: action });
+    setDeleteModal({ table: tableName, from: fromDate, to: toDate, clearType: action, project });
     // Pre-fetch row count for modal
-    fetchRowCount(tableName, fromDate, toDate).then(() => {});
+    fetchRowCount(tableName, fromDate, toDate, project).then(() => {});
   };
 
   // ─── Delete from filter bar ───────────────────────────────────────────────
   const handleFilterDelete = () => {
     if (!filter.table || !filter.from || !filter.to) return;
-    setDeleteModal({ table: filter.table, from: filter.from, to: filter.to, clearType: 'custom' });
-    fetchRowCount(filter.table, filter.from, filter.to);
+    const tableObj = tables.find(t => t.table_name === filter.table);
+    setDeleteModal({ table: filter.table, from: filter.from, to: filter.to, clearType: 'custom', project: tableObj?.project });
+    fetchRowCount(filter.table, filter.from, filter.to, tableObj?.project);
   };
 
   // ─── Confirm delete ───────────────────────────────────────────────────────
@@ -206,7 +209,7 @@ export default function StorageControl() {
     setDeleting(true);
     try {
       const res = await api.delete('/admin/storage/clean', {
-        data: { table: deleteModal.table, from_date: deleteModal.from, to_date: deleteModal.to },
+        data: { table: deleteModal.table, from_date: deleteModal.from, to_date: deleteModal.to, project: deleteModal.project },
       });
       toast.success(res.message || 'Data deleted successfully');
       setDeleteModal(null);
@@ -306,6 +309,7 @@ export default function StorageControl() {
       {deleteModal && (
         <StorageDeleteModal
           table={deleteModal.table}
+          project={deleteModal.project}
           fromDate={deleteModal.from}
           toDate={deleteModal.to}
           rowCount={rowCount}

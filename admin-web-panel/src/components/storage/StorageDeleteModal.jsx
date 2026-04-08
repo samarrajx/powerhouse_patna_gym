@@ -1,7 +1,7 @@
 import { X, AlertTriangle, Trash2 } from 'lucide-react';
 
 export default function StorageDeleteModal({
-  table, fromDate, toDate, rowCount,
+  table, project, fromDate, toDate, rowCount,
   onConfirm, onClose, loading,
   clearType, // 'custom' | 'clear_30d' | 'clear_90d' | 'clear_all'
 }) {
@@ -45,6 +45,13 @@ export default function StorageDeleteModal({
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', rowGap: '8px', columnGap: '12px', fontSize: '0.85rem' }}>
             <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>Table:</span>
             <span style={{ fontWeight: 700, fontFamily: 'var(--font-display)' }}>{table}</span>
+
+            <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>Project:</span>
+            <span style={{ fontWeight: 600 }}>
+              <span className={`badge ${project === 'Core' ? 'badge-blue' : 'badge-purple'}`} style={{ fontSize: '0.7rem' }}>
+                {project}
+              </span>
+            </span>
 
             <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>Range:</span>
             <span style={{ fontWeight: 500 }}>{rangeLabel}</span>

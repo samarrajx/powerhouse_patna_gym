@@ -36,11 +36,11 @@ export default function StorageFilterBar({
             value={filter.table}
             onChange={e => setFilter(f => ({ ...f, table: e.target.value }))}
           >
-            <option value="">All tables</option>
-            {DELETABLE_TABLES.filter(t =>
-              (tables || []).some(row => row.table_name === t)
-            ).map(t => (
-              <option key={t} value={t}>{t}</option>
+            <option value="">Select table...</option>
+            {tables && tables.filter(t => t.is_deletable).map(t => (
+              <option key={`${t.project}-${t.table_name}`} value={t.table_name}>
+                {t.table_name} ({t.project})
+              </option>
             ))}
           </select>
         </div>
