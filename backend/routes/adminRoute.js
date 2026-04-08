@@ -7,6 +7,7 @@ const supabase = require('../db/supabase');
 const supabaseLogs = require('../db/supabaseLogs');
 const authMiddleware = require('../middleware/auth');
 const { sendToAll, sendToUser } = require('../utils/fcm');
+const { getGymStatus } = require('../utils/gymStatus');
 
 const { isInitialized, getError } = require('../db/firebase');
 const router = express.Router();
@@ -513,10 +514,16 @@ router.get('/batches', authMiddleware(['admin']), async (req, res) => {
 
 
 /**
- * Auto-checkout users who are past their batch time
+ * Auto-checkout users who are past their batch time or if the gym closed.
+ * Also sends a 10-minute warning.
  */
 router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, res) => {
   try {
+    const gymStatus = await getGymStatus(supabase);
+    const now = getNowIST();
+    const currentTimeStr = now.toFormat('HH:mm:ss');
+    const results = [];
+
     // 1. Get all active sessions
     const { data: activeSessions, error: sessionError } = await supabaseLogs
       .from('attendance')
@@ -528,66 +535,87 @@ router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, r
       return res.json({ success: true, message: 'No active sessions found', count: 0 });
     }
 
-    // App-level join for users (name, id, batch_id)
+    // 2. Hydrate sessions with user data (batch_id, name)
     const userIds = [...new Set(activeSessions.map(s => s.user_id).filter(Boolean))];
     const { data: usersData } = await supabase.from('users').select('id, name, batch_id').in('id', userIds);
     const userMap = {};
     (usersData || []).forEach(u => { userMap[u.id] = u; });
 
-    activeSessions.forEach(s => { s.users = userMap[s.user_id] || {}; });
+    // 3. Evaluate each session
+    const morning = gymStatus.batches.morning;
+    const evening = gymStatus.batches.evening;
 
-    // 2. Get all batches and weekly schedule for lookup
-    const { data: batches } = await supabase.from('batches').select('*');
-    const { data: schedule } = await supabase.from('weekly_schedule').select('*');
+    const getTargetBatch = (batchId) => {
+      if (batchId === morning.id) return morning;
+      if (batchId === evening.id) return evening;
+      return null;
+    };
 
-    const results = [];
-    const now = getNowIST();
+    /**
+     * Helper to check if it's exactly 10 minutes before a time string (HH:mm:ss)
+     */
+    const isWarningTime = (endTimeStr) => {
+      if (!endTimeStr) return false;
+      const end = DateTime.fromFormat(endTimeStr, 'HH:mm:ss', { zone: IST_TZ });
+      const warningStart = end.minus({ minutes: 10 });
+      const warningEnd = end.minus({ minutes: 9 });
+      // If now is between (end - 10m) and (end - 9m), it's warning window for this 1-min cron run
+      return now >= warningStart && now < warningEnd;
+    };
 
     for (const session of activeSessions) {
-      const timeIn = toIST(session.time_in);
-      const dayOfWeek = timeIn.setLocale('en-US').toFormat('cccc').toLowerCase();
+      const user = userMap[session.user_id] || {};
+      const batch = getTargetBatch(user.batch_id);
       
-      let closingTimeStr = null;
-      let reason = 'gym_close';
-
-      // Find matching batch for the check-in time in IST
-      const timeInStr = timeIn.toFormat('HH:mm:ss');
-      const matchingBatch = batches.find(b => timeInStr >= b.start_time && timeInStr <= b.end_time);
-
-      if (matchingBatch) {
-        closingTimeStr = matchingBatch.end_time;
-        reason = `batch_end_${matchingBatch.name}`;
-      } else {
-        // Fallback to gym global closing time
-        const daySchedule = schedule.find(s => s.day_of_week === dayOfWeek);
-        closingTimeStr = daySchedule ? daySchedule.close_time : '22:00:00';
+      // -- A. 10-MINUTE WARNING --
+      if (batch && isWarningTime(batch.end_time)) {
+        await sendToUser(
+          session.user_id,
+          'Gym Session Ending',
+          `Your session in the ${batch.name} is ending in 10 minutes. Please prepare to check out.`,
+          { type: 'session_warning', batch_name: batch.name }
+        ).catch(() => {});
+        results.push({ user: user.name, action: 'notified_warning' });
+        continue; // Don't checkout yet
       }
 
-      // Construct the deadline DateTime object in IST
-      const [hours, minutes, seconds] = closingTimeStr.split(':');
-      const deadline = timeIn.set({ hour: parseInt(hours), minute: parseInt(minutes), second: parseInt(seconds), millisecond: 0 });
+      // -- B. AUTO-CHECKOUT (BATCH END OR GYM CLOSED) --
+      let shouldCheckout = false;
+      let checkoutTime = null;
+      let reason = '';
 
-      // Check if session should be closed (we allow a 5-minute grace period)
-      if (now.toMillis() > deadline.toMillis() + (5 * 60 * 1000)) {
-        // CLOSE SESSION
+      if (batch && currentTimeStr >= batch.end_time) {
+        shouldCheckout = true;
+        checkoutTime = batch.end_time;
+        reason = `End of ${batch.name}`;
+      } else if (!gymStatus.is_open) {
+        // Gym is closed (Holiday or outside all batch windows)
+        shouldCheckout = true;
+        checkoutTime = currentTimeStr; // Use current time as fallback for random closures
+        reason = gymStatus.is_holiday ? `Holiday: ${gymStatus.holiday_reason}` : 'Gym Closed';
+      }
+
+      if (shouldCheckout) {
         const { error: updateError } = await supabaseLogs
           .from('attendance')
           .update({ 
-            time_out: deadline.toISO(),
+            time_out: now.set({ 
+              hour: parseInt(checkoutTime.split(':')[0]), 
+              minute: parseInt(checkoutTime.split(':')[1]), 
+              second: 0 
+            }).toISO(),
             updated_at: now.toISO()
           })
           .eq('id', session.id);
 
         if (!updateError) {
-          // Send Push Notification
           await sendToUser(
-            session.user_id, 
-            'Session Auto-Checkout', 
-            `Your gym session has been auto-terminated at ${closingTimeStr}. Remember to check out next time!`,
-            { type: 'auto_checkout', session_id: session.id }
-          ).catch(e => console.error('Push failed for auto-checkout:', e));
-
-          results.push({ user: session.users.name, action: 'closed', reason });
+            session.user_id,
+            'Auto-Checkout Complete',
+            `You have been checked out automatically. Reason: ${reason}.`,
+            { type: 'auto_checkout', reason }
+          ).catch(() => {});
+          results.push({ user: user.name, action: 'auto_checkout', reason });
         }
       }
     }

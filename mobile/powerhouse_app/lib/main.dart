@@ -156,6 +156,7 @@ class _NotificationHandlerState extends ConsumerState<_NotificationHandler> {
         badge: true,
         sound: true,
       );
+      debugPrint('🔔 FCM Permission status: ${settings.authorizationStatus}');
 
       // Get token
       final token = await messaging.getToken();

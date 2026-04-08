@@ -13,7 +13,9 @@ async function sendGlobalPush(title, body, data = {}) {
     notification: { title, body },
     topic: 'all_users',
     data: { 
-      ...data, 
+      ...data,
+      title,
+      body, 
       click_action: 'FLUTTER_NOTIFICATION_CLICK' 
     },
     android: {
@@ -21,6 +23,7 @@ async function sendGlobalPush(title, body, data = {}) {
       notification: {
         channelId: 'high_importance_channel',
         priority: 'high',
+        clickAction: 'FLUTTER_NOTIFICATION_CLICK',
         defaultSound: true,
         defaultVibrateTimings: true,
       }

@@ -15,7 +15,7 @@
   "crons": [
     {
       "path": "/api/admin/attendance/auto-checkout",
-      "schedule": "0 * * * *"
+      "schedule": "* * * * *"
     },
     {
       "path": "/api/admin/notifications/membership-reminders",

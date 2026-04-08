@@ -46,7 +46,7 @@ class NotificationService {
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
 
-    if (notification != null && android != null) {
+    if (notification != null) {
       try {
         await _notificationsPlugin.show(
           notification.hashCode,
@@ -59,7 +59,7 @@ class NotificationService {
               channelDescription: channel.description,
               importance: Importance.max,
               priority: Priority.high,
-              icon: android.smallIcon ?? '@mipmap/ic_launcher',
+              icon: android?.smallIcon ?? '@mipmap/ic_launcher',
               styleInformation: BigTextStyleInformation(notification.body ?? ''),
             ),
           ),
@@ -70,7 +70,7 @@ class NotificationService {
         debugPrint("❌ NotificationService: Error showing local notification: $e");
       }
     } else {
-      debugPrint("⚠️ NotificationService: Notification or Android details were null. Not showing.");
+      debugPrint("⚠️ NotificationService: Notification details were null. Not showing.");
     }
   }
 }

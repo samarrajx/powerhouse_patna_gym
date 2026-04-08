@@ -87,7 +87,7 @@ export default function Dashboard() {
               <div style={{ fontSize:'0.75rem', color:'var(--text-3)', marginTop: '4px', fontWeight: '600' }}>
                 {gymStatus?.is_holiday ? `Closed for: ${gymStatus.holiday_reason || 'Holiday'}` : (gymStatus?.is_open_today ? 'Today is an operational day' : 'Gym is scheduled to be closed today')}
                 <span style={{ margin: '0 8px', opacity: 0.3 }}>|</span>
-                Slot: {gymStatus?.batches?.morning?.start_time?.slice(0,5)}-{gymStatus?.batches?.morning?.end_time?.slice(0,5)} & {gymStatus?.batches?.evening?.start_time?.slice(0,5)}-{gymStatus?.batches?.evening?.end_time?.slice(0,5)}
+                Slot: {formatTimeStr12h(gymStatus?.batches?.morning?.start_time)}-{formatTimeStr12h(gymStatus?.batches?.morning?.end_time)} & {formatTimeStr12h(gymStatus?.batches?.evening?.start_time)}-{formatTimeStr12h(gymStatus?.batches?.evening?.end_time)}
               </div>
             </div>
           </div>

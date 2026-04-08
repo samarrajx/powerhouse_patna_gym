@@ -1,4 +1,4 @@
-const { getNowISTDate, IST_TZ } = require('./dateUtils');
+const { getNowIST, IST_TZ } = require('./dateUtils');
 
 /**
  * Centrally determines if the gym is currently open based on:
@@ -7,27 +7,23 @@ const { getNowISTDate, IST_TZ } = require('./dateUtils');
  * 3. Active Batch Windows (Morning/Evening)
  */
 async function getGymStatus(supabase) {
-  const now = getNowISTDate();
+  const now = getNowIST();
   
   // Format current date/time in IST
-  const day = now.toLocaleDateString('en-US', { weekday: 'long', timeZone: IST_TZ }).toLowerCase();
-  const todayDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: IST_TZ }).format(now);
-  const currentTimeStr = new Intl.DateTimeFormat('en-GB', {
-    timeZone: IST_TZ,
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).format(now);
+  const dayName = now.setLocale('en-US').toFormat('cccc').toLowerCase(); // e.g., 'monday'
+  const todayDateStr = now.toISODate(); // YYYY-MM-DD
+  const currentTimeStr = now.toFormat('HH:mm:ss');
 
   const [{ data: holiday }, { data: schedule }, { data: batches }] = await Promise.all([
     supabase.from('holidays').select('is_closed, reason').eq('date', todayDateStr).maybeSingle(),
-    supabase.from('weekly_schedule').select('*').eq('day_of_week', day).maybeSingle(),
+    supabase.from('weekly_schedule').select('*').eq('day_of_week', dayName).maybeSingle(),
     supabase.from('batches').select('id,name,start_time,end_time,is_active'),
   ]);
 
   const isHoliday = holiday != null && holiday.is_closed;
-  const daySchedule = schedule || { is_open: true, open_time: '05:00', close_time: '22:00' };
+  
+  // Weekly schedule fallback (if DB entry missing)
+  const daySchedule = schedule || { is_open: true, open_time: '05:00:00', close_time: '23:59:59' };
 
   // Setup Batch slots
   const batchTimings = { morning: null, evening: null };
@@ -43,6 +39,7 @@ async function getGymStatus(supabase) {
   const defaultEvening = { name: 'Evening Batch', start_time: '16:00:00', end_time: '20:00:00', is_active: true };
 
   const morningSlot = {
+    id: batchTimings.morning?.id || null,
     name: batchTimings.morning?.name || defaultMorning.name,
     start_time: batchTimings.morning?.start_time || defaultMorning.start_time,
     end_time: batchTimings.morning?.end_time || defaultMorning.end_time,
@@ -50,6 +47,7 @@ async function getGymStatus(supabase) {
   };
 
   const eveningSlot = {
+    id: batchTimings.evening?.id || null,
     name: batchTimings.evening?.name || defaultEvening.name,
     start_time: batchTimings.evening?.start_time || defaultEvening.start_time,
     end_time: batchTimings.evening?.end_time || defaultEvening.end_time,
@@ -58,16 +56,21 @@ async function getGymStatus(supabase) {
 
   const isOpenByDay = !isHoliday && daySchedule.is_open;
   
+  /**
+   * Helper to check if now is inside a HH:mm:ss window
+   */
   const isInWindow = (start, end) => {
-    const s = start.slice(0, 8);
-    const e = end.slice(0, 8);
-    return Boolean(s && e && currentTimeStr >= s && currentTimeStr <= e);
+    if (!start || !end) return false;
+    // Normalize to 8 characters (HH:mm:ss)
+    const s = start.length === 5 ? `${start}:00` : start.slice(0, 8);
+    const e = end.length === 5 ? `${end}:00` : end.slice(0, 8);
+    return currentTimeStr >= s && currentTimeStr <= e;
   };
 
   const isMorningOpen = isInWindow(morningSlot.start_time, morningSlot.end_time) && morningSlot.is_active;
   const isEveningOpen = isInWindow(eveningSlot.start_time, eveningSlot.end_time) && eveningSlot.is_active;
   
-  // Final decision
+  // Final decision: Must be an open day AND within one of the active batch windows
   const is_open = isOpenByDay && (isMorningOpen || isEveningOpen);
 
   return {
@@ -76,7 +79,7 @@ async function getGymStatus(supabase) {
     holiday_reason: holiday?.reason || null,
     is_open_today: isOpenByDay,
     current_time: currentTimeStr,
-    current_day: day,
+    current_day: dayName,
     current_date: todayDateStr,
     batches: {
       morning: morningSlot,
@@ -84,6 +87,7 @@ async function getGymStatus(supabase) {
     },
     schedule: {
       ...daySchedule,
+      // Overwrite display timings with the actual batch windows for dashboard clarity
       open_time: morningSlot.start_time,
       close_time: eveningSlot.end_time
     }

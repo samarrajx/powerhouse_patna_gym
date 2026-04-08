@@ -352,12 +352,12 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Morning: ${morning != null && morning['is_active'] == true ? "${morning['start_time'].toString().substring(0,5)} - ${morning['end_time'].toString().substring(0,5)}" : "CLOSED"}',
+                        'Morning: ${morning != null && morning['is_active'] == true ? "${_formatTime12h(morning['start_time'])} - ${_formatTime12h(morning['end_time'])}" : "CLOSED"}',
                         style: TextStyle(color: (morning != null && morning['is_active'] == true) ? AppColors.text3(context) : AppColors.error, fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Evening: ${evening != null && evening['is_active'] == true ? "${evening['start_time'].toString().substring(0,5)} - ${evening['end_time'].toString().substring(0,5)}" : "CLOSED"}',
+                        'Evening: ${evening != null && evening['is_active'] == true ? "${_formatTime12h(evening['start_time'])} - ${_formatTime12h(evening['end_time'])}" : "CLOSED"}',
                         style: TextStyle(color: (evening != null && evening['is_active'] == true) ? AppColors.text3(context) : AppColors.error, fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ],
@@ -581,7 +581,7 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                child: const Text('7ndays', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 10)),
+                child: const Text('7 Days', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 10)),
               ),
             ],
           ),
@@ -675,6 +675,19 @@ class _UserDashboardState extends ConsumerState<UserDashboard> {
         ),
       ),
     );
+  }
+
+  String _formatTime12h(String? time24) {
+    if (time24 == null || time24.isEmpty) return 'N/A';
+    try {
+      final parts = time24.split(':');
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      final time = DateTime(2024, 1, 1, hour, minute);
+      return DateFormat('hh:mm a').format(time);
+    } catch (e) {
+      return time24.substring(0, 5);
+    }
   }
 }
 
