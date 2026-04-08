@@ -10,6 +10,7 @@ import { Users, TrendingUp, UserX, Timer, RefreshCcw, Menu } from 'lucide-react'
 import { useSidebar } from '../SidebarContext';
 import { Topbar } from '../components/Topbar';
 import { formatIST } from '../utils/dateUtils';
+import { formatTimeStr12h } from '../utils/time';
 
 // Removed MOCK_CHART as we now use real backend data
 
