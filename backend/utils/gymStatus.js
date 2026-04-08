@@ -87,9 +87,9 @@ async function getGymStatus(supabase) {
     },
     schedule: {
       ...daySchedule,
-      // Overwrite display timings with the actual batch windows for dashboard clarity
-      open_time: morningSlot.start_time,
-      close_time: eveningSlot.end_time
+      // Always show the full operational range for the day on the dashboard
+      open_time: daySchedule.open_time,
+      close_time: daySchedule.close_time
     }
   };
 }

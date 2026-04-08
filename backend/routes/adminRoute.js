@@ -567,31 +567,56 @@ router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, r
       const user = userMap[session.user_id] || {};
       const batch = getTargetBatch(user.batch_id);
       
-      // -- A. 10-MINUTE WARNING --
-      if (batch && isWarningTime(batch.end_time)) {
-        await sendToUser(
-          session.user_id,
-          'Gym Session Ending',
-          `Your session in the ${batch.name} is ending in 10 minutes. Please prepare to check out.`,
-          { type: 'session_warning', batch_name: batch.name }
-        ).catch(() => {});
-        results.push({ user: user.name, action: 'notified_warning' });
-        continue; // Don't checkout yet
+      // -- A. 15-MINUTE WARNING (with duplicate prevention) --
+      // We check if a warning was already sent today for this user
+      if (batch) {
+        const end = DateTime.fromFormat(batch.end_time, 'HH:mm:ss', { zone: IST_TZ });
+        const warningWindowStart = end.minus({ minutes: 15 });
+        const warningWindowEnd = end.minus({ minutes: 5 });
+
+        if (now >= warningWindowStart && now < warningWindowEnd) {
+          // Check if already notified today
+          const { data: alreadyNotified } = await supabaseLogs
+            .from('notifications')
+            .select('id')
+            .eq('user_id', session.user_id)
+            .eq('type', 'session_warning')
+            .gte('created_at', now.startOf('day').toISO())
+            .maybeSingle();
+
+          if (!alreadyNotified) {
+            const title = 'Gym Session Ending';
+            const message = `Your session in the ${batch.name} is ending in 10-15 minutes. Please prepare to check out.`;
+            
+            await sendToUser(session.user_id, title, message, { type: 'session_warning', batch_name: batch.name }).catch(() => {});
+            
+            await supabaseLogs.from('notifications').insert([{
+              user_id: session.user_id,
+              title,
+              message,
+              type: 'session_warning',
+              created_at: now.toISO()
+            }]);
+
+            results.push({ user: user.name, action: 'notified_warning' });
+          }
+          continue; 
+        }
       }
 
       // -- B. AUTO-CHECKOUT (BATCH END OR GYM CLOSED) --
       let shouldCheckout = false;
       let checkoutTime = null;
       let reason = '';
+      let type = 'auto_checkout';
 
       if (batch && currentTimeStr >= batch.end_time) {
         shouldCheckout = true;
         checkoutTime = batch.end_time;
         reason = `End of ${batch.name}`;
       } else if (!gymStatus.is_open) {
-        // Gym is closed (Holiday or outside all batch windows)
         shouldCheckout = true;
-        checkoutTime = currentTimeStr; // Use current time as fallback for random closures
+        checkoutTime = currentTimeStr;
         reason = gymStatus.is_holiday ? `Holiday: ${gymStatus.holiday_reason}` : 'Gym Closed';
       }
 
@@ -609,12 +634,19 @@ router.get('/attendance/auto-checkout', authMiddleware(['admin']), async (req, r
           .eq('id', session.id);
 
         if (!updateError) {
-          await sendToUser(
-            session.user_id,
-            'Auto-Checkout Complete',
-            `You have been checked out automatically. Reason: ${reason}.`,
-            { type: 'auto_checkout', reason }
-          ).catch(() => {});
+          const title = 'Auto-Checkout Complete';
+          const message = `You have been checked out automatically. Reason: ${reason}.`;
+          
+          await sendToUser(session.user_id, title, message, { type, reason }).catch(() => {});
+          
+          await supabaseLogs.from('notifications').insert([{
+            user_id: session.user_id,
+            title,
+            message,
+            type,
+            created_at: now.toISO()
+          }]);
+
           results.push({ user: user.name, action: 'auto_checkout', reason });
         }
       }
@@ -655,14 +687,24 @@ router.get('/notifications/membership-reminders', authMiddleware(['admin']), asy
     for (const user of reminderUsers) {
       const daysLeft = Math.round(toIST(user.membership_expiry).diff(today, 'days').days);
       let message = "";
+      const title = 'Membership Renewal';
       
       if (daysLeft === 5) message = "Your membership expires in 5 days! Plan ahead to keep your streak going. 💪";
       else if (daysLeft === 2) message = "Your membership expires in 2 days. Renew today to avoid any interruption! ⏳";
       else if (daysLeft === 1) message = "Last call! Your membership expires tomorrow. Don't miss your next workout! 🏃‍♂️";
 
       if (message) {
-        await sendToUser(user.id, 'Membership Renewal', message, { type: 'membership_reminder' })
-          .catch(e => console.error(`Reminder failed for ${user.name}:`, e));
+        // Send Push
+        await sendToUser(user.id, title, message, { type: 'membership_reminder' }).catch(() => {});
+        
+        // Save to DB
+        await supabaseLogs.from('notifications').insert([{
+          user_id: user.id,
+          title,
+          message,
+          type: 'membership_reminder',
+          created_at: nowIST.toISO()
+        }]).catch(() => {});
       }
     }
 
@@ -676,12 +718,20 @@ router.get('/notifications/membership-reminders', authMiddleware(['admin']), asy
     if (overdueError) throw overdueError;
 
     for (const user of overdueUsers) {
-      await sendToUser(
-        user.id, 
-        'Plan Overdue', 
-        "Your membership has expired. Please renew your plan to keep your account up to date! 🚨",
-        { type: 'membership_overdue' }
-      ).catch(e => console.error(`Overdue alert failed for ${user.name}:`, e));
+      const title = 'Plan Overdue';
+      const message = "Your membership has expired. Please renew your plan to keep your account up to date! 🚨";
+      
+      // Send Push
+      await sendToUser(user.id, title, message, { type: 'membership_overdue' }).catch(() => {});
+
+      // Save to DB
+      await supabaseLogs.from('notifications').insert([{
+        user_id: user.id,
+        title,
+        message,
+        type: 'membership_overdue',
+        created_at: nowIST.toISO()
+      }]).catch(() => {});
     }
 
     res.json({ 

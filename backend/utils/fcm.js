@@ -87,11 +87,24 @@ async function sendToDevices(tokens, title, body, data = {}) {
 
   try {
     const response = await admin.messaging().sendEachForMulticast(message);
-    console.log(`${response.successCount} messages were sent successfully`);
+    
+    const successCount = response.successCount;
+    const failureCount = response.failureCount;
+
+    console.log(`📡 Broadcast result: ${successCount} sent, ${failureCount} failed.`);
+
+    if (failureCount > 0) {
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          console.error(`❌ FCM Failure for token [${tokens[idx].substring(0, 10)}...]:`, resp.error.message);
+        }
+      });
+    }
+
     return response;
   } catch (error) {
-    console.error('Error sending multicast message:', error);
-    throw error;
+    console.error('❌ FCM sendToDevices error:', error);
+    return null;
   }
 }
 
