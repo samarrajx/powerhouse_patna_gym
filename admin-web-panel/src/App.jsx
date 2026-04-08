@@ -132,25 +132,43 @@ function ProtectedLayout() {
   }
 
   return (
-    <div className="admin-shell">
-        <Sidebar/>
-        <main className="main-area">
-        <Routes>
-          <Route path="/dashboard"  element={<Dashboard/>}/>
-          <Route path="/members"    element={<Members/>}/>
-          <Route path="/qr-station" element={<QrStation/>}/>
-          <Route path="/attendance" element={<Attendance/>}/>
-          <Route path="/templates"  element={<TemplateManager/>}/>
-          <Route path="/settings"   element={<Settings/>}/>
-
-          <Route path="/schedule"   element={<Schedule/>}/>
-          <Route path="/inactive"   element={<InactiveUsers/>}/>
-          <Route path="/reports"    element={<Reports/>}/>
-          <Route path="/storage"    element={<StorageControl/>}/>
-          <Route path="*"           element={<Navigate to="/dashboard" replace/>}/>
-        </Routes>
-        </main>
-      </div>
+    <>
+      <div className="admin-shell">
+          <Sidebar/>
+          <main className="main-area">
+          <Routes>
+            <Route path="/dashboard"  element={<Dashboard/>}/>
+            <Route path="/members"    element={<Members/>}/>
+            <Route path="/qr-station" element={<QrStation/>}/>
+            <Route path="/attendance" element={<Attendance/>}/>
+            <Route path="/templates"  element={<TemplateManager/>}/>
+            <Route path="/settings"   element={<Settings/>}/>
+  
+            <Route path="/schedule"   element={<Schedule/>}/>
+            <Route path="/inactive"   element={<InactiveUsers/>}/>
+            <Route path="/reports"    element={<Reports/>}/>
+            <Route path="/storage"    element={<StorageControl/>}/>
+            <Route path="*"           element={<Navigate to="/dashboard" replace/>}/>
+          </Routes>
+          </main>
+        </div>
+        <footer style={{
+          textAlign: 'center',
+          padding: '10px 0',
+          fontSize: '12px',
+          color: 'var(--text-3, #888)',
+          borderTop: '1px solid var(--glass-border)',
+          background: 'var(--bg)',
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          letterSpacing: '0.04em',
+        }}>
+          © 2026 Samar Raj. All rights reserved.
+        </footer>
+    </>
   );
 }
 

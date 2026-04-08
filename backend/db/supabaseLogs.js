@@ -22,8 +22,8 @@ if (supabaseUrl && supabaseKey) {
       insert: async () => ({ error: 'LOGS_DISABLED' }),
       update: async () => ({ error: 'LOGS_DISABLED' }),
       delete: async () => ({ error: 'LOGS_DISABLED' }),
-      rpc: async () => ({ data: null, error: 'LOGS_DISABLED' })
-    })
+    }),
+    rpc: async () => ({ data: null, error: 'LOGS_DISABLED' })
   };
 }
 

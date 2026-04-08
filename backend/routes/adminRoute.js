@@ -753,18 +753,27 @@ router.get('/notifications/membership-reminders', authMiddleware(['admin']), asy
  */
 router.get('/storage/overview', authMiddleware(['admin']), async (req, res) => {
   try {
-    // Robust fetching: handle cases where one RPC might not exist yet
-    const fetchSize = async (client) => {
+    const getDbSizeSafe = async (client, projectLabel) => {
       try {
+        if (!client || typeof client.rpc !== 'function') {
+          console.warn(`⚠️ Project ${projectLabel} client not fully initialized or missing RPC method.`);
+          return 0;
+        }
         const { data, error } = await client.rpc('get_db_size');
-        if (error) return 0;
+        if (error) {
+          console.error(`❌ Project ${projectLabel} RPC error (get_db_size):`, error.message, error.hint || '');
+          return 0;
+        }
         return data || 0;
-      } catch { return 0; }
+      } catch (err) {
+        console.error(`❌ Unexpected error in getDbSizeSafe for ${projectLabel}:`, err.message);
+        return 0;
+      }
     };
 
     const [coreSize, logsSize] = await Promise.all([
-      fetchSize(supabase),
-      fetchSize(supabaseLogs)
+      getDbSizeSafe(supabase, 'Core'),
+      getDbSizeSafe(supabaseLogs, 'Logs')
     ]);
 
     const totalSize = coreSize + logsSize;
@@ -798,19 +807,26 @@ router.get('/storage/tables', authMiddleware(['admin']), async (req, res) => {
   try {
     const fetchTables = async (client, projectLabel) => {
       try {
-        const { data, error } = await client.rpc('get_table_sizes');
-        if (error) {
-          console.warn(`⚠️ Project ${projectLabel} RPC error:`, error.message);
+        if (!client || typeof client.rpc !== 'function') {
+          console.warn(`⚠️ Project ${projectLabel} client not fully initialized or missing RPC method.`);
           return [];
         }
+        const { data, error } = await client.rpc('get_table_sizes');
+        if (error) {
+          console.error(`❌ Project ${projectLabel} RPC error (get_table_sizes):`, error.message, error.hint || '');
+          return [];
+        }
+
+        const deletableTables = ['attendance', 'notifications', 'announcements', 'qr_logs', 'visit_logs'];
+
         return (data || []).map(t => ({
           ...t,
           project: projectLabel,
-          size_mb: parseFloat((t.size_bytes / (1024 * 1024)).toFixed(2)),
-          is_deletable: ['attendance', 'notifications', 'audit_logs'].includes(t.table_name)
+          size_mb: ((t.size_bytes || 0) / (1024 * 1024)).toFixed(2),
+          is_deletable: deletableTables.includes(t.table_name)
         }));
       } catch (err) {
-        console.error(`❌ Project ${projectLabel} fetch error:`, err.message);
+        console.error(`❌ Unexpected error in fetchTables for ${projectLabel}:`, err.message);
         return [];
       }
     };
@@ -821,7 +837,7 @@ router.get('/storage/tables', authMiddleware(['admin']), async (req, res) => {
     ]);
 
     // Combine and sort by size
-    const allTables = [...coreTables, ...logsTables].sort((a, b) => b.size_bytes - a.size_bytes);
+    const allTables = [...coreTables, ...logsTables].sort((a, b) => (b.size_bytes || 0) - (a.size_bytes || 0));
     
     // Calculate percentages relative to the 1000MB combined limit
     const totalLimitBytes = 1000 * 1024 * 1024;
