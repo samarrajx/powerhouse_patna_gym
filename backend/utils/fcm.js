@@ -70,6 +70,7 @@ async function sendToDevices(tokens, title, body, data = {}) {
       notification: {
         channelId: 'high_importance_channel',
         priority: 'high',
+        clickAction: 'FLUTTER_NOTIFICATION_CLICK',
         defaultSound: true,
         defaultVibrateTimings: true,
       }

@@ -145,23 +145,40 @@ class _NotificationHandlerState extends ConsumerState<_NotificationHandler> {
 
   Future<void> _initFCM() async {
     final authState = ref.read(authProvider);
-    if (!authState.isAuthenticated) return;
+    if (!authState.isAuthenticated) {
+      debugPrint("ℹ️ main: Skipping FCM setup as user is not authenticated.");
+      return;
+    }
 
     try {
       final messaging = FirebaseMessaging.instance;
       
-      // Request permission
+      // Request permission (especially for Android 13+)
       NotificationSettings settings = await messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
+        provisional: false,
       );
       debugPrint('🔔 FCM Permission status: ${settings.authorizationStatus}');
 
       // Get token
-      final token = await messaging.getToken();
+      String? token;
+      if (Platform.isAndroid) {
+        token = await messaging.getToken();
+      } else if (Platform.isIOS) {
+        token = await messaging.getAPNSToken();
+        // Fallback to FCM token if APNS token is not enough for your specific setup
+        token ??= await messaging.getToken();
+      } else {
+        token = await messaging.getToken();
+      }
+
       if (token != null) {
+        debugPrint("🔔 main: Registering device token: ${token.substring(0, 8)}...");
         await ref.read(authProvider.notifier).registerDeviceToken(token);
+      } else {
+        debugPrint("⚠️ main: Failed to get FCM token.");
       }
 
       // Subscribe to global topic

@@ -7,7 +7,7 @@ let initError = null;
 
 try {
   let serviceAccount;
-  const serviceAccountPath = path.join(__dirname, '../config/firebase-service-account.json.json');
+  const serviceAccountPath = path.join(__dirname, '../config/firebase-service-account.json');
 
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
@@ -28,6 +28,13 @@ try {
     } catch (fileError) {
       console.error('❌ Failed to read local Firebase service account file:', fileError.message);
       initError = `File Read Error: ${fileError.message}`;
+    }
+  } else {
+    // Check if the double extension version still exists just in case
+    const fallbackPath = path.join(__dirname, '../config/firebase-service-account.json.json');
+    if (fs.existsSync(fallbackPath)) {
+      console.log('📁 Initializing Firebase from fallback config file (.json.json)...');
+      serviceAccount = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
     }
   }
 
