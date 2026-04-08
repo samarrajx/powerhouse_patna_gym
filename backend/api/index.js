@@ -60,78 +60,23 @@ app.use('/api/schedule', scheduleRoute);
 app.use('/api/notifications', notificationRoute);
 app.use('/api/user', userRoute);
 
-// GET /api/gym/status — check today holiday + weekly schedule
+// GET /api/gym/status — unified status check
 app.get('/api/gym/status', async (req, res) => {
   const supabase = require('../db/supabase');
-  const { date: today, day, time: nowTime } = getIstNow();
+  const { getGymStatus } = require('../utils/gymStatus');
 
-  const [{ data: holiday }, { data: schedule }, { data: batches }] = await Promise.all([
-    supabase.from('holidays').select('is_closed, reason').eq('date', today).maybeSingle(),
-    supabase.from('weekly_schedule').select('*').eq('day_of_week', day).maybeSingle(),
-    supabase.from('batches').select('id,name,start_time,end_time,is_active'),
-  ]);
-
-  const is_holiday = holiday != null && holiday.is_closed;
-  const day_schedule = schedule || { is_open: true, open_time: '05:00', close_time: '22:00' };
-
-  const batchTimings = { morning: null, evening: null };
-  (batches || []).forEach((batch) => {
-    const name = (batch.name || '').toLowerCase();
-    if (name.includes('morning')) batchTimings.morning = batch;
-    if (name.includes('evening')) batchTimings.evening = batch;
-  });
-
-  const defaultMorning = { name: 'Morning Batch', start_time: '05:30:00', end_time: '09:30:00', is_active: true };
-  const defaultEvening = { name: 'Evening Batch', start_time: '16:00:00', end_time: '20:00:00', is_active: true };
-
-  const morningSlot = {
-    name: batchTimings.morning?.name || defaultMorning.name,
-    start_time: batchTimings.morning?.start_time || defaultMorning.start_time,
-    end_time: batchTimings.morning?.end_time || defaultMorning.end_time,
-    is_active: batchTimings.morning?.is_active ?? true,
-  };
-
-  const eveningSlot = {
-    name: batchTimings.evening?.name || defaultEvening.name,
-    start_time: batchTimings.evening?.start_time || defaultEvening.start_time,
-    end_time: batchTimings.evening?.end_time || defaultEvening.end_time,
-    is_active: batchTimings.evening?.is_active ?? true,
-  };
-
-  const mergedDaySchedule = {
-    ...day_schedule,
-    open_time: morningSlot.start_time,
-    close_time: eveningSlot.end_time,
-  };
-
-  const isOpenByDay = !is_holiday && day_schedule.is_open;
-  const isInWindow = (start, end) => Boolean(start && end && nowTime >= start && nowTime <= end);
-  const inMorningSlot = isInWindow(morningSlot.start_time.slice(0, 8), morningSlot.end_time.slice(0, 8));
-  const inEveningSlot = isInWindow(eveningSlot.start_time.slice(0, 8), eveningSlot.end_time.slice(0, 8));
-  
-  // Gym is open ONLY if it's an open day AND we are in a batch window AND that batch is currently ACTIVE
-  const isMorningOpen = inMorningSlot && morningSlot.is_active;
-  const isEveningOpen = inEveningSlot && eveningSlot.is_active;
-  const is_open = isOpenByDay && (isMorningOpen || isEveningOpen);
-
-  res.json({
-    success: true,
-    message: 'Gym status',
-    data: {
-      is_open,
-      is_holiday,
-      is_open_today: isOpenByDay,
-      schedule: mergedDaySchedule,
-      batches: {
-        morning: morningSlot,
-        evening: eveningSlot,
-      },
-      holiday_reason: holiday?.reason || null,
-      timezone: IST_TZ,
-      current_time: nowTime,
-    },
-    error_code: null,
-  });
+  try {
+    const status = await getGymStatus(supabase);
+    res.json({
+      success: true,
+      message: 'Gym status',
+      data: status,
+      error_code: null,
+    });
+  } catch (err) {
+    console.error('[STATUS] Error fetching gym status:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch gym status' });
+  }
 });
 
 // Health check & Root

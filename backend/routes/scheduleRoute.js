@@ -26,7 +26,8 @@ router.get('/weekly', async (req, res) => {
 
 // PUT /schedule/weekly/:day — admin update a day
 router.put('/weekly/:day', authMiddleware(['admin']), async (req, res) => {
-  const normalizedDay = day.trim().toLowerCase();
+  const { day } = req.params;
+  const normalizedDay = (day || '').trim().toLowerCase();
   const { is_open, open_time, close_time } = req.body;
   const { data, error } = await supabase.from('weekly_schedule')
     .update({ is_open, open_time, close_time, updated_at: getNowIST().toISO() })
