@@ -113,7 +113,7 @@ export default function StorageControl() {
     setLoadingOverview(true);
     try {
       const res = await api.get('/admin/storage/overview');
-      setOverview(res.data);
+      setOverview(res);
     } catch {
       toast.error('Failed to load storage overview');
     } finally {
@@ -125,7 +125,7 @@ export default function StorageControl() {
     setLoadingTables(true);
     try {
       const res = await api.get('/admin/storage/tables');
-      setTables(res.data || []);
+      setTables(res || []);
     } catch {
       toast.error('Failed to load table sizes');
     } finally {
@@ -148,7 +148,7 @@ export default function StorageControl() {
     setLoadingCount(true);
     try {
       const res = await api.get('/admin/storage/count', { params: { table, from_date: from, to_date: to, project } });
-      setRowCount(res.data?.row_count ?? 0);
+      setRowCount(res?.row_count ?? 0);
     } catch {
       setRowCount(null);
     } finally {
