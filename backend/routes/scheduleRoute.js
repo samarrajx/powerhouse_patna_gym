@@ -2,7 +2,7 @@ const express = require('express');
 const { getNowIST, toIST } = require('../utils/dateUtils');
 const supabase = require('../db/supabase');
 const authMiddleware = require('../middleware/auth');
-const { sendGlobalPush } = require('../utils/fcm');
+const { sendGlobalPush, sendToAll } = require('../utils/fcm');
 
 const router = express.Router();
 const SLOT_FALLBACKS = {
@@ -46,7 +46,7 @@ router.put('/weekly/:day', authMiddleware(['admin']), async (req, res) => {
   }]);
 
   // Push notification
-  await sendGlobalPush('SCHEDULE UPDATE', `${normalizedDay} schedule updated. The gym is now ${is_open ? 'OPEN' : 'CLOSED'}.`);
+  await sendToAll('SCHEDULE UPDATE', `${normalizedDay} schedule updated. The gym is now ${is_open ? 'OPEN' : 'CLOSED'}.`);
 
   res.json({ success: true, message: `${normalizedDay} schedule updated`, data, error_code: null });
 });
@@ -76,7 +76,7 @@ router.post('/holidays', authMiddleware(['admin']), async (req, res) => {
   }]);
 
   // Push notification
-  await sendGlobalPush('HOLIDAY ALERT', `Gym will be ${is_closed ? 'CLOSED' : 'OPEN'} on ${toIST(date).setLocale('en-IN').toLocaleString({ day: 'numeric', month: 'short' })}. Reason: ${reason}`);
+  await sendToAll('HOLIDAY ALERT', `Gym will be ${is_closed ? 'CLOSED' : 'OPEN'} on ${toIST(date).setLocale('en-IN').toLocaleString({ day: 'numeric', month: 'short' })}. Reason: ${reason}`);
 
   res.json({ success: true, message: 'Holiday added', data, error_code: null });
 });
@@ -146,7 +146,7 @@ router.put('/batches/:slot', authMiddleware(['admin']), async (req, res) => {
 
   // Push notification (Only if requested or for critical changes)
   if (req.query.notify !== 'false') {
-    await sendGlobalPush('TIMING UPDATE', `The ${slot.toUpperCase()} batch timings updated. Status: ${is_active ? 'OPEN' : 'CLOSED'}.`);
+    await sendToAll('TIMING UPDATE', `The ${slot.toUpperCase()} batch timings updated. Status: ${is_active ? 'OPEN' : 'CLOSED'}.`);
   }
 
   res.json({ success: true, message: `${slot} batch timing updated`, data: { slot, ...updated }, error_code: null });
@@ -184,7 +184,7 @@ router.post('/bulk-update', authMiddleware(['admin']), async (req, res) => {
     // 4. ONE Notification & ONE Push
     const msg = "Gym operating hours and batch timings have been updated. Please check the dashboard for details.";
     await supabase.from('notifications').insert([{ title: 'OPERATIONS UPDATE', message: msg, type: 'timing', user_id: null }]);
-    await sendGlobalPush('OPERATIONS UPDATE', msg);
+    await sendToAll('OPERATIONS UPDATE', msg);
 
     res.json({ success: true, message: 'Bulk update successful' });
   } catch (error) {
